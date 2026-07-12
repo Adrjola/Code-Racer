@@ -1,0 +1,13 @@
+.git
+.github
+.gradle
+.idea
+build
+docs
+frontend
+node_modules
+*.iml
+*.log
+.env
+.env.*
+!.env.example
