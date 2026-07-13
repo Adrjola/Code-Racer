@@ -11,9 +11,11 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.server.ResponseStatusException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -44,7 +46,7 @@ public class GlobalExceptionHandler {
       MethodArgumentNotValidException ex, HttpServletRequest request) {
     List<FieldError> errors =
         ex.getBindingResult().getFieldErrors().stream()
-            .map(e -> new FieldError(e.getField(), e.getDefaultMessage(), e.getRejectedValue()))
+            .map(e -> new FieldError(e.getField(), e.getDefaultMessage()))
             .toList();
     return buildResponse(
         HttpStatus.BAD_REQUEST, "Validation failed", "INVALID_INPUT", request, errors);
@@ -55,7 +57,7 @@ public class GlobalExceptionHandler {
       BindException ex, HttpServletRequest request) {
     List<FieldError> errors =
         ex.getBindingResult().getFieldErrors().stream()
-            .map(e -> new FieldError(e.getField(), e.getDefaultMessage(), e.getRejectedValue()))
+            .map(e -> new FieldError(e.getField(), e.getDefaultMessage()))
             .toList();
     return buildResponse(
         HttpStatus.BAD_REQUEST, "Validation failed", "INVALID_INPUT", request, errors);
@@ -72,6 +74,24 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ProblemDetails> handleGeneralException(
       Exception ex, HttpServletRequest request) {
+    if (ex instanceof ErrorResponse errorResponse) {
+      return buildResponse(
+          HttpStatus.valueOf(errorResponse.getStatusCode().value()),
+          errorResponse.getBody().getDetail(),
+          "FRAMEWORK_ERROR",
+          request,
+          null);
+    }
+
+    if (ex instanceof ResponseStatusException responseStatusException) {
+      return buildResponse(
+          HttpStatus.valueOf(responseStatusException.getStatusCode().value()),
+          responseStatusException.getReason(),
+          "FRAMEWORK_ERROR",
+          request,
+          null);
+    }
+
     log.error("Unhandled exception occurred", ex);
     return buildResponse(
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -94,6 +114,7 @@ public class GlobalExceptionHandler {
 
     ProblemDetails problem =
         ProblemDetails.builder()
+            .type("about:blank")
             .status(status.value())
             .title(status.getReasonPhrase())
             .detail(detail)
