@@ -68,9 +68,12 @@ by the feature Tasks that first require them.
 - TypeScript
 - Vite
 - Tailwind CSS
+- Vitest
+- React Testing Library
+- MSW
 
-Routing, API clients, and testing tools will be introduced when their first
-features are implemented.
+Routing and API clients will be introduced when their first features are
+implemented.
 
 ### Local Infrastructure
 
