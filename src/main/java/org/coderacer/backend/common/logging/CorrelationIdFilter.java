@@ -24,7 +24,8 @@ public class CorrelationIdFilter implements Filter {
   @Override
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
-    if (request instanceof HttpServletRequest httpServletRequest && response instanceof HttpServletResponse httpServletResponse) {
+    if (request instanceof HttpServletRequest httpServletRequest
+        && response instanceof HttpServletResponse httpServletResponse) {
       String correlationId = httpServletRequest.getHeader(CORRELATION_ID_HEADER);
       if (correlationId == null || correlationId.isEmpty()) {
         correlationId = UUID.randomUUID().toString();
