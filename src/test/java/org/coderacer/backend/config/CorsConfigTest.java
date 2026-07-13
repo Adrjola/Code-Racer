@@ -18,23 +18,26 @@ import org.springframework.web.bind.annotation.RestController;
 @TestPropertySource(properties = "app.cors.allowed-origins=http://allowed.com")
 class CorsConfigTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
   @Test
   void shouldAllowCORSFromAllowedOrigin() throws Exception {
-    mockMvc.perform(options("/api/test")
-            .header("Origin", "http://allowed.com")
-            .header("Access-Control-Request-Method", "GET"))
+    mockMvc
+        .perform(
+            options("/api/test")
+                .header("Origin", "http://allowed.com")
+                .header("Access-Control-Request-Method", "GET"))
         .andExpect(status().isOk())
         .andExpect(header().string("Access-Control-Allow-Origin", "http://allowed.com"));
   }
 
   @Test
   void shouldRejectCORSFromUnallowedOrigin() throws Exception {
-    mockMvc.perform(options("/api/test")
-            .header("Origin", "http://unallowed.com")
-            .header("Access-Control-Request-Method", "GET"))
+    mockMvc
+        .perform(
+            options("/api/test")
+                .header("Origin", "http://unallowed.com")
+                .header("Access-Control-Request-Method", "GET"))
         .andExpect(status().isForbidden());
   }
 

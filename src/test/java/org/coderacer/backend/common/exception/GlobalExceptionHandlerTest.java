@@ -22,12 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Import(GlobalExceptionHandler.class)
 class GlobalExceptionHandlerTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
   @Test
   void shouldHandleResourceNotFoundException() throws Exception {
-    mockMvc.perform(get("/api/test/not-found"))
+    mockMvc
+        .perform(get("/api/test/not-found"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.status").value(404))
         .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
@@ -36,7 +36,8 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void shouldHandleConflictException() throws Exception {
-    mockMvc.perform(get("/api/test/conflict"))
+    mockMvc
+        .perform(get("/api/test/conflict"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.status").value(409))
         .andExpect(jsonPath("$.code").value("ALREADY_EXISTS"))
@@ -45,9 +46,11 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void shouldHandleValidationException() throws Exception {
-    mockMvc.perform(post("/api/test/validation")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"name\":\"\"}"))
+    mockMvc
+        .perform(
+            post("/api/test/validation")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
@@ -56,7 +59,8 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void shouldHandleGeneralException() throws Exception {
-    mockMvc.perform(get("/api/test/error"))
+    mockMvc
+        .perform(get("/api/test/error"))
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.status").value(500))
         .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"));
