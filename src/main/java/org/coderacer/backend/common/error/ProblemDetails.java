@@ -15,8 +15,7 @@ public record ProblemDetails(
     String code,
     OffsetDateTime timestamp,
     String correlationId,
-    List<FieldError> errors
-) {
+    List<FieldError> errors) {
   public static ProblemDetailsBuilder builder() {
     return new ProblemDetailsBuilder();
   }
@@ -78,7 +77,8 @@ public record ProblemDetails(
     }
 
     public ProblemDetails build() {
-      return new ProblemDetails(type, title, status, detail, instance, code, timestamp, correlationId, errors);
+      return new ProblemDetails(
+          type, title, status, detail, instance, code, timestamp, correlationId, errors);
     }
   }
 }
