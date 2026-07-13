@@ -56,11 +56,8 @@ jobs:
       - name: Run frontend lint
         run: npm run lint
 
-      - name: Run frontend tests
-        run: npm run test -- --reporter=default --reporter=junit --outputFile.junit=reports/vitest.junit.xml
-
-      - name: Check frontend coverage
-        run: npm run test:coverage
+      - name: Run frontend tests and check coverage
+        run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile.junit=reports/vitest.junit.xml
 
       - name: Check frontend formatting
         run: npm run format:check

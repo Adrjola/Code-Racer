@@ -172,9 +172,10 @@ verify the 80% coverage gates locally before opening a pull request.
 
 ## Continuous Integration
 
-GitHub Actions runs the frontend lint, non-watch tests, coverage check,
-formatting check, and production build for pull requests and pushes targeting
-`develop` or `main`.
+GitHub Actions runs frontend lint, `test:coverage`, formatting check, and the
+production build for pull requests and pushes targeting `develop` or `main`.
+The `test:coverage` command runs the non-watch test suite and enforces coverage
+gates in a single Vitest execution.
 
 The frontend CI job writes a JUnit test report to `frontend/reports/` and
 coverage output to `frontend/coverage/`. When the job fails, those reports are
