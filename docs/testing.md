@@ -50,6 +50,28 @@ Frontend tests will be colocated with the source they verify using `.test.ts`
 or `.test.tsx` suffixes. Shared frontend test configuration will live under
 `frontend/src/test/` when the testing stack is introduced.
 
+## Database Migrations
+
+Flyway owns the database schema. Migrations live in
+`src/main/resources/db/migration` and are named `V<n>__description.sql` (for
+example `V1__create_race.sql`). They run automatically when the backend starts.
+
+Once a migration is merged to `develop` it is immutable. Never edit an applied
+migration; add a new forward migration instead. Hibernate runs in `validate`
+mode, so entities must match the schema the migrations create.
+
+To reset the local database to a clean schema, drop the volume and start again
+with `docker compose down -v` followed by `docker compose up`. If a migration
+fails locally, fix or replace the migration file and reset the volume rather
+than editing the database by hand.
+
+## Backend Integration Tests
+
+Tests that need a database use Testcontainers, which starts a throwaway
+PostgreSQL container for the test run. They extend
+`AbstractPostgresIntegrationTest`, so they never depend on a developer's local
+database. Docker must be running to execute them.
+
 ## Current Commands
 
 ### Backend
