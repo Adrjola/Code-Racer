@@ -54,7 +54,17 @@ class GlobalExceptionHandlerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
-        .andExpect(jsonPath("$.errors[0].field").value("name"));
+        .andExpect(jsonPath("$.errors[0].field").value("name"))
+        .andExpect(jsonPath("$.errors[0].rejectedValue").doesNotExist());
+  }
+
+  @Test
+  void shouldHandleFrameworkException() throws Exception {
+    mockMvc
+        .perform(get("/api/test/validation")) // GET on a POST endpoint
+        .andExpect(status().isMethodNotAllowed())
+        .andExpect(jsonPath("$.status").value(405))
+        .andExpect(jsonPath("$.code").value("FRAMEWORK_ERROR"));
   }
 
   @Test
