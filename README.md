@@ -168,27 +168,6 @@ Stop the frontend development server with `Ctrl+C` in its terminal.
 Use volume removal only when a clean local database is intended. Never commit
 `.env`, access tokens, passwords, or other real secrets.
 
-## Quality Commands
-
-Run backend checks from the repository root:
-
-```bash
-./gradlew clean check
-```
-
-Run frontend checks from `frontend/`:
-
-```bash
-npm ci
-npm run lint
-npm run test
-npm run test:coverage
-npm run format:check
-npm run build
-```
-
-Use `npm run test:watch` while actively developing frontend tests.
-
 ## Documentation
 
 - [Working Agreements](docs/working_agreements.md)
