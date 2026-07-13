@@ -1,3 +1,13 @@
 spring:
   application:
     name: code-racer-backend
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:code_racer}
+    username: ${POSTGRES_USER:code_racer}
+    password: ${POSTGRES_PASSWORD:change-me}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
