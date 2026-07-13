@@ -1,4 +1,6 @@
 dist/
+coverage/
+reports/
 node_modules/
 .env
 .env.local

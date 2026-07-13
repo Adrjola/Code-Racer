@@ -56,8 +56,25 @@ jobs:
       - name: Run frontend lint
         run: npm run lint
 
+      - name: Run frontend tests
+        run: npm run test -- --reporter=default --reporter=junit --outputFile.junit=reports/vitest.junit.xml
+
+      - name: Check frontend coverage
+        run: npm run test:coverage
+
       - name: Check frontend formatting
         run: npm run format:check
 
       - name: Build frontend
         run: npm run build
+
+      - name: Upload frontend test reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-test-reports
+          path: |
+            frontend/coverage
+            frontend/reports
+          if-no-files-found: ignore
+          retention-days: 7
