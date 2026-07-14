@@ -19,9 +19,9 @@ All error responses follow the **RFC 9457 (Problem Details for HTTP APIs)** stan
   "errors": [] 
 }
 ```
-- `code`: A stable, machine-readable string (e.g., `INVALID_INPUT`, `ALREADY_EXISTS`).
+- `code`: A stable, machine-readable string (e.g., `INVALID_INPUT`, `ALREADY_EXISTS`, `FRAMEWORK_ERROR`).
 - `correlationId`: A unique ID for tracing the request in logs.
-- `errors`: A list of field-specific validation errors (optional).
+- `errors`: A list of field-specific validation errors (optional, containing `field` and `message`).
 
 #### 2. Exception Hierarchy
 Do not catch broad exceptions in controllers. Instead, throw domain-specific exceptions:

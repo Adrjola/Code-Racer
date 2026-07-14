@@ -1,0 +1,2 @@
+# Flyway migrations live here, named V<n>__<description>.sql (e.g. V1__create_race.sql).
+# Applied migrations are immutable: never edit one that is merged, instead add a new forward migration.

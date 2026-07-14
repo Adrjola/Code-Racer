@@ -21,7 +21,7 @@ public record ProblemDetails(
   }
 
   public static final class ProblemDetailsBuilder {
-    private String type;
+    private String type = "about:blank";
     private String title;
     private int status;
     private String detail;
