@@ -201,12 +201,11 @@ Testing is part of implementation rather than a later project phase.
 
 - The initial Foundation validates build, formatting, linting, application
   startup, and the Spring application context.
-- A separate Testing and Coverage Gates Task must be completed before
-  functional feature pull requests are merged.
-- After those gates are enabled, every implementation Task includes its
-  relevant tests and new or changed functional code reaches at least 80%
-  coverage.
-- JaCoCo and Vitest coverage enforcement will be configured by that Task.
+- Backend testing and coverage gates (JUnit 5, Mockito, AssertJ, MockMvc,
+  Testcontainers with PostgreSQL, JaCoCo) are configured; frontend gates are
+  configured separately.
+- Every implementation Task includes its relevant tests, and new or changed
+  functional code reaches at least 80% coverage.
 - Bug fixes include a regression test whenever the defect can be reproduced
   automatically.
 - Manual testing complements automated tests but does not replace the coverage

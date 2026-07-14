@@ -17,21 +17,24 @@ The frontend testing stack and coverage gates are not enabled yet. Enforcing an
 80% threshold against an almost empty scaffold would create configuration and
 placeholder tests without validating product behaviour.
 
-## Testing and Coverage Gates Task
+## Backend Testing and Coverage Gates
 
-A separate early Task must establish the complete automated testing foundation
-before functional feature pull requests are merged. That Task will add:
+This section covers the backend testing and coverage gates only. Frontend
+testing tooling and coverage gates are configured and documented separately,
+outside this Task's scope.
 
-- JUnit, Mockito, MockMvc, and Spring Boot Test conventions;
-- Testcontainers with PostgreSQL for persistence integration tests;
-- JaCoCo backend coverage reporting and enforcement;
-- Vitest, React Testing Library, and user-event for the frontend;
-- frontend coverage reporting and enforcement;
-- CI test and coverage checks for both applications.
+The backend testing foundation is implemented and provides:
 
-The Task must enforce at least 80% coverage for new or changed functional code
-and at least 80% total coverage once enough product code exists for the metric
-to be meaningful.
+- JUnit 5, Mockito, and AssertJ for unit tests;
+- MockMvc and Spring Boot Test for web-layer slice tests (Spring Security
+  Test will be added when security is introduced);
+- Testcontainers with PostgreSQL for repository and full integration tests;
+- JaCoCo backend coverage reporting and enforcement, wired into
+  `./gradlew check`.
+
+New or changed functional backend code must reach at least 80% line and
+branch coverage; the same threshold applies to total backend coverage once
+enough product code exists for the metric to be meaningful.
 
 ## Test Location Conventions
 
@@ -50,21 +53,75 @@ Frontend tests will be colocated with the source they verify using `.test.ts`
 or `.test.tsx` suffixes. Shared frontend test configuration will live under
 `frontend/src/test/` when the testing stack is introduced.
 
+## Test Tier Conventions
+
+Backend tests fall into four tiers, from cheapest to most expensive. Default to
+the cheapest tier that can prove the behaviour; only reach for a Spring slice
+when plain JUnit cannot exercise what you need to verify.
+
+| Tier | Style | Starts Spring context? | Starts PostgreSQL? | Naming |
+|---|---|---|---|---|
+| Unit | Plain JUnit 5 + `@ExtendWith(MockitoExtension.class)` + Mockito + AssertJ | No | No | `*Test` |
+| Web/MVC slice | `@WebMvcTest` + `MockMvc` + `@MockitoBean` for collaborators | Web layer only | No | `*Test` (e.g. `*ControllerTest`) |
+| Repository slice | `@DataJpaTest` + Testcontainers PostgreSQL | JPA layer only | Yes | `*RepositoryTest`, tagged `integration` |
+| Full integration | `@SpringBootTest(webEnvironment = RANDOM_PORT)` + Testcontainers PostgreSQL | Full | Yes | `*IT` / `*IntegrationTest`, tagged `integration` |
+
+Repository and full-integration tests use the `@RepositoryTest` and
+`@IntegrationTest` meta-annotations in
+`src/test/java/org/coderacer/backend/support/`, so the correct Spring slice,
+real PostgreSQL wiring, and `integration` tag are applied consistently instead
+of being re-assembled by hand on every test class.
+
+`@RepositoryTest` composes:
+
+- `@DataJpaTest` — boots only the JPA slice (EntityManager, Spring Data
+  repositories, DataSource), not the whole application. Its default
+  per-test transactional rollback is also what gives repository tests
+  isolation without manual cleanup.
+- `@AutoConfigureTestDatabase(replace = Replace.NONE)` — `@DataJpaTest`
+  normally swaps the configured DataSource for an embedded H2 database; this
+  cancels that so tests run against the real PostgreSQL semantics provided by
+  the Testcontainers container instead of an emulation that doesn't share
+  Postgres's dialect, constraints, or types.
+- `@Import(PostgresTestcontainersConfiguration.class)` — registers the
+  `PostgreSQLContainer` bean (annotated `@ServiceConnection`) into the slice's
+  context. `@DataJpaTest` does not auto-discover arbitrary
+  `@TestConfiguration` classes, so this import is required. It also means
+  every test class importing the same configuration shares one cached
+  context and one already-running container, instead of starting a new
+  container per class.
+- `@Tag("integration")` — a plain JUnit 5 tag, unrelated to Spring. It is what
+  lets Gradle's `test` task exclude these tests and the `integrationTest` task
+  include them, so the fast and Docker-dependent suites stay separate and
+  predictable.
+
+`@IntegrationTest` follows the same pattern, substituting
+`@SpringBootTest(webEnvironment = RANDOM_PORT)` for `@DataJpaTest` +
+`@AutoConfigureTestDatabase` to boot the full application instead of just the
+JPA slice, while keeping the same `@Import` and `@Tag`.
+
+## Test Isolation and Coverage
+
+Repository and integration tests use Testcontainers-provisioned PostgreSQL
+via `@ServiceConnection` (see `support/PostgresTestContainersConfiguration`),
+never local `.env` values, and must not depend on execution order.
+`integrationTest`/`check` require a local Docker daemon.
+
+JaCoCo (80% line and branch) excludes only the Spring Boot entry point,
+configuration-only boilerplate, and generated code.
+
 ## Current Commands
 
 ### Backend
 
-From the repository root on Linux or macOS:
+From the repository root (Linux/macOS `./gradlew`, Windows `.\gradlew.bat`):
 
-```bash
-./gradlew clean check
-```
-
-From the repository root on Windows:
-
-```powershell
-.\gradlew.bat clean check
-```
+- `test` — unit and web-slice tests only, no Docker required.
+- `integrationTest` — repository and full integration tests (requires Docker).
+- `jacocoTestReport` — merged coverage report at
+  `build/reports/jacoco/test/html/index.html`.
+- `clean check` — everything, including the coverage gate; the command CI
+  runs.
 
 ### Frontend
 
