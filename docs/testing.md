@@ -15,10 +15,6 @@ startup, and the initial automated test suites:
 - the frontend enforces V8 coverage thresholds for functional source code;
 - the Docker Compose services have operational health checks.
 
-Backend coverage enforcement is not enabled yet. A separate backend testing
-Task should add JUnit, Mockito, MockMvc, Testcontainers with PostgreSQL, and
-JaCoCo enforcement before backend feature work depends on those layers.
-
 ## Frontend Testing Stack
 
 Frontend tests use:
