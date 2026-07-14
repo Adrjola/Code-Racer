@@ -5,7 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
-// Test-only scaffolding to exercise @RepositoryTest against real Postgres — not a product entity.
+// Test-only scaffolding to exercise @RepositoryTest against real Postgres - not a product entity.
 @Entity
 public class ConnectivityProbe {
 

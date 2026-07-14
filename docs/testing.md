@@ -198,7 +198,7 @@ of being re-assembled by hand on every test class.
 
 `@RepositoryTest` composes:
 
-- `@DataJpaTest` — boots only the JPA slice (EntityManager, Spring Data
+- `@DataJpaTest` - boots only the JPA slice (EntityManager, Spring Data
   repositories, DataSource), not the whole application. Its default
   per-test transactional rollback is also what gives repository tests
   isolation without manual cleanup.
