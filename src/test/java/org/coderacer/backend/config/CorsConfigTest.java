@@ -4,21 +4,28 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.filter.CorsFilter;
 
-@WebMvcTest(controllers = CorsConfigTest.TestController.class)
-@Import(CorsConfig.class)
-@TestPropertySource(properties = "app.cors.allowed-origins=http://allowed.com")
 class CorsConfigTest {
 
-  @Autowired private MockMvc mockMvc;
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void setUp() {
+    CorsConfig corsConfig = new CorsConfig();
+    // Inject property manually since we are in a standalone setup
+    corsConfig.setAllowedOrigins(List.of("http://allowed.com"));
+    CorsFilter corsFilter = corsConfig.corsFilter();
+
+    mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).addFilters(corsFilter).build();
+  }
 
   @Test
   void shouldAllowCORSFromAllowedOrigin() throws Exception {

@@ -7,22 +7,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest
-@Import(GlobalExceptionHandler.class)
 class GlobalExceptionHandlerTest {
 
-  @Autowired private MockMvc mockMvc;
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(new TestController())
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+  }
 
   @Test
   void shouldHandleResourceNotFoundException() throws Exception {
@@ -78,6 +85,8 @@ class GlobalExceptionHandlerTest {
 
   @RestController
   static class TestController {
+    private static final Logger log = LoggerFactory.getLogger(TestController.class);
+
     @GetMapping("/api/test/not-found")
     public void notFound() {
       throw new ResourceNotFoundException("Resource not found");
@@ -89,19 +98,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @PostMapping("/api/test/validation")
-    public void validation(@Valid @RequestBody TestRequest request) {}
+    public void validation(@Valid @RequestBody TestRequest request) {
+      // Method body left empty as it's only used to trigger validation via @Valid
+      log.debug("Received validation request for: {}", request);
+    }
 
     @GetMapping("/api/test/error")
     public void error() {
       throw new RuntimeException("Unexpected error");
-    }
-  }
-
-  @org.springframework.context.annotation.Configuration
-  static class TestConfig {
-    @org.springframework.context.annotation.Bean
-    public TestController testController() {
-      return new TestController();
     }
   }
 

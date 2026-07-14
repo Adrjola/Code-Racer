@@ -14,6 +14,10 @@ public class CorsConfig {
   @Value("${app.cors.allowed-origins:http://localhost:5173}")
   private List<String> allowedOrigins;
 
+  public void setAllowedOrigins(List<String> allowedOrigins) {
+    this.allowedOrigins = allowedOrigins;
+  }
+
   @Bean
   public CorsFilter corsFilter() {
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
