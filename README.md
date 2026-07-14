@@ -57,10 +57,12 @@ separate npm application under `frontend/`.
 - Spring Boot
 - Spring Web MVC
 - Spring Boot Actuator
+- Spring Data JPA and Hibernate
+- Flyway
 - Gradle
 
-Persistence, security, WebSocket support, and API documentation will be added
-by the feature Tasks that first require them.
+Security, WebSocket support, and API documentation will be added by the feature
+Tasks that first require them.
 
 ### Frontend
 
@@ -68,17 +70,20 @@ by the feature Tasks that first require them.
 - TypeScript
 - Vite
 - Tailwind CSS
+- Vitest
+- React Testing Library
+- MSW
 
-Routing, API clients, and testing tools will be introduced when their first
-features are implemented.
+Routing and API clients will be introduced when their first features are
+implemented.
 
 ### Local Infrastructure
 
 - PostgreSQL
 - Docker Compose
 
-The database container is available for local development. Backend persistence
-will be connected in a later persistence Task.
+The database container backs local development. The backend connects to it with
+Spring Data JPA, and Flyway manages the schema.
 
 ### Quality and Collaboration
 
