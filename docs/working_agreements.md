@@ -97,25 +97,6 @@ The GitHub Project is the source of truth for planned and active work.
 Product Backlog -> Sprint Backlog -> In Progress -> In Review -> Done
 ```
 
-### Project Views
-
-- `Backlog` - board grouped by Status with parent Feature swimlanes
-- `Priority table` - open items grouped and sorted by Priority
-- `Team items` - open items grouped by Assignee
-- `My items` - open items assigned to the current viewer
-
-The project does not use a Roadmap view.
-
-### Work Item Structure
-
-- Features describe broad product areas.
-- Tasks are detailed implementation units attached to a parent Feature through
-  GitHub sub-issues.
-- Bugs describe verified defects and their expected behaviour.
-- Priority, Sprint, Estimate, Parent Issue, Assignee, and dependency
-  relationships are stored as GitHub Project metadata rather than duplicated in
-  Issue descriptions.
-
 ### Priority Rules
 
 - `P0` - critical must-have work that blocks the MVP or several other Tasks
@@ -133,43 +114,6 @@ P2 work must not begin until every P0 and P1 Task is Done.
 - A blocked Task receives the `blocked` label and its dependency is recorded in
   GitHub.
 - When blocked, a developer may pull another unblocked Task.
-
-## Issue Requirements
-
-### Feature Issues
-
-Feature Issues contain:
-
-- Description
-- Goal
-- Acceptance Criteria
-- Native GitHub sub-issues for all related Tasks
-
-Feature Issues do not contain a Business Value section.
-
-### Task Issues
-
-Task Issues contain:
-
-- Description
-- Implementation Notes
-- Testing
-- Acceptance Criteria
-
-Task descriptions must be detailed enough that the implementer does not need to
-make an unrecorded product or architecture decision.
-
-### Bug Issues
-
-Bug Issues contain:
-
-- Description
-- Steps to reproduce
-- Expected behaviour
-- Actual behaviour
-- Environment
-- Testing and regression requirements
-- Acceptance Criteria
 
 ## Pull Request Rules
 
@@ -201,12 +145,14 @@ Testing is part of implementation rather than a later project phase.
 
 - The initial Foundation validates build, formatting, linting, application
   startup, and the Spring application context.
-- A separate Testing and Coverage Gates Task must be completed before
-  functional feature pull requests are merged.
+- Frontend Vitest, React Testing Library, MSW, and V8 coverage gates are
+  required before functional frontend pull requests are merged.
+- Backend coverage gates must be completed before backend feature pull requests
+  depend on persistence, authorization, or API integration layers.
 - After those gates are enabled, every implementation Task includes its
   relevant tests and new or changed functional code reaches at least 80%
   coverage.
-- JaCoCo and Vitest coverage enforcement will be configured by that Task.
+- JaCoCo and Vitest coverage enforcement are the repository coverage standards.
 - Bug fixes include a regression test whenever the defect can be reproduced
   automatically.
 - Manual testing complements automated tests but does not replace the coverage
