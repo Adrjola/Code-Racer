@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     id 'org.springframework.boot' version '4.1.0'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'com.diffplug.spotless' version '8.8.0'
@@ -21,24 +22,71 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.flywaydb:flyway-core'
-
-    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
     runtimeOnly 'org.postgresql:postgresql'
-
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-restclient'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'org.testcontainers:testcontainers-postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+
+jacoco{
+    toolVersion = "0.8.12"
+}
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform{
+        excludeTags 'integration'
+    }
+}
+tasks.register('integrationTest', Test) {
+    description = 'Repository and integration tests'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform{
+        includeTags 'integration'
+    }
+    shouldRunAfter tasks.named('test')
+}
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test'), tasks.named('integrationTest')
+    executionData tasks.named('test').get(), tasks.named('integrationTest').get()
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        'org/coderacer/backend/BackendApplication.class',
+                        '**/config/**',
+                        '**/generated/**'
+                ])
+            })
+    )
+}
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('jacocoTestReport')
+    executionData.setFrom(tasks.named('jacocoTestReport').get().executionData)
+    classDirectories.setFrom(tasks.named('jacocoTestReport').get().classDirectories)
+    violationRules {
+        rule {
+            limit { counter = 'LINE';   minimum = 0.80 }
+            limit { counter = 'BRANCH'; minimum = 0.80 }
+        }
+    }
+}
+tasks.named('check') {
+    dependsOn tasks.named('integrationTest'), tasks.named('jacocoTestCoverageVerification')
 }
 
 spotless {

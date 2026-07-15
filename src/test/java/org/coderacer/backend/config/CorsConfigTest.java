@@ -19,9 +19,8 @@ class CorsConfigTest {
 
   @BeforeEach
   void setUp() {
-    CorsConfig corsConfig = new CorsConfig();
-    // Inject property manually since we are in a standalone setup
-    corsConfig.setAllowedOrigins(List.of("http://allowed.com"));
+    CorsProperties properties = new CorsProperties(List.of("http://allowed.com"));
+    CorsConfig corsConfig = new CorsConfig(properties);
     CorsFilter corsFilter = corsConfig.corsFilter();
 
     mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).addFilters(corsFilter).build();

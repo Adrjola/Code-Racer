@@ -1,7 +1,7 @@
 package org.coderacer.backend.config;
 
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -9,13 +9,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 @Configuration
+@EnableConfigurationProperties(CorsProperties.class)
 public class CorsConfig {
 
-  @Value("${app.cors.allowed-origins:http://localhost:5173}")
-  private List<String> allowedOrigins;
+  private final CorsProperties properties;
 
-  public void setAllowedOrigins(List<String> allowedOrigins) {
-    this.allowedOrigins = allowedOrigins;
+  public CorsConfig(CorsProperties properties) {
+    this.properties = properties;
   }
 
   @Bean
@@ -23,9 +23,9 @@ public class CorsConfig {
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     CorsConfiguration config = new CorsConfiguration();
     config.setAllowCredentials(true);
-    config.setAllowedOrigins(allowedOrigins);
-    config.addAllowedHeader("*");
-    config.addAllowedMethod("*");
+    config.setAllowedOrigins(properties.allowedOrigins());
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+    config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Correlation-ID"));
     source.registerCorsConfiguration("/**", config);
     return new CorsFilter(source);
   }
