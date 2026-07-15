@@ -9,9 +9,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import org.coderacer.backend.common.error.FieldError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.coderacer.backend.common.error.FieldError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -188,12 +188,18 @@ class GlobalExceptionHandlerTest {
     @GetMapping("/api/test/method-argument-not-valid")
     public void methodArgumentNotValid(HttpServletRequest request) throws Exception {
       // Return a response that mimics the exception handler's output to verify it's reachable,
-      // but the goal is to trigger the handler. If standaloneSetup fails to handle MethodArgumentNotValidException 
-      // without full MVC infrastructure, we'll use a domain exception to verify the common buildResponse logic.
+      // but the goal is to trigger the handler. If standaloneSetup fails to handle
+      // MethodArgumentNotValidException
+      // without full MVC infrastructure, we'll use a domain exception to verify the common
+      // buildResponse logic.
       BindException be = (BindException) request.getAttribute("ex");
-      // Use a domain exception if MethodArgumentNotValidException is being problematic in standalone
-      throw new ValidationException("Validation failed", 
-          be.getFieldErrors().stream().map(e -> new FieldError(e.getField(), e.getDefaultMessage())).toList());
+      // Use a domain exception if MethodArgumentNotValidException is being problematic in
+      // standalone
+      throw new ValidationException(
+          "Validation failed",
+          be.getFieldErrors().stream()
+              .map(e -> new FieldError(e.getField(), e.getDefaultMessage()))
+              .toList());
     }
   }
 

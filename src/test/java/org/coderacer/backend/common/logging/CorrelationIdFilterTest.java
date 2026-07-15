@@ -36,11 +36,14 @@ class CorrelationIdFilterTest {
     when(request.getHeader("X-Correlation-ID")).thenReturn(null);
 
     // Mock chain.doFilter to check MDC while filter is active
-    doAnswer(invocation -> {
-      String correlationId = MDC.get("correlationId");
-      assertThat(correlationId).isNotNull().isNotBlank();
-      return null;
-    }).when(chain).doFilter(request, response);
+    doAnswer(
+            invocation -> {
+              String correlationId = MDC.get("correlationId");
+              assertThat(correlationId).isNotNull().isNotBlank();
+              return null;
+            })
+        .when(chain)
+        .doFilter(request, response);
 
     filter.doFilter(request, response, chain);
 
