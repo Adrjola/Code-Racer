@@ -15,9 +15,13 @@ startup, and the initial automated test suites:
 - the frontend enforces V8 coverage thresholds for functional source code;
 - the Docker Compose services have operational health checks.
 
-Backend coverage enforcement is not enabled yet. A separate backend testing
-Task should add JUnit, Mockito, MockMvc, Testcontainers with PostgreSQL, and
-JaCoCo enforcement before backend feature work depends on those layers.
+Backend coverage enforcement is not enabled yet. However, basic infrastructure tests are in place:
+
+- `GlobalExceptionHandlerTest`: Verifies RFC 9457 error responses and exception mapping.
+- `CorsConfigTest`: Verifies CORS policy enforcement for allowed and rejected origins.
+- `BackendApplicationTests`: Spring Boot context smoke test.
+
+A separate backend testing Task should add JaCoCo enforcement before backend feature work depends on those layers.
 
 ## Frontend Testing Stack
 
@@ -77,7 +81,11 @@ src/
         `-- org/
             `-- coderacer/
                 `-- backend/
-                    `-- BackendApplicationTests.java  - Spring Boot context smoke test
+                    |-- BackendApplicationTests.java             - Spring Boot context smoke test
+                    |-- common/exception/
+                    |   `-- GlobalExceptionHandlerTest.java      - Exception handling verification
+                    `-- config/
+                        `-- CorsConfigTest.java                  - CORS policy verification
 ```
 
 Test packages under `src/test/java/` mirror the packages under
