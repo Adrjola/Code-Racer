@@ -174,3 +174,4 @@ Use volume removal only when a clean local database is intended. Never commit
 
 - [Working Agreements](docs/working_agreements.md)
 - [Testing Strategy](docs/testing.md)
+- [API Conventions](docs/api-conventions.md)
