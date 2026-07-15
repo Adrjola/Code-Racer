@@ -6,9 +6,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
@@ -16,7 +16,8 @@ import org.hibernate.annotations.UuidGenerator;
 @Entity
 @Table(name = "category")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor
 public class Category {
 
   @Id
@@ -40,23 +41,4 @@ public class Category {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private Instant updatedAt;
-
-  public Category(String name, String description) {
-    this.name = name;
-    this.description = description;
-    this.active = true;
-  }
-
-  public void update(String name, String description) {
-    this.name = name;
-    this.description = description;
-  }
-
-  public void deactivate() {
-    this.active = false;
-  }
-
-  public void activate() {
-    this.active = true;
-  }
 }

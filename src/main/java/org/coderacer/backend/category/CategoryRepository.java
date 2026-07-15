@@ -1,6 +1,5 @@
 package org.coderacer.backend.category;
 
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +12,4 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
   boolean existsByNameAndIdNot(String name, UUID id);
 
   Page<Category> findByActiveTrue(Pageable pageable);
-
-  Optional<Category> findByIdAndActiveTrue(UUID id);
 }
