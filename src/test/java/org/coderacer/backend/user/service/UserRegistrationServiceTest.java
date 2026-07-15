@@ -98,6 +98,24 @@ class UserRegistrationServiceTest {
   }
 
   @Test
+  void register_rejectsValuesAboveConfiguredLengthLimits() {
+    String longEmail = "a".repeat(110) + "@example.com";
+    String longUsername = "u".repeat(21);
+    String longPassword = "P".repeat(73);
+    UserRegistrationRequest request =
+        new UserRegistrationRequest(longEmail, longUsername, longPassword, longPassword);
+
+    assertThatThrownBy(() -> service.register(request))
+        .isInstanceOfSatisfying(
+            ValidationException.class,
+            ex ->
+                assertThat(ex.getErrors())
+                    .extracting(FieldError::field)
+                    .contains("email", "username", "password"));
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
   void register_rejectsDuplicateNormalizedIdentifiers() {
     UserRegistrationRequest request =
         new UserRegistrationRequest(

@@ -1,7 +1,7 @@
 create table user_account (
     id             uuid          primary key,
-    email          varchar(254)  not null,
-    username       varchar(30)   not null,
+    email          varchar(120)  not null,
+    username       varchar(20)   not null,
     password_hash  varchar(255)  not null,
     role           varchar(20)   not null,
     email_verified boolean       not null default false,

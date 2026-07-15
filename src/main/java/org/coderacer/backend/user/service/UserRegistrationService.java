@@ -24,11 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserRegistrationService {
 
   static final int MIN_PASSWORD_LENGTH = 12;
-  static final int MAX_PASSWORD_LENGTH = 128;
+  static final int MAX_PASSWORD_LENGTH = 72;
 
   private static final Pattern EMAIL_PATTERN =
       Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
-  private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9_-]{2,29}$");
+  private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9_-]{2,19}$");
   private static final String DUPLICATE_USER_MESSAGE =
       "A user with this email or username already exists";
 
@@ -92,7 +92,7 @@ public class UserRegistrationService {
   private void validateEmail(String email, List<FieldError> errors) {
     if (email.isBlank()) {
       errors.add(new FieldError("email", "must not be blank"));
-    } else if (email.length() > 254 || !EMAIL_PATTERN.matcher(email).matches()) {
+    } else if (email.length() > 120 || !EMAIL_PATTERN.matcher(email).matches()) {
       errors.add(new FieldError("email", "must be a valid email address"));
     }
   }
@@ -104,7 +104,7 @@ public class UserRegistrationService {
       errors.add(
           new FieldError(
               "username",
-              "must be 3 to 30 characters and contain only lowercase letters, numbers, underscores, or hyphens"));
+              "must be 3 to 20 characters and contain only lowercase letters, numbers, underscores, or hyphens"));
     }
   }
 
