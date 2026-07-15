@@ -142,7 +142,7 @@ class SecurityAuthorizationIntegrationTest {
     user.setEmailVerified(true);
     user.setEnabled(true);
     user.setDeleted(false);
-    user.setTokenValidAfter(Instant.EPOCH);
+    user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);
   }
 }

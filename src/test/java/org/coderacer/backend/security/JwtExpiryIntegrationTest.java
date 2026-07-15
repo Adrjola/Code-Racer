@@ -81,7 +81,7 @@ class JwtExpiryIntegrationTest {
             .expirationTime(Date.from(now.minus(Duration.ofMinutes(5))))
             .claim("userId", user.getId().toString())
             .claim("roles", List.of(user.getRole().name()))
-            .claim("tokenValidAfter", user.getTokenValidAfter().toEpochMilli())
+            .claim("tokenValidFrom", user.getTokenValidFrom().toEpochMilli())
             .build();
     SignedJWT token = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims);
     token.sign(new MACSigner(jwtSecretKey.getEncoded()));
@@ -97,7 +97,7 @@ class JwtExpiryIntegrationTest {
     user.setEmailVerified(true);
     user.setEnabled(true);
     user.setDeleted(false);
-    user.setTokenValidAfter(Instant.EPOCH);
+    user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);
   }
 }

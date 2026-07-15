@@ -99,7 +99,7 @@ class JwtAccountValidatorTest {
         validator.validate(
             tokenBuilder()
                 .subject("player")
-                .claim("tokenValidAfter", user.getTokenValidAfter().toEpochMilli())
+                .claim("tokenValidFrom", user.getTokenValidFrom().toEpochMilli())
                 .build());
 
     assertThat(result.hasErrors()).isTrue();
@@ -115,7 +115,7 @@ class JwtAccountValidatorTest {
             tokenBuilder()
                 .subject("player")
                 .claim("roles", List.of("USER"))
-                .claim("tokenValidAfter", user.getTokenValidAfter().toEpochMilli() - 1)
+                .claim("tokenValidFrom", user.getTokenValidFrom().toEpochMilli() - 1)
                 .build());
 
     assertThat(result.hasErrors()).isTrue();
@@ -131,7 +131,7 @@ class JwtAccountValidatorTest {
             tokenBuilder()
                 .subject("player")
                 .claim("roles", List.of("USER"))
-                .claim("tokenValidAfter", "not-a-number")
+                .claim("tokenValidFrom", "not-a-number")
                 .build());
 
     assertThat(result.hasErrors()).isTrue();
@@ -141,7 +141,7 @@ class JwtAccountValidatorTest {
     return tokenBuilder()
         .subject(user.getUsername())
         .claim("roles", List.of(user.getRole().name()))
-        .claim("tokenValidAfter", user.getTokenValidAfter().toEpochMilli())
+        .claim("tokenValidFrom", user.getTokenValidFrom().toEpochMilli())
         .build();
   }
 
@@ -163,7 +163,7 @@ class JwtAccountValidatorTest {
     user.setEmailVerified(true);
     user.setEnabled(true);
     user.setDeleted(false);
-    user.setTokenValidAfter(Instant.EPOCH);
+    user.setTokenValidFrom(Instant.EPOCH);
     return user;
   }
 }

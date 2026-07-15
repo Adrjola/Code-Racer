@@ -24,9 +24,9 @@ public class TokenInvalidationService {
             .findById(userId)
             .orElseThrow(
                 () -> new ResourceNotFoundException("User with id " + userId + " not found"));
-    Instant tokenValidAfter = Instant.now(clock);
-    user.setTokenValidAfter(tokenValidAfter);
+    Instant tokenValidFrom = Instant.now(clock);
+    user.setTokenValidFrom(tokenValidFrom);
     repository.save(user);
-    return tokenValidAfter;
+    return tokenValidFrom;
   }
 }

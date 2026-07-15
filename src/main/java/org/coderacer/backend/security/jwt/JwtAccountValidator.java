@@ -30,7 +30,7 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
         .findByUsername(username)
         .filter(this::canAuthenticate)
         .filter(user -> tokenRoleMatchesUser(token, user))
-        .filter(user -> tokenValidAfterMatchesUser(token, user))
+        .filter(user -> tokenValidFromMatchesUser(token, user))
         .map(user -> OAuth2TokenValidatorResult.success())
         .orElseGet(() -> OAuth2TokenValidatorResult.failure(INVALID_TOKEN));
   }
@@ -44,9 +44,9 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
     return roles != null && roles.contains(user.getRole().name());
   }
 
-  private boolean tokenValidAfterMatchesUser(Jwt token, User user) {
-    Object tokenValidAfter = token.getClaims().get("tokenValidAfter");
-    return tokenValidAfter instanceof Number value
-        && value.longValue() == user.getTokenValidAfter().toEpochMilli();
+  private boolean tokenValidFromMatchesUser(Jwt token, User user) {
+    Object tokenValidFrom = token.getClaims().get("tokenValidFrom");
+    return tokenValidFrom instanceof Number value
+        && value.longValue() == user.getTokenValidFrom().toEpochMilli();
   }
 }
