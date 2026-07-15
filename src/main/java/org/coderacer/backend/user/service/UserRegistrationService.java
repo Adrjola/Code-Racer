@@ -39,14 +39,30 @@ public class UserRegistrationService {
   @Transactional
   public UserResponse register(UserRegistrationRequest request) {
     NormalizedRegistration registration = validateAndNormalize(request);
+    return createUser(registration, UserRole.USER, false);
+  }
+
+  @Transactional
+  public UserResponse createInitialAdmin(UserRegistrationRequest request) {
+    NormalizedRegistration registration = validateAndNormalize(request);
+    return createUser(registration, UserRole.ADMIN, true);
+  }
+
+  @Transactional(readOnly = true)
+  public boolean adminExists() {
+    return repository.existsByRole(UserRole.ADMIN);
+  }
+
+  private UserResponse createUser(
+      NormalizedRegistration registration, UserRole role, boolean emailVerified) {
     rejectDuplicateIdentifiers(registration.email(), registration.username());
 
     User user = new User();
     user.setEmail(registration.email());
     user.setUsername(registration.username());
     user.setPasswordHash(passwordEncoder.encode(registration.password()));
-    user.setRole(UserRole.USER);
-    user.setEmailVerified(false);
+    user.setRole(role);
+    user.setEmailVerified(emailVerified);
     user.setEnabled(true);
     user.setDeleted(false);
 
