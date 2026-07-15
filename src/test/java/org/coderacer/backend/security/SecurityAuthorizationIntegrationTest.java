@@ -5,10 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import org.coderacer.backend.category.repository.CategoryRepository;
 import org.coderacer.backend.security.service.JwtService;
+import org.coderacer.backend.security.service.TokenInvalidationService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +30,16 @@ class SecurityAuthorizationIntegrationTest {
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private JwtService jwtService;
+  @Autowired private TokenInvalidationService tokenInvalidationService;
 
   @BeforeEach
   void setUp() {
+    categoryRepository.deleteAll();
+    userRepository.deleteAll();
+  }
+
+  @AfterEach
+  void tearDown() {
     categoryRepository.deleteAll();
     userRepository.deleteAll();
   }
@@ -78,6 +87,44 @@ class SecurityAuthorizationIntegrationTest {
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  void unverifiedUserTokenCannotAccessProtectedRoute() {
+    User admin = saveUser("admin", UserRole.ADMIN);
+    admin.setEmailVerified(false);
+    userRepository.saveAndFlush(admin);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "/api/admin/categories",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(admin)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  @Test
+  void oldTokenCannotAccessProtectedRouteAfterTokenInvalidation() {
+    User admin = saveUser("admin", UserRole.ADMIN);
+    String oldToken = jwtService.createAccessToken(admin);
+
+    tokenInvalidationService.invalidateTokensForPasswordReset(admin.getId());
+
+    ResponseEntity<String> oldTokenResponse =
+        restTemplate.exchange(
+            "/api/admin/categories", HttpMethod.GET, bearerEntity(oldToken), String.class);
+    User refreshedAdmin = userRepository.findById(admin.getId()).orElseThrow();
+    ResponseEntity<String> newTokenResponse =
+        restTemplate.exchange(
+            "/api/admin/categories",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(refreshedAdmin)),
+            String.class);
+
+    assertThat(oldTokenResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(newTokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
   private HttpEntity<Void> bearerEntity(String token) {

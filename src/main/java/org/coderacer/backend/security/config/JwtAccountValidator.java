@@ -1,6 +1,5 @@
 package org.coderacer.backend.security.config;
 
-import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.user.model.User;
@@ -32,7 +31,6 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
         .filter(this::canAuthenticate)
         .filter(user -> tokenRoleMatchesUser(token, user))
         .filter(user -> tokenValidAfterMatchesUser(token, user))
-        .filter(user -> tokenIssuedAfterValidFrom(token, user))
         .map(user -> OAuth2TokenValidatorResult.success())
         .orElseGet(() -> OAuth2TokenValidatorResult.failure(INVALID_TOKEN));
   }
@@ -47,12 +45,8 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
   }
 
   private boolean tokenValidAfterMatchesUser(Jwt token, User user) {
-    Long tokenValidAfter = token.getClaim("tokenValidAfter");
-    return tokenValidAfter != null && tokenValidAfter == user.getTokenValidAfter().toEpochMilli();
-  }
-
-  private boolean tokenIssuedAfterValidFrom(Jwt token, User user) {
-    Instant issuedAt = token.getIssuedAt();
-    return issuedAt != null && !issuedAt.isBefore(user.getTokenValidAfter());
+    Object tokenValidAfter = token.getClaims().get("tokenValidAfter");
+    return tokenValidAfter instanceof Number value
+        && value.longValue() == user.getTokenValidAfter().toEpochMilli();
   }
 }
