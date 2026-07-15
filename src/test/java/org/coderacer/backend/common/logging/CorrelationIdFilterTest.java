@@ -61,11 +61,33 @@ class CorrelationIdFilterTest {
 
     when(request.getHeader("X-Correlation-ID")).thenReturn(existingId);
 
+    doAnswer(
+            invocation -> {
+              assertThat(MDC.get("correlationId")).isEqualTo(existingId);
+              return null;
+            })
+        .when(chain)
+        .doFilter(request, response);
+
     filter.doFilter(request, response, chain);
 
     verify(response).setHeader("X-Correlation-ID", existingId);
     verify(chain).doFilter(request, response);
     assertThat(MDC.get("correlationId")).isNull();
+  }
+
+  @Test
+  void shouldGenerateNewCorrelationIdWhenHeaderIsEmpty() throws IOException, ServletException {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    when(request.getHeader("X-Correlation-ID")).thenReturn("");
+
+    filter.doFilter(request, response, chain);
+
+    verify(response).setHeader(eq("X-Correlation-ID"), anyString());
+    verify(chain).doFilter(request, response);
   }
 
   @Test

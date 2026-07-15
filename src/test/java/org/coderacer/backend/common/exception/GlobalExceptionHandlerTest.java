@@ -119,6 +119,20 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  void shouldReuseCorrelationIdFromMdcIfPresent() throws Exception {
+    String existingId = "mdc-correlation-id";
+    MDC.put("correlationId", existingId);
+    try {
+      mockMvc
+          .perform(get("/api/test/error"))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.correlationId").value(existingId));
+    } finally {
+      MDC.clear();
+    }
+  }
+
+  @Test
   void shouldHandleBindException() throws Exception {
     TestRequest target = new TestRequest("");
     BindException ex = new BindException(target, "testRequest");
@@ -181,12 +195,12 @@ class GlobalExceptionHandlerTest {
     }
 
     @GetMapping("/api/test/bind-exception")
-    public void bindException(HttpServletRequest request) throws Exception {
-      throw (Exception) request.getAttribute("ex");
+    public void bindException(HttpServletRequest request) throws Throwable {
+      throw (Throwable) request.getAttribute("ex");
     }
 
     @GetMapping("/api/test/method-argument-not-valid")
-    public void methodArgumentNotValid(HttpServletRequest request) throws Exception {
+    public void methodArgumentNotValid(HttpServletRequest request) {
       // Return a response that mimics the exception handler's output to verify it's reachable,
       // but the goal is to trigger the handler. If standaloneSetup fails to handle
       // MethodArgumentNotValidException
