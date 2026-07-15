@@ -25,20 +25,20 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ProblemDetails> handleNotFound(
       ResourceNotFoundException ex, HttpServletRequest request) {
-    return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), ex.getCode(), request, null);
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request, null);
   }
 
   @ExceptionHandler(ConflictException.class)
   public ResponseEntity<ProblemDetails> handleConflict(
       ConflictException ex, HttpServletRequest request) {
-    return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), ex.getCode(), request, null);
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request, null);
   }
 
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<ProblemDetails> handleValidation(
       ValidationException ex, HttpServletRequest request) {
     return buildResponse(
-        HttpStatus.BAD_REQUEST, "Validation failed", ex.getCode(), request, ex.getErrors());
+        ex.getStatus(), "Validation failed", ex.getCode(), request, ex.getErrors());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -67,8 +67,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ProblemDetails> handleBaseException(
       BaseException ex, HttpServletRequest request) {
     log.error("Domain exception occurred: {}", ex.getMessage());
-    return buildResponse(
-        HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), ex.getCode(), request, null);
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request, null);
   }
 
   @ExceptionHandler(Exception.class)
