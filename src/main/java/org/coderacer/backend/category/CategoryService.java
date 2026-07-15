@@ -26,7 +26,7 @@ public class CategoryService {
     Category category = new Category();
     category.setName(request.name());
     category.setDescription(request.description());
-    return mapper.toResponse(repository.save(category));
+    return mapper.toResponse(repository.saveAndFlush(category));
   }
 
   @Transactional
@@ -37,7 +37,7 @@ public class CategoryService {
     }
     category.setName(request.name());
     category.setDescription(request.description());
-    return mapper.toResponse(repository.save(category));
+    return mapper.toResponse(repository.saveAndFlush(category));
   }
 
   @Transactional
@@ -51,7 +51,7 @@ public class CategoryService {
   public CategoryResponse restore(UUID id) {
     Category category = findOrThrow(id);
     category.setActive(true);
-    return mapper.toResponse(repository.save(category));
+    return mapper.toResponse(repository.saveAndFlush(category));
   }
 
   @Transactional(readOnly = true)
