@@ -28,6 +28,10 @@ logging:
 app:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+  security:
+    jwt:
+      secret: ${APP_JWT_SECRET:dev-only-change-me-code-racer-jwt-secret-32}
+      access-token-ttl: ${APP_JWT_ACCESS_TOKEN_TTL:15m}
   admin:
     bootstrap:
       enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED:false}

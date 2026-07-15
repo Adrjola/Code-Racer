@@ -50,6 +50,9 @@ public class User {
   @Column(nullable = false)
   private boolean deleted;
 
+  @Column(name = "token_valid_after", nullable = false)
+  private Instant tokenValidAfter = Instant.EPOCH;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
