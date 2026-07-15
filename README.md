@@ -59,6 +59,7 @@ separate npm application under `frontend/`.
 - Spring Boot Actuator
 - Spring Data JPA and Hibernate
 - Flyway
+- Spring Security Crypto for password hashing
 - Gradle
 
 Security, WebSocket support, and API documentation will be added by the feature
@@ -125,7 +126,11 @@ On PowerShell:
 Copy-Item .env.example .env
 ```
 
-2. Adjust the local PostgreSQL values in `.env` if necessary.
+2. Adjust the local PostgreSQL values in `.env` if necessary. To bootstrap an
+   initial administrator on an empty environment, set
+   `APP_ADMIN_BOOTSTRAP_ENABLED=true` and provide `APP_ADMIN_EMAIL`,
+   `APP_ADMIN_USERNAME`, and `APP_ADMIN_PASSWORD`. Leave bootstrap disabled
+   after the initial account exists.
 
 3. Ensure Docker Desktop is running, then build and start PostgreSQL and the
    backend from the repository root.
