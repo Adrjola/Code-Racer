@@ -2,7 +2,6 @@
 
 This document defines the current testing baseline and the quality rules that
 apply as Code Racer functionality is implemented.
-
 ## Current Baseline
 
 The repository foundation validates build, formatting, linting, application
@@ -22,7 +21,6 @@ Backend coverage enforcement is not enabled yet. However, basic infrastructure t
 - `BackendApplicationTests`: Spring Boot context smoke test.
 
 A separate backend testing Task should add JaCoCo enforcement before backend feature work depends on those layers.
-
 ## Frontend Testing Stack
 
 Frontend tests use:
@@ -45,9 +43,6 @@ Tests must mock HTTP boundaries with MSW handlers instead of ad-hoc global
 service and component tests exercise the same API shapes used by production
 code.
 
-The shared setup resets DOM state, MSW handlers, timers, storage, and mocks
-between tests. Suites should remain isolated and order-independent.
-
 ## Coverage Gates
 
 Frontend coverage is enforced at 80% for all global metrics:
@@ -69,6 +64,28 @@ The only configured frontend exclusions are:
 Future exclusions must be limited to generated declarations, build
 configuration, and true entry-point boilerplate. Any new exclusion must be
 documented here.
+
+The shared setup resets DOM state, MSW handlers, timers, storage, and mocks
+between tests. Suites should remain isolated and order-independent.
+
+## Backend Testing and Coverage Gates
+
+This section covers the backend testing and coverage gates only. Frontend
+testing tooling and coverage gates are configured and documented separately,
+outside this Task's scope.
+
+The backend testing foundation is implemented and provides:
+
+- JUnit 5, Mockito, and AssertJ for unit tests;
+- MockMvc and Spring Boot Test for web-layer slice tests (Spring Security
+  Test will be added when security is introduced);
+- Testcontainers with PostgreSQL for repository and full integration tests;
+- JaCoCo backend coverage reporting and enforcement, wired into
+  `./gradlew check`.
+
+New or changed functional backend code must reach at least 80% line and
+branch coverage; the same threshold applies to total backend coverage once
+enough product code exists for the metric to be meaningful.
 
 ## Test Location Conventions
 
@@ -166,21 +183,75 @@ PostgreSQL container for the test run. They extend
 `AbstractPostgresIntegrationTest`, so they never depend on a developer's local
 database. Docker must be running to execute them.
 
+## Test Tier Conventions
+
+Backend tests fall into four tiers, from cheapest to most expensive. Default to
+the cheapest tier that can prove the behaviour; only reach for a Spring slice
+when plain JUnit cannot exercise what you need to verify.
+
+| Tier | Style | Starts Spring context? | Starts PostgreSQL? | Naming |
+|---|---|---|---|---|
+| Unit | Plain JUnit 5 + `@ExtendWith(MockitoExtension.class)` + Mockito + AssertJ | No | No | `*Test` |
+| Web/MVC slice | `@WebMvcTest` + `MockMvc` + `@MockitoBean` for collaborators | Web layer only | No | `*Test` (e.g. `*ControllerTest`) |
+| Repository slice | `@DataJpaTest` + Testcontainers PostgreSQL | JPA layer only | Yes | `*RepositoryTest`, tagged `integration` |
+| Full integration | `@SpringBootTest(webEnvironment = RANDOM_PORT)` + Testcontainers PostgreSQL | Full | Yes | `*IT` / `*IntegrationTest`, tagged `integration` |
+
+Repository and full-integration tests use the `@RepositoryTest` and
+`@IntegrationTest` meta-annotations in
+`src/test/java/org/coderacer/backend/support/`, so the correct Spring slice,
+real PostgreSQL wiring, and `integration` tag are applied consistently instead
+of being re-assembled by hand on every test class.
+
+`@RepositoryTest` composes:
+
+- `@DataJpaTest` - boots only the JPA slice (EntityManager, Spring Data
+  repositories, DataSource), not the whole application. Its default
+  per-test transactional rollback is also what gives repository tests
+  isolation without manual cleanup.
+- `@AutoConfigureTestDatabase(replace = Replace.NONE)` — `@DataJpaTest`
+  normally swaps the configured DataSource for an embedded H2 database; this
+  cancels that so tests run against the real PostgreSQL semantics provided by
+  the Testcontainers container instead of an emulation that doesn't share
+  Postgres's dialect, constraints, or types.
+- `@Import(PostgresTestcontainersConfiguration.class)` — registers the
+  `PostgreSQLContainer` bean (annotated `@ServiceConnection`) into the slice's
+  context. `@DataJpaTest` does not auto-discover arbitrary
+  `@TestConfiguration` classes, so this import is required. It also means
+  every test class importing the same configuration shares one cached
+  context and one already-running container, instead of starting a new
+  container per class.
+- `@Tag("integration")` — a plain JUnit 5 tag, unrelated to Spring. It is what
+  lets Gradle's `test` task exclude these tests and the `integrationTest` task
+  include them, so the fast and Docker-dependent suites stay separate and
+  predictable.
+
+`@IntegrationTest` follows the same pattern, substituting
+`@SpringBootTest(webEnvironment = RANDOM_PORT)` for `@DataJpaTest` +
+`@AutoConfigureTestDatabase` to boot the full application instead of just the
+JPA slice, while keeping the same `@Import` and `@Tag`.
+
+## Test Isolation and Coverage
+
+Repository and integration tests use Testcontainers-provisioned PostgreSQL
+via `@ServiceConnection` (see `support/PostgresTestContainersConfiguration`),
+never local `.env` values, and must not depend on execution order.
+`integrationTest`/`check` require a local Docker daemon.
+
+JaCoCo (80% line and branch) excludes only the Spring Boot entry point,
+configuration-only boilerplate, and generated code.
+
 ## Current Commands
 
 ### Backend
 
-From the repository root on Linux or macOS:
+From the repository root (Linux/macOS `./gradlew`, Windows `.\gradlew.bat`):
 
-```bash
-./gradlew clean check
-```
-
-From the repository root on Windows:
-
-```powershell
-.\gradlew.bat clean check
-```
+- `test` — unit and web-slice tests only, no Docker required.
+- `integrationTest` — repository and full integration tests (requires Docker).
+- `jacocoTestReport` — merged coverage report at
+  `build/reports/jacoco/test/html/index.html`.
+- `clean check` — everything, including the coverage gate; the command CI
+  runs.
 
 ### Frontend
 
