@@ -28,3 +28,9 @@ logging:
 app:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+  admin:
+    bootstrap:
+      enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED:false}
+      email: ${APP_ADMIN_EMAIL:}
+      username: ${APP_ADMIN_USERNAME:}
+      password: ${APP_ADMIN_PASSWORD:}
