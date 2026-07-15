@@ -1,7 +1,8 @@
-package org.coderacer.backend.category;
+package org.coderacer.backend.category.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.category.dto.CategoryResponse;
+import org.coderacer.backend.category.service.CategoryService;
 import org.coderacer.backend.common.dto.BaseResponse;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Public read access to active categories. */
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.coderacer.backend.AbstractPostgresIntegrationTest;
 import org.coderacer.backend.category.dto.CategoryRequest;
 import org.coderacer.backend.category.dto.CategoryResponse;
+import org.coderacer.backend.category.service.CategoryService;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

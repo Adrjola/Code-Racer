@@ -1,10 +1,11 @@
-package org.coderacer.backend.category;
+package org.coderacer.backend.category.controller;
 
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.category.dto.CategoryRequest;
 import org.coderacer.backend.category.dto.CategoryResponse;
+import org.coderacer.backend.category.service.CategoryService;
 import org.coderacer.backend.common.dto.BaseResponse;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * ADMIN category management endpoints. Role-based access control is added by the authentication
+ * task (#61); until then these routes are structurally admin-only by path.
+ */
 @RestController
 @RequestMapping("/api/admin/categories")
 @RequiredArgsConstructor

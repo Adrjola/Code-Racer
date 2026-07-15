@@ -1,6 +1,7 @@
-package org.coderacer.backend.category;
+package org.coderacer.backend.category.repository;
 
 import java.util.UUID;
+import org.coderacer.backend.category.model.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

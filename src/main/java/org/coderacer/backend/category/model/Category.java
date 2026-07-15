@@ -1,4 +1,4 @@
-package org.coderacer.backend.category;
+package org.coderacer.backend.category.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,6 +13,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+/** A challenge category that groups code snippets. */
 @Entity
 @Table(name = "category")
 @Getter

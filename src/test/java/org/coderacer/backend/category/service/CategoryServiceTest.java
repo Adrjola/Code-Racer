@@ -1,4 +1,4 @@
-package org.coderacer.backend.category;
+package org.coderacer.backend.category.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -13,6 +13,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.category.dto.CategoryRequest;
 import org.coderacer.backend.category.dto.CategoryResponse;
+import org.coderacer.backend.category.mapper.CategoryMapper;
+import org.coderacer.backend.category.model.Category;
+import org.coderacer.backend.category.repository.CategoryRepository;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;

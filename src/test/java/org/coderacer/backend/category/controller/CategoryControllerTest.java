@@ -1,4 +1,4 @@
-package org.coderacer.backend.category;
+package org.coderacer.backend.category.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.category.dto.CategoryResponse;
+import org.coderacer.backend.category.service.CategoryService;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
