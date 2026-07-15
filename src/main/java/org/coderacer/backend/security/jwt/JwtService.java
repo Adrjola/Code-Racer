@@ -1,4 +1,4 @@
-package org.coderacer.backend.security.service;
+package org.coderacer.backend.security.jwt;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.coderacer.backend.security.config.JwtProperties;
 import org.coderacer.backend.user.model.User;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;

@@ -1,4 +1,4 @@
-package org.coderacer.backend.security.config;
+package org.coderacer.backend.security.jwt;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import javax.crypto.SecretKey;

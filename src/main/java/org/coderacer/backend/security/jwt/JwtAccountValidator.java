@@ -1,4 +1,4 @@
-package org.coderacer.backend.security.config;
+package org.coderacer.backend.security.jwt;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;

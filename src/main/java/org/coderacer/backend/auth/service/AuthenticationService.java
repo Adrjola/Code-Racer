@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.auth.dto.LoginRequest;
 import org.coderacer.backend.auth.dto.LoginResponse;
 import org.coderacer.backend.auth.exception.AuthenticationFailedException;
-import org.coderacer.backend.security.service.JwtService;
+import org.coderacer.backend.security.jwt.JwtService;
 import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.repository.UserRepository;

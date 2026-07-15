@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import org.coderacer.backend.category.repository.CategoryRepository;
-import org.coderacer.backend.security.service.JwtService;
+import org.coderacer.backend.security.jwt.JwtService;
 import org.coderacer.backend.security.service.TokenInvalidationService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.user.model.User;

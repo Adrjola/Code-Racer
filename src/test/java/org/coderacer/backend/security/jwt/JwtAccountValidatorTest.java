@@ -1,4 +1,4 @@
-package org.coderacer.backend.security.config;
+package org.coderacer.backend.security.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;

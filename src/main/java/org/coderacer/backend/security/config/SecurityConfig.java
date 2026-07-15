@@ -5,6 +5,8 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.coderacer.backend.security.jwt.JwtAccountValidator;
+import org.coderacer.backend.security.jwt.JwtProperties;
 import org.coderacer.backend.security.web.SecurityProblemSupport;
 import org.coderacer.backend.user.model.UserRole;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
