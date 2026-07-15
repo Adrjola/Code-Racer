@@ -16,7 +16,7 @@ All error responses follow the **RFC 9457 (Problem Details for HTTP APIs)** stan
   "code": "RESOURCE_NOT_FOUND",
   "timestamp": "2026-07-13T12:00:00Z",
   "correlationId": "550e8400-e29b-41d4-a716-446655440000",
-  "errors": [] 
+  "errors": []
 }
 ```
 - `code`: A stable, machine-readable string (e.g., `INVALID_INPUT`, `ALREADY_EXISTS`, `FRAMEWORK_ERROR`).
@@ -46,11 +46,13 @@ The `GlobalExceptionHandler` centrally manages these and converts them into the 
 
 #### 5. Logging & Traceability
 - **Correlation ID**: Every request is assigned an `X-Correlation-ID`.
-- **MDC**: This ID is automatically included in every log line via SLF4J MDC (Mapped Diagnostic Context).
+- **MDC**: This ID is stored in SLF4J MDC and included in the console log pattern.
 - **Security**: Never log sensitive data (passwords, tokens).
 
 #### 6. CORS & Security
-- **CORS**: Configured via the `ALLOWED_ORIGINS` environment variable.
+- **CORS**: Configured via `app.cors.allowed-origins`, with the `ALLOWED_ORIGINS`
+  environment variable available for deployment overrides. Origins must be
+  explicit; wildcard origins are rejected while credentials are enabled.
 - **Actuator**: Only `health` and `info` endpoints are exposed by default.
 
 #### 7. Testing

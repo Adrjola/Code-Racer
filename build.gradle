@@ -68,7 +68,6 @@ tasks.named('jacocoTestReport') {
             files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
                         'org/coderacer/backend/BackendApplication.class',
-                        '**/config/**',
                         '**/generated/**'
                 ])
             })

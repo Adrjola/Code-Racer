@@ -15,7 +15,6 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.server.ResponseStatusException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -77,15 +76,6 @@ public class GlobalExceptionHandler {
       return buildResponse(
           HttpStatus.valueOf(errorResponse.getStatusCode().value()),
           errorResponse.getBody().getDetail(),
-          "FRAMEWORK_ERROR",
-          request,
-          null);
-    }
-
-    if (ex instanceof ResponseStatusException responseStatusException) {
-      return buildResponse(
-          HttpStatus.valueOf(responseStatusException.getStatusCode().value()),
-          responseStatusException.getReason(),
           "FRAMEWORK_ERROR",
           request,
           null);

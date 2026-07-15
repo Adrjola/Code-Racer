@@ -7,20 +7,22 @@ apply as Code Racer functionality is implemented.
 The repository foundation validates build, formatting, linting, application
 startup, and the initial automated test suites:
 
-- the backend has one Spring Boot context smoke test;
-- the backend is compiled, tested, and formatted by Gradle;
+- the backend has unit, web-slice, repository, integration, and Spring Boot
+  context smoke tests;
+- the backend is compiled, tested, formatted, and coverage-checked by Gradle;
 - the frontend is type-checked, linted, formatted, built, and tested with
   Vitest;
 - the frontend enforces V8 coverage thresholds for functional source code;
 - the Docker Compose services have operational health checks.
 
-Backend coverage enforcement is not enabled yet. However, basic infrastructure tests are in place:
+Backend coverage enforcement is enabled through JaCoCo, with basic infrastructure tests in place:
 
 - `GlobalExceptionHandlerTest`: Verifies RFC 9457 error responses and exception mapping.
+- `CorrelationIdFilterTest`: Verifies request correlation ID propagation and MDC cleanup.
 - `CorsConfigTest`: Verifies CORS policy enforcement for allowed and rejected origins.
+- `CorsPropertiesTest`: Verifies fail-fast CORS configuration validation.
 - `BackendApplicationTests`: Spring Boot context smoke test.
 
-A separate backend testing Task should add JaCoCo enforcement before backend feature work depends on those layers.
 ## Frontend Testing Stack
 
 Frontend tests use:
@@ -99,10 +101,14 @@ src/
             `-- coderacer/
                 `-- backend/
                     |-- BackendApplicationTests.java             - Spring Boot context smoke test
-                    |-- common/exception/
-                    |   `-- GlobalExceptionHandlerTest.java      - Exception handling verification
+                    |-- common/
+                    |   |-- exception/
+                    |   |   `-- GlobalExceptionHandlerTest.java  - Exception handling verification
+                    |   `-- logging/
+                    |       `-- CorrelationIdFilterTest.java     - Correlation ID verification
                     `-- config/
-                        `-- CorsConfigTest.java                  - CORS policy verification
+                        |-- CorsConfigTest.java                  - CORS policy verification
+                        `-- CorsPropertiesTest.java              - CORS property validation
 ```
 
 Test packages under `src/test/java/` mirror the packages under
@@ -179,9 +185,12 @@ than editing the database by hand.
 ## Backend Integration Tests
 
 Tests that need a database use Testcontainers, which starts a throwaway
-PostgreSQL container for the test run. They extend
-`AbstractPostgresIntegrationTest`, so they never depend on a developer's local
-database. Docker must be running to execute them.
+PostgreSQL container for the test run. Repository tests should use
+`@RepositoryTest`, and full application integration tests should use
+`@IntegrationTest`. Legacy context smoke tests may extend
+`AbstractPostgresIntegrationTest`, but new tests should prefer the
+meta-annotations so they do not depend on a developer's local database. Docker
+must be running to execute them.
 
 ## Test Tier Conventions
 
@@ -237,8 +246,8 @@ via `@ServiceConnection` (see `support/PostgresTestContainersConfiguration`),
 never local `.env` values, and must not depend on execution order.
 `integrationTest`/`check` require a local Docker daemon.
 
-JaCoCo (80% line and branch) excludes only the Spring Boot entry point,
-configuration-only boilerplate, and generated code.
+JaCoCo (80% line and branch) excludes only the Spring Boot entry point and
+generated code. Future exclusions require documented justification.
 
 ## Current Commands
 
@@ -250,6 +259,8 @@ From the repository root (Linux/macOS `./gradlew`, Windows `.\gradlew.bat`):
 - `integrationTest` — repository and full integration tests (requires Docker).
 - `jacocoTestReport` — merged coverage report at
   `build/reports/jacoco/test/html/index.html`.
+- `start build/reports/jacoco/test/html/index.html` — opens the generated
+  backend coverage report in a browser on Windows.
 - `clean check` — everything, including the coverage gate; the command CI
   runs.
 

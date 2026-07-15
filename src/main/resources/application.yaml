@@ -21,6 +21,10 @@ management:
     health:
       show-details: when_authorized
 
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [correlationId=%X{correlationId}] %logger{36} - %msg%n"
+
 app:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}

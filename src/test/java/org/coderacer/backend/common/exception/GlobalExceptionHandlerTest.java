@@ -59,7 +59,7 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void shouldHandleValidationException() throws Exception {
+  void shouldHandleMethodArgumentNotValidException() throws Exception {
     mockMvc
         .perform(
             post("/api/test/validation")
@@ -91,7 +91,7 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void shouldHandleValidationExceptionManually() throws Exception {
+  void shouldHandleServiceValidationException() throws Exception {
     mockMvc
         .perform(get("/api/test/manual-validation"))
         .andExpect(status().isBadRequest())
@@ -145,19 +145,6 @@ class GlobalExceptionHandlerTest {
         .andExpect(jsonPath("$.errors[0].field").value("name"));
   }
 
-  @Test
-  void shouldHandleMethodArgumentNotValidException() throws Exception {
-    TestRequest target = new TestRequest("");
-    BindException ex = new BindException(target, "testRequest");
-    ex.rejectValue("name", "required", "must not be blank");
-
-    mockMvc
-        .perform(get("/api/test/method-argument-not-valid").requestAttr("ex", ex))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-        .andExpect(jsonPath("$.errors[0].field").value("name"));
-  }
-
   @RestController
   static class TestController {
     private static final Logger log = LoggerFactory.getLogger(TestController.class);
@@ -197,23 +184,6 @@ class GlobalExceptionHandlerTest {
     @GetMapping("/api/test/bind-exception")
     public void bindException(HttpServletRequest request) throws Throwable {
       throw (Throwable) request.getAttribute("ex");
-    }
-
-    @GetMapping("/api/test/method-argument-not-valid")
-    public void methodArgumentNotValid(HttpServletRequest request) {
-      // Return a response that mimics the exception handler's output to verify it's reachable,
-      // but the goal is to trigger the handler. If standaloneSetup fails to handle
-      // MethodArgumentNotValidException
-      // without full MVC infrastructure, we'll use a domain exception to verify the common
-      // buildResponse logic.
-      BindException be = (BindException) request.getAttribute("ex");
-      // Use a domain exception if MethodArgumentNotValidException is being problematic in
-      // standalone
-      throw new ValidationException(
-          "Validation failed",
-          be.getFieldErrors().stream()
-              .map(e -> new FieldError(e.getField(), e.getDefaultMessage()))
-              .toList());
     }
   }
 

@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.MDC;
 
 class CorrelationIdFilterTest {
@@ -53,13 +54,13 @@ class CorrelationIdFilterTest {
   }
 
   @Test
-  void shouldReuseCorrelationIdFromHeaderIfPresent() throws IOException, ServletException {
+  void shouldReuseTrimmedCorrelationIdFromHeaderIfPresent() throws IOException, ServletException {
     HttpServletRequest request = mock(HttpServletRequest.class);
     HttpServletResponse response = mock(HttpServletResponse.class);
     FilterChain chain = mock(FilterChain.class);
     String existingId = "test-correlation-id";
 
-    when(request.getHeader("X-Correlation-ID")).thenReturn(existingId);
+    when(request.getHeader("X-Correlation-ID")).thenReturn(" " + existingId + " ");
 
     doAnswer(
             invocation -> {
@@ -77,16 +78,34 @@ class CorrelationIdFilterTest {
   }
 
   @Test
-  void shouldGenerateNewCorrelationIdWhenHeaderIsEmpty() throws IOException, ServletException {
+  void shouldGenerateNewCorrelationIdWhenHeaderIsBlank() throws IOException, ServletException {
     HttpServletRequest request = mock(HttpServletRequest.class);
     HttpServletResponse response = mock(HttpServletResponse.class);
     FilterChain chain = mock(FilterChain.class);
 
-    when(request.getHeader("X-Correlation-ID")).thenReturn("");
+    when(request.getHeader("X-Correlation-ID")).thenReturn(" ");
 
     filter.doFilter(request, response, chain);
 
     verify(response).setHeader(eq("X-Correlation-ID"), anyString());
+    verify(chain).doFilter(request, response);
+  }
+
+  @Test
+  void shouldGenerateNewCorrelationIdWhenHeaderContainsUnsafeCharacters()
+      throws IOException, ServletException {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+    String unsafeId = "bad-id\r\nX-Injected: true";
+
+    when(request.getHeader("X-Correlation-ID")).thenReturn(unsafeId);
+
+    filter.doFilter(request, response, chain);
+
+    ArgumentCaptor<String> correlationId = ArgumentCaptor.forClass(String.class);
+    verify(response).setHeader(eq("X-Correlation-ID"), correlationId.capture());
+    assertThat(correlationId.getValue()).isNotEqualTo(unsafeId).isNotBlank();
     verify(chain).doFilter(request, response);
   }
 
