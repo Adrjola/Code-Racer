@@ -20,23 +20,6 @@ public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-  @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<ApiError> handleNotFound(
-      ResourceNotFoundException ex, HttpServletRequest request) {
-    return handleBaseException(ex, request);
-  }
-
-  @ExceptionHandler(ConflictException.class)
-  public ResponseEntity<ApiError> handleConflict(ConflictException ex, HttpServletRequest request) {
-    return handleBaseException(ex, request);
-  }
-
-  @ExceptionHandler(ValidationException.class)
-  public ResponseEntity<ApiError> handleValidation(
-      ValidationException ex, HttpServletRequest request) {
-    return handleBaseException(ex, request);
-  }
-
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ApiError> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex, HttpServletRequest request) {
