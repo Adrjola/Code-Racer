@@ -84,6 +84,7 @@ export default function LoginPage({
       onSubmit={handleSubmit}
       subtitle="Log in to jump back into a race."
       title="Welcome back"
+      variant="login"
     >
       <TextField
         autoComplete="username"
@@ -94,12 +95,11 @@ export default function LoginPage({
         label="Email or username"
         maxLength={120}
         onChange={setValue('identifier')}
-        placeholder="racer or racer@gmail.com"
+        placeholder="username"
         value={values.identifier}
       />
       <TextField
         autoComplete="current-password"
-        className="mt-[clamp(10px,5.3vh_-_23px,34px)]"
         disabled={isSubmitting}
         error={errors.password}
         icon={<LockIcon />}
@@ -111,7 +111,7 @@ export default function LoginPage({
         type="password"
         value={values.password}
       />
-      <p className="mt-2.5 text-right text-[10px]">
+      <p className="forgot-link-row">
         <button
           className="text-pink-400"
           onClick={onForgotPassword}
@@ -121,15 +121,12 @@ export default function LoginPage({
         </button>
       </p>
       {formMessage && (
-        <p
-          className="mt-4 rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-[13px] text-text-secondary"
-          role="status"
-        >
+        <p className="form-message" role="status">
           {formMessage}
         </p>
       )}
       <GradientButton
-        className="mt-[clamp(12px,5.3vh_-_21px,36px)]"
+        className="auth-submit auth-submit--compact"
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Logging in...' : 'Log in'}

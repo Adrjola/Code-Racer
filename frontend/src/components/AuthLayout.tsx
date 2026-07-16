@@ -4,19 +4,23 @@ import Logo from './Logo';
 type AuthLayoutProps = {
   children: ReactNode;
   footer: ReactNode;
+  formClassName?: string;
   onSubmit?: () => void;
   subtitle: string;
   subtitleSize?: 'base' | 'sm';
   title: string;
+  variant?: 'default' | 'login';
 };
 
 export default function AuthLayout({
   children,
   footer,
+  formClassName = '',
   onSubmit,
   subtitle,
   subtitleSize = 'base',
   title,
+  variant = 'default',
 }: AuthLayoutProps) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -24,37 +28,39 @@ export default function AuthLayout({
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface font-sans">
-      <header className="shrink-0 px-10 py-[clamp(8px,3.5vh_-_14px,24px)]">
-        <Logo />
-      </header>
+    <div
+      className={`auth-page ${variant === 'login' ? 'auth-page--login' : ''}`}
+    >
+      <div className="auth-design-canvas">
+        <header className="auth-header">
+          <Logo />
+        </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center px-4 pb-[clamp(8px,8.8vh_-_47px,48px)]">
-        <h1 className="text-center text-[clamp(24px,3.5vh_+_2px,40px)] font-extrabold text-text-primary">
-          {title}
-        </h1>
-        <p
-          className={`mt-[clamp(4px,2vh_-_9px,13px)] text-center text-text-secondary ${
-            subtitleSize === 'base' ? 'text-[16px]' : 'text-[14px]'
-          }`}
-        >
-          {subtitle}
-        </p>
+        <main className="auth-main">
+          <div className="auth-stack">
+            <h1 className="auth-title">{title}</h1>
+            <p
+              className={`auth-subtitle ${
+                subtitleSize === 'base'
+                  ? 'auth-subtitle--base'
+                  : 'auth-subtitle--sm'
+              }`}
+            >
+              {subtitle}
+            </p>
 
-        <form
-          className="mt-[clamp(12px,8.3vh_-_40px,50px)] w-full max-w-[601px] rounded-2xl px-4 pb-[clamp(12px,6.1vh_-_26px,40px)] pt-[clamp(12px,6.8vh_-_30px,43px)] shadow-[0px_30px_80px_-30px_rgba(219,39,119,0.5)] sm:px-[45px]"
-          noValidate
-          onSubmit={handleSubmit}
-        >
-          {children}
-        </form>
+            <form
+              className={`auth-form ${formClassName}`}
+              noValidate
+              onSubmit={handleSubmit}
+            >
+              {children}
+            </form>
 
-        {footer && (
-          <p className="mt-[clamp(8px,4.2vh_-_18px,27px)] text-center text-[14px]">
-            {footer}
-          </p>
-        )}
-      </main>
+            {footer && <p className="auth-footer">{footer}</p>}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

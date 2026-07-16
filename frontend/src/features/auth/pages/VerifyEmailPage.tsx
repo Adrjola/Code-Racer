@@ -62,10 +62,7 @@ export default function VerifyEmailPage({
       subtitleSize="sm"
       title={isSuccess ? 'Email verified' : 'Verify your email'}
     >
-      <div
-        className="rounded-[10px] border border-pink-400/25 bg-white/[0.03] px-4 py-4 text-center text-[14px] text-text-secondary"
-        role="status"
-      >
+      <div className="auth-status-card" role="status">
         {state.status === 'verifying' && 'Verifying your email...'}
         {state.status === 'success' && (
           <>
@@ -78,7 +75,7 @@ export default function VerifyEmailPage({
         {state.status === 'error' && state.message}
       </div>
       <GradientButton
-        className="mt-5"
+        className="auth-submit auth-submit--compact"
         onClick={() =>
           onBackToLogin(
             isSuccess ? 'Email verified. You can now log in.' : undefined,

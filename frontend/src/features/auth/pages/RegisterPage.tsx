@@ -88,6 +88,7 @@ export default function RegisterPage({
           </button>
         </>
       }
+      formClassName="auth-form--register"
       onSubmit={handleSubmit}
       subtitle="Start racing in just a few minutes!"
       subtitleSize="sm"
@@ -108,7 +109,6 @@ export default function RegisterPage({
       />
       <TextField
         autoComplete="username"
-        className="mt-[clamp(10px,5.3vh_-_23px,34px)]"
         disabled={isSubmitting}
         error={errors.username}
         icon={<UserIcon />}
@@ -121,7 +121,6 @@ export default function RegisterPage({
       />
       <TextField
         autoComplete="new-password"
-        className="mt-[clamp(10px,5.3vh_-_23px,34px)]"
         disabled={isSubmitting}
         error={errors.password}
         icon={<LockIcon />}
@@ -135,7 +134,6 @@ export default function RegisterPage({
       />
       <TextField
         autoComplete="new-password"
-        className="mt-[clamp(10px,5.3vh_-_23px,34px)]"
         disabled={isSubmitting}
         error={errors.confirmPassword}
         icon={<LockIcon />}
@@ -148,17 +146,11 @@ export default function RegisterPage({
         value={values.confirmPassword}
       />
       {formMessage && (
-        <p
-          className="mt-4 rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-[13px] text-text-secondary"
-          role="status"
-        >
+        <p className="form-message" role="status">
           {formMessage}
         </p>
       )}
-      <GradientButton
-        className="mt-[clamp(12px,9.6vh_-_48px,56px)]"
-        disabled={isSubmitting}
-      >
+      <GradientButton className="auth-submit" disabled={isSubmitting}>
         {isSubmitting ? 'Creating account...' : 'Create account'}
       </GradientButton>
     </AuthLayout>
