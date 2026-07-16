@@ -10,14 +10,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.category.repository.CategoryRepository;
+import org.coderacer.backend.common.crypto.Sha256Hasher;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ResourceNotFoundException;
 import org.coderacer.backend.common.exception.ValidationException;
@@ -395,12 +392,6 @@ class SnippetServiceTest {
   }
 
   private static String sha256Hex(String value) {
-    try {
-      return HexFormat.of()
-          .formatHex(
-              MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException(e);
-    }
+    return Sha256Hasher.hashHex(value);
   }
 }
