@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.coderacer.backend.security.jwt.JwtService;
 import org.coderacer.backend.soloattempt.model.CodeSnippet;
 import org.coderacer.backend.soloattempt.model.Difficulty;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
@@ -50,6 +51,7 @@ class SoloAttemptFlowIntegrationTest {
   @Autowired private CodeSnippetRepository codeSnippetRepository;
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private MutableClock clock;
+  @Autowired private JwtService jwtService;
 
   private User newUser(String username) {
     User user = new User();
@@ -67,10 +69,11 @@ class SoloAttemptFlowIntegrationTest {
     return codeSnippetRepository.saveAndFlush(new CodeSnippet(content, Difficulty.EASY));
   }
 
-  private HttpHeaders headersFor(UUID userId) {
+  private HttpHeaders headersFor(User user) {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.set("X-User-Id", userId.toString());
+    headers.set("X-User-Id", user.getId().toString());
+    headers.setBearerAuth(jwtService.createAccessToken(user));
     return headers;
   }
 
@@ -84,8 +87,7 @@ class SoloAttemptFlowIntegrationTest {
         restTemplate.exchange(
             "/api/solo-attempts",
             HttpMethod.POST,
-            new HttpEntity<>(
-                "{\"codeSnippetId\":\"" + snippet.getId() + "\"}", headersFor(user.getId())),
+            new HttpEntity<>("{\"codeSnippetId\":\"" + snippet.getId() + "\"}", headersFor(user)),
             Map.class);
     return UUID.fromString((String) data(response).get("attemptId"));
   }
@@ -97,7 +99,7 @@ class SoloAttemptFlowIntegrationTest {
         HttpMethod.POST,
         new HttpEntity<>(
             "{\"sequence\":" + sequence + ",\"characters\":\"" + characters + "\"}",
-            headersFor(user.getId())),
+            headersFor(user)),
         Map.class);
   }
 

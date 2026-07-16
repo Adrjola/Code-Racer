@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.util.UUID;
+import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
@@ -45,7 +46,7 @@ class SoloAttemptControllerTest {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
                 new SoloAttemptController(service, currentUserProvider, mapper))
-            .setControllerAdvice(new GlobalExceptionHandler())
+            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
             .build();
   }
 

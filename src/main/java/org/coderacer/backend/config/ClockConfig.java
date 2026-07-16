@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class ClockConfig {
 
   @Bean
-  public Clock clock() {
+  Clock clock() {
     return Clock.systemUTC();
   }
 }
