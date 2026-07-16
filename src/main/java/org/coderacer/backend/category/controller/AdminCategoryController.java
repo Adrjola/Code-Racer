@@ -21,10 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * ADMIN category management endpoints. Role-based access control is added by the authentication
- * task (#61); until then these routes are structurally admin-only by path.
- */
+/** ADMIN category management endpoints protected by role-based authorization. */
 @RestController
 @RequestMapping("/api/admin/categories")
 @RequiredArgsConstructor

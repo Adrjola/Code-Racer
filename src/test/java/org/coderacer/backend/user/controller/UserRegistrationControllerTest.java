@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.common.error.FieldError;
+import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.common.exception.ValidationException;
@@ -32,7 +33,7 @@ class UserRegistrationControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(new UserRegistrationController(service))
-            .setControllerAdvice(new GlobalExceptionHandler())
+            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
             .build();
   }
 

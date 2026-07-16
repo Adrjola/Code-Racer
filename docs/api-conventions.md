@@ -53,6 +53,18 @@ The `GlobalExceptionHandler` centrally manages these and converts them into the 
 - **CORS**: Configured via `app.cors.allowed-origins`, with the `ALLOWED_ORIGINS`
   environment variable available for deployment overrides. Origins must be
   explicit; wildcard origins are rejected while credentials are enabled.
+- **Authentication**: Public authentication routes live under `/api/auth`.
+  Login accepts `username` and `password`; email is not a login identifier.
+  Failed login attempts are throttled per username and client address. Deployments
+  should still add edge or gateway rate limiting for distributed brute-force
+  protection.
+- **JWTs**: Access tokens are short-lived bearer tokens. Raw tokens, passwords,
+  and password hashes must never be logged or returned outside the login
+  response. Password reset and password change flows must invalidate existing
+  tokens by updating the user's token-valid-from timestamp.
+- **Authorization**: `/api/admin/**` requires the `ADMIN` role. General
+  authenticated API routes require `USER` or `ADMIN` unless explicitly marked
+  public.
 - **Actuator**: Only `health` and `info` endpoints are exposed by default.
 
 #### 7. Testing
