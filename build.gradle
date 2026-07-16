@@ -52,6 +52,11 @@ dependencies {
 jacoco{
     toolVersion = "0.8.12"
 }
+// Activates the test profile so application-test.yaml overlays the main configuration
+// and the development JWT secret is accepted by JwtSecretValidator.
+tasks.withType(Test).configureEach {
+    systemProperty 'spring.profiles.active', 'test'
+}
 tasks.named('test') {
     useJUnitPlatform{
         excludeTags 'integration'
