@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.snippet.dto.SnippetResponse;
 import org.coderacer.backend.snippet.model.Difficulty;
@@ -53,7 +54,7 @@ class SnippetControllerTest {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
                 new AdminSnippetController(service), new SnippetController(service))
-            .setControllerAdvice(new GlobalExceptionHandler())
+            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();
   }
