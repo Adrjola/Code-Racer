@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.category.dto.CategoryResponse;
 import org.coderacer.backend.category.service.CategoryService;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,7 @@ class CategoryControllerTest {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
                 new AdminCategoryController(service), new CategoryController(service))
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();
   }

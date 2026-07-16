@@ -57,6 +57,10 @@ public class User {
     return emailVerified && enabled && !deleted;
   }
 
+  public boolean canVerifyEmail() {
+    return !emailVerified && enabled && !deleted;
+  }
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
