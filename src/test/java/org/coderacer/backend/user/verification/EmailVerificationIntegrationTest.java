@@ -76,12 +76,15 @@ class EmailVerificationIntegrationTest {
     ResponseEntity<String> verificationResponse = confirm(rawToken);
     ResponseEntity<String> reusedTokenResponse = confirm(rawToken);
     ResponseEntity<String> loginAfterVerification = login("speed_racer", "StrongerPass123");
+    ResponseEntity<String> emailLoginAfterVerification =
+        login("player@example.com", "StrongerPass123");
 
     User savedUser = userRepository.findByEmail("player@example.com").orElseThrow();
     assertThat(loginBeforeVerification.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(verificationResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(reusedTokenResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(loginAfterVerification.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(emailLoginAfterVerification.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(savedUser.isEmailVerified()).isTrue();
   }
 
@@ -162,9 +165,9 @@ class EmailVerificationIntegrationTest {
         "/api/auth/email-verification/confirm", Map.of("token", token), String.class);
   }
 
-  private ResponseEntity<String> login(String username, String password) {
+  private ResponseEntity<String> login(String identifier, String password) {
     return restTemplate.postForEntity(
-        "/api/auth/login", Map.of("username", username, "password", password), String.class);
+        "/api/auth/login", Map.of("identifier", identifier, "password", password), String.class);
   }
 
   private User saveUser(String email, String username) {

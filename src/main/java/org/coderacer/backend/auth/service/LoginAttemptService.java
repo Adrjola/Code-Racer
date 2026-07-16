@@ -24,8 +24,8 @@ public class LoginAttemptService {
     this.clock = clock;
   }
 
-  public void assertAllowed(String username, String clientAddress) {
-    LoginAttemptKey key = key(username, clientAddress);
+  public void assertAllowed(String identifier, String clientAddress) {
+    LoginAttemptKey key = key(identifier, clientAddress);
     AttemptState state = attempts.get(key);
     if (state == null) {
       return;
@@ -44,14 +44,14 @@ public class LoginAttemptService {
     }
   }
 
-  public void recordSuccess(String username, String clientAddress) {
-    attempts.remove(key(username, clientAddress));
+  public void recordSuccess(String identifier, String clientAddress) {
+    attempts.remove(key(identifier, clientAddress));
   }
 
-  public void recordFailure(String username, String clientAddress) {
+  public void recordFailure(String identifier, String clientAddress) {
     Instant now = Instant.now(clock);
     attempts.compute(
-        key(username, clientAddress),
+        key(identifier, clientAddress),
         (key, current) -> {
           int failedAttempts = current == null ? 1 : current.failedAttempts() + 1;
           Instant lockedUntil =
@@ -60,8 +60,8 @@ public class LoginAttemptService {
         });
   }
 
-  private LoginAttemptKey key(String username, String clientAddress) {
-    return new LoginAttemptKey(normalize(username), normalizeClient(clientAddress));
+  private LoginAttemptKey key(String identifier, String clientAddress) {
+    return new LoginAttemptKey(normalize(identifier), normalizeClient(clientAddress));
   }
 
   private String normalize(String value) {
@@ -72,7 +72,7 @@ public class LoginAttemptService {
     return value == null || value.isBlank() ? UNKNOWN_CLIENT : value.trim();
   }
 
-  private record LoginAttemptKey(String username, String clientAddress) {}
+  private record LoginAttemptKey(String identifier, String clientAddress) {}
 
   private record AttemptState(int failedAttempts, Instant lastFailureAt, Instant lockedUntil) {}
 }

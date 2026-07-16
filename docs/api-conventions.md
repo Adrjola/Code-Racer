@@ -53,10 +53,10 @@ shared `ApiError` response format.
   environment variable available for deployment overrides. Origins must be
   explicit; wildcard origins are rejected while credentials are enabled.
 - **Authentication**: Public authentication routes live under `/api/auth`.
-  Login accepts `username` and `password`; email is not a login identifier.
-  Failed login attempts are throttled per username and client address. Deployments
-  should still add edge or gateway rate limiting for distributed brute-force
-  protection.
+  Login accepts `identifier` and `password`; `identifier` can be either a username
+  or an email address. Failed login attempts are throttled per identifier and
+  client address. Deployments should still add edge or gateway rate limiting for
+  distributed brute-force protection.
 - **Email verification**: New registrations create unverified USER accounts and
   send a verification email. Verification links contain a high-entropy, expiring,
   single-use token; only the token hash is stored server-side. Confirmation and

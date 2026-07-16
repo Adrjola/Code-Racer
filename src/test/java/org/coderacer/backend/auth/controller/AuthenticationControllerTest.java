@@ -65,7 +65,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "StrongerPass123"
                     }
                     """))
@@ -90,7 +90,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "WrongPass123"
                     }
                     """))
@@ -112,7 +112,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "WrongPass123"
                     }
                     """))
@@ -121,7 +121,7 @@ class AuthenticationControllerTest {
   }
 
   @Test
-  void login_returns400ForBlankUsername() throws Exception {
+  void login_returns400ForBlankIdentifier() throws Exception {
     mockMvc
         .perform(
             post("/api/auth/login")
@@ -129,7 +129,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "",
+                      "identifier": "",
                       "password": "StrongerPass123"
                     }
                     """))

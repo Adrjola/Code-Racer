@@ -3,9 +3,14 @@ package org.coderacer.backend.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.category.repository.CategoryRepository;
 import org.coderacer.backend.security.jwt.JwtService;
 import org.coderacer.backend.security.service.TokenInvalidationService;
+import org.coderacer.backend.snippet.dto.CreateSnippetRequest;
+import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
+import org.coderacer.backend.snippet.service.SnippetService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
@@ -28,18 +33,22 @@ class SecurityAuthorizationIntegrationTest {
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private UserRepository userRepository;
   @Autowired private CategoryRepository categoryRepository;
+  @Autowired private CodeSnippetRepository snippetRepository;
+  @Autowired private SnippetService snippetService;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private JwtService jwtService;
   @Autowired private TokenInvalidationService tokenInvalidationService;
 
   @BeforeEach
   void setUp() {
+    snippetRepository.deleteAll();
     categoryRepository.deleteAll();
     userRepository.deleteAll();
   }
 
   @AfterEach
   void tearDown() {
+    snippetRepository.deleteAll();
     categoryRepository.deleteAll();
     userRepository.deleteAll();
   }
@@ -82,6 +91,62 @@ class SecurityAuthorizationIntegrationTest {
     ResponseEntity<String> response =
         restTemplate.exchange(
             "/api/admin/categories",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(admin)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  void snippetRandomRouteRequiresAuthentication() {
+    ResponseEntity<String> response =
+        restTemplate.getForEntity("/api/snippets/random", String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(response.getBody()).contains("\"code\":\"AUTHENTICATION_REQUIRED\"");
+  }
+
+  @Test
+  void userTokenCanAccessRandomSnippetRoute() {
+    User user = saveUser("snippet_player", UserRole.USER);
+    Category category = saveCategory("Java snippets");
+    snippetService.create(
+        new CreateSnippetRequest("FizzBuzz", "class Main {}", Difficulty.EASY, category.getId()));
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "/api/snippets/random?categoryId=" + category.getId() + "&difficulty=EASY",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(user)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).contains("\"source\":\"class Main {}\"");
+  }
+
+  @Test
+  void userTokenCannotAccessAdminSnippetRoute() {
+    User user = saveUser("snippet_reviewer", UserRole.USER);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "/api/admin/snippets",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(user)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody()).contains("\"code\":\"ACCESS_DENIED\"");
+  }
+
+  @Test
+  void adminTokenCanAccessAdminSnippetRoute() {
+    User admin = saveUser("snippet_admin", UserRole.ADMIN);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "/api/admin/snippets",
             HttpMethod.GET,
             bearerEntity(jwtService.createAccessToken(admin)),
             String.class);
@@ -144,5 +209,12 @@ class SecurityAuthorizationIntegrationTest {
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);
+  }
+
+  private Category saveCategory(String name) {
+    Category category = new Category();
+    category.setName(name);
+    category.setDescription(name + " exercises");
+    return categoryRepository.saveAndFlush(category);
   }
 }
