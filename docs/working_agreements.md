@@ -153,6 +153,11 @@ Testing is part of implementation rather than a later project phase.
   relevant tests and new or changed functional code reaches at least 80%
   coverage.
 - JaCoCo and Vitest coverage enforcement are the repository coverage standards.
+- Backend testing and coverage gates (JUnit 5, Mockito, AssertJ, MockMvc,
+  Testcontainers with PostgreSQL, JaCoCo) are configured; frontend gates are
+  configured separately.
+- Every implementation Task includes its relevant tests, and new or changed
+  functional code reaches at least 80% coverage.
 - Bug fixes include a regression test whenever the defect can be reproduced
   automatically.
 - Manual testing complements automated tests but does not replace the coverage
