@@ -9,7 +9,6 @@ import org.coderacer.backend.security.exception.SecurityExceptionHandler;
 import org.coderacer.backend.security.jwt.JwtAccountValidator;
 import org.coderacer.backend.security.jwt.JwtProperties;
 import org.coderacer.backend.user.model.UserRole;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -29,7 +28,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
   @Bean

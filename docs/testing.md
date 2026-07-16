@@ -79,8 +79,7 @@ outside this Task's scope.
 The backend testing foundation is implemented and provides:
 
 - JUnit 5, Mockito, and AssertJ for unit tests;
-- MockMvc and Spring Boot Test for web-layer slice tests (Spring Security
-  Test will be added when security is introduced);
+- MockMvc, Spring Boot Test, and Spring Security Test for web-layer slice tests;
 - Testcontainers with PostgreSQL for repository and full integration tests;
 - JaCoCo backend coverage reporting and enforcement, wired into
   `./gradlew check`.

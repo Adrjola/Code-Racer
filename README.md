@@ -62,8 +62,8 @@ separate npm application under `frontend/`.
 - Spring Security with JWT resource-server authentication
 - Gradle
 
-Security, WebSocket support, and API documentation will be added by the feature
-Tasks that first require them.
+WebSocket support and API documentation will be added by the feature Tasks that
+first require them.
 
 ### Frontend
 
