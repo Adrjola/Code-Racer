@@ -57,6 +57,20 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows validation errors on an empty login submit', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const footer = screen.getByText(/already have an account/i).closest('p')!;
+    await user.click(within(footer).getByRole('button', { name: /sign in/i }));
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(
+      screen.getByText('Email or username is required'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Password is required')).toBeInTheDocument();
+  });
+
   it('shows validation errors on an empty register submit', async () => {
     const user = userEvent.setup();
     render(<App />);
