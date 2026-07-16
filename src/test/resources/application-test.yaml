@@ -10,3 +10,8 @@ app:
   security:
     jwt:
       secret: dev-only-change-me-code-racer-jwt-secret-32
+
+management:
+  health:
+    mail:
+      enabled: false
