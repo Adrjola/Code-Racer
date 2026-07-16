@@ -4,12 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import jakarta.persistence.EntityManager;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.HexFormat;
+import java.util.UUID;
 import org.coderacer.backend.AbstractPostgresIntegrationTest;
-import org.coderacer.backend.soloattempt.model.CodeSnippet;
-import org.coderacer.backend.soloattempt.model.Difficulty;
+import org.coderacer.backend.category.model.Category;
+import org.coderacer.backend.category.repository.CategoryRepository;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
-import org.coderacer.backend.soloattempt.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.repository.SoloAttemptRepository;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
@@ -26,6 +33,7 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
+  @Autowired private CategoryRepository categoryRepository;
   @Autowired private EntityManager entityManager;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
@@ -42,10 +50,29 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
     return user;
   }
 
+  private CodeSnippet newSnippet(String source) {
+    Category category = new Category();
+    category.setName("Category " + UUID.randomUUID());
+    category.setActive(true);
+    category = categoryRepository.save(category);
+    return codeSnippetRepository.save(
+        CodeSnippet.firstRevision("Title", source, sha256Hex(source), Difficulty.EASY, category));
+  }
+
+  private static String sha256Hex(String value) {
+    try {
+      return HexFormat.of()
+          .formatHex(
+              MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   @Test
   void persistsAttemptWithUserAndSnippetRelations() {
     User user = userRepository.save(newUser("alice"));
-    CodeSnippet snippet = codeSnippetRepository.save(new CodeSnippet("hello", Difficulty.EASY));
+    CodeSnippet snippet = newSnippet("hello");
 
     SoloAttempt saved =
         soloAttemptRepository.save(new SoloAttempt(user, snippet, Difficulty.EASY, now));
@@ -59,8 +86,8 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   @Test
   void enforcesOneActiveAttemptPerUserViaUniqueIndex() {
     User user = userRepository.save(newUser("bob"));
-    CodeSnippet snippetOne = codeSnippetRepository.save(new CodeSnippet("hello", Difficulty.EASY));
-    CodeSnippet snippetTwo = codeSnippetRepository.save(new CodeSnippet("world", Difficulty.EASY));
+    CodeSnippet snippetOne = newSnippet("hello");
+    CodeSnippet snippetTwo = newSnippet("world");
 
     soloAttemptRepository.saveAndFlush(new SoloAttempt(user, snippetOne, Difficulty.EASY, now));
 
@@ -74,8 +101,8 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   @Test
   void allowsNewActiveAttemptAfterPreviousOneTerminates() {
     User user = userRepository.save(newUser("carol"));
-    CodeSnippet snippetOne = codeSnippetRepository.save(new CodeSnippet("hello", Difficulty.EASY));
-    CodeSnippet snippetTwo = codeSnippetRepository.save(new CodeSnippet("world", Difficulty.EASY));
+    CodeSnippet snippetOne = newSnippet("hello");
+    CodeSnippet snippetTwo = newSnippet("world");
 
     SoloAttempt first =
         soloAttemptRepository.saveAndFlush(new SoloAttempt(user, snippetOne, Difficulty.EASY, now));
@@ -91,7 +118,7 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   @Test
   void nonFinisherAttemptsHaveNullMetrics() {
     User user = userRepository.save(newUser("dave"));
-    CodeSnippet snippet = codeSnippetRepository.save(new CodeSnippet("hello", Difficulty.EASY));
+    CodeSnippet snippet = newSnippet("hello");
 
     SoloAttempt attempt =
         soloAttemptRepository.save(new SoloAttempt(user, snippet, Difficulty.EASY, now));
@@ -109,7 +136,7 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   @Test
   void detectsStaleUpdateViaOptimisticLocking() {
     User user = userRepository.save(newUser("erin"));
-    CodeSnippet snippet = codeSnippetRepository.save(new CodeSnippet("hello", Difficulty.EASY));
+    CodeSnippet snippet = newSnippet("hello");
     SoloAttempt attempt =
         soloAttemptRepository.saveAndFlush(new SoloAttempt(user, snippet, Difficulty.EASY, now));
 

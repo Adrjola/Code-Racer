@@ -12,16 +12,17 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.category.model.Category;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptOwnershipException;
-import org.coderacer.backend.soloattempt.model.CodeSnippet;
-import org.coderacer.backend.soloattempt.model.Difficulty;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 import org.coderacer.backend.soloattempt.progress.ActiveAttemptStateStore;
-import org.coderacer.backend.soloattempt.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.repository.SoloAttemptRepository;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
@@ -82,8 +83,17 @@ class SoloAttemptServiceTest {
     return user;
   }
 
+  private Category category() {
+    Category category = new Category();
+    category.setId(UUID.randomUUID());
+    category.setName("Java");
+    category.setActive(true);
+    return category;
+  }
+
   private CodeSnippet snippet() {
-    CodeSnippet snippet = new CodeSnippet("hello", Difficulty.EASY);
+    CodeSnippet snippet =
+        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category());
     ReflectionTestUtils.setField(snippet, "id", snippetId);
     return snippet;
   }

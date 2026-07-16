@@ -4,7 +4,6 @@ import org.coderacer.backend.soloattempt.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.springframework.stereotype.Component;
 
-/** Maps {@link SoloAttempt} entities to response DTOs. */
 @Component
 public class SoloAttemptMapper {
 

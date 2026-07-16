@@ -2,19 +2,25 @@ package org.coderacer.backend.soloattempt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.coderacer.backend.category.model.Category;
+import org.coderacer.backend.category.repository.CategoryRepository;
 import org.coderacer.backend.security.jwt.JwtService;
-import org.coderacer.backend.soloattempt.model.CodeSnippet;
-import org.coderacer.backend.soloattempt.model.Difficulty;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
-import org.coderacer.backend.soloattempt.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.repository.SoloAttemptRepository;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.support.MutableClock;
@@ -49,6 +55,7 @@ class SoloAttemptFlowIntegrationTest {
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private UserRepository userRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
+  @Autowired private CategoryRepository categoryRepository;
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private MutableClock clock;
   @Autowired private JwtService jwtService;
@@ -66,7 +73,23 @@ class SoloAttemptFlowIntegrationTest {
   }
 
   private CodeSnippet newSnippet(String content) {
-    return codeSnippetRepository.saveAndFlush(new CodeSnippet(content, Difficulty.EASY));
+    Category category = new Category();
+    category.setName("Category " + UUID.randomUUID());
+    category.setActive(true);
+    category = categoryRepository.saveAndFlush(category);
+    return codeSnippetRepository.saveAndFlush(
+        CodeSnippet.firstRevision(
+            "Title", content, sha256Hex(content + UUID.randomUUID()), Difficulty.EASY, category));
+  }
+
+  private static String sha256Hex(String value) {
+    try {
+      return HexFormat.of()
+          .formatHex(
+              MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private HttpHeaders headersFor(User user) {

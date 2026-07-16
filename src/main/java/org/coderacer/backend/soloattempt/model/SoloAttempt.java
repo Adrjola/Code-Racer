@@ -7,6 +7,8 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.soloattempt.exception.IllegalSoloAttemptStateTransitionException;
 import org.coderacer.backend.user.model.User;
 

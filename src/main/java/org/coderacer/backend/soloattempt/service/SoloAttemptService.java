@@ -4,17 +4,17 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.exception.IllegalSoloAttemptStateTransitionException;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptOwnershipException;
-import org.coderacer.backend.soloattempt.model.CodeSnippet;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 import org.coderacer.backend.soloattempt.progress.ActiveAttemptStateStore;
 import org.coderacer.backend.soloattempt.progress.ActiveProgress;
-import org.coderacer.backend.soloattempt.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.repository.SoloAttemptRepository;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.repository.UserRepository;
@@ -80,7 +80,7 @@ public class SoloAttemptService {
 
     int[] canonicalCodePoints =
         CanonicalText.toCodePoints(
-            CanonicalText.canonicalizeLineEndings(attempt.getCodeSnippet().getContent()));
+            CanonicalText.canonicalizeLineEndings(attempt.getCodeSnippet().getSource()));
 
     if (attempt.getState() == SoloAttemptState.COMPLETED) {
       return new ProgressResult(attempt, canonicalCodePoints.length);
@@ -100,6 +100,10 @@ public class SoloAttemptService {
     }
 
     if (activeAttemptStateStore.get(attempt.getId()).isEmpty()) {
+      SoloAttempt refreshed = getOwnedAttempt(attemptId, userId);
+      if (refreshed.getState() == SoloAttemptState.COMPLETED) {
+        return new ProgressResult(refreshed, canonicalCodePoints.length);
+      }
       lifecycleWriter.invalidate(attempt.getId());
       throw new SoloAttemptNotActiveException(
           "Live progress state unavailable; attempt invalidated");

@@ -13,16 +13,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.util.UUID;
+import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptOwnershipException;
 import org.coderacer.backend.soloattempt.identity.CurrentUserProvider;
 import org.coderacer.backend.soloattempt.mapper.SoloAttemptMapper;
-import org.coderacer.backend.soloattempt.model.CodeSnippet;
-import org.coderacer.backend.soloattempt.model.Difficulty;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.service.ProgressResult;
 import org.coderacer.backend.soloattempt.service.SoloAttemptService;
@@ -57,7 +58,12 @@ class SoloAttemptControllerTest {
   }
 
   private CodeSnippet snippet(UUID id) {
-    CodeSnippet snippet = new CodeSnippet("hello", Difficulty.EASY);
+    Category category = new Category();
+    category.setId(UUID.randomUUID());
+    category.setName("Java");
+    category.setActive(true);
+    CodeSnippet snippet =
+        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", id);
     return snippet;
   }

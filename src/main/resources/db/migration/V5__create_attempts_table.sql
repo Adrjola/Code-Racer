@@ -1,7 +1,7 @@
 CREATE TABLE solo_attempts (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES user_account(id),
-    code_snippet_id UUID NOT NULL REFERENCES code_snippets(id),
+    code_snippet_id UUID NOT NULL REFERENCES code_snippet(id),
     state VARCHAR(20) NOT NULL CHECK (state IN ('COUNTDOWN', 'ACTIVE', 'COMPLETED', 'ABANDONED', 'EXPIRED', 'INVALIDATED')),
     difficulty VARCHAR(20) NOT NULL CHECK (difficulty IN ('EASY', 'MEDIUM', 'HARD')),
     started_at TIMESTAMPTZ NOT NULL,

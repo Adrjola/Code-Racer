@@ -10,10 +10,11 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.category.model.Category;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.soloattempt.exception.IllegalSoloAttemptStateTransitionException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
-import org.coderacer.backend.soloattempt.model.CodeSnippet;
-import org.coderacer.backend.soloattempt.model.Difficulty;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 import org.coderacer.backend.soloattempt.repository.SoloAttemptRepository;
@@ -42,7 +43,12 @@ class SoloAttemptLifecycleWriterTest {
   private SoloAttempt newAttempt() {
     User user = new User();
     ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-    CodeSnippet snippet = new CodeSnippet("hello", Difficulty.EASY);
+    Category category = new Category();
+    category.setId(UUID.randomUUID());
+    category.setName("Java");
+    category.setActive(true);
+    CodeSnippet snippet =
+        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
     SoloAttempt attempt = new SoloAttempt(user, snippet, Difficulty.EASY, startedAt);
     ReflectionTestUtils.setField(attempt, "id", attemptId);
