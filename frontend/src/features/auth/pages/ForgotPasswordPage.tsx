@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import AuthLayout from '../components/AuthLayout';
-import GradientButton from '../components/GradientButton';
-import TextField from '../components/TextField';
-import { MailIcon } from '../components/icons';
-import { emailError } from '../lib/validation';
+import AuthLayout from '@/components/AuthLayout';
+import GradientButton from '@/components/GradientButton';
+import TextField from '@/components/TextField';
+import { MailIcon } from '@/components/icons';
+import { emailError } from '@/features/auth/validation';
 
 type ForgotPasswordPageProps = {
   onBackToLogin: () => void;

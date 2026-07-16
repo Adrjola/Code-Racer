@@ -49,9 +49,11 @@ export default function AuthLayout({
           {children}
         </form>
 
-        <p className="mt-[clamp(8px,4.2vh_-_18px,27px)] text-center text-[14px]">
-          {footer}
-        </p>
+        {footer && (
+          <p className="mt-[clamp(8px,4.2vh_-_18px,27px)] text-center text-[14px]">
+            {footer}
+          </p>
+        )}
       </main>
     </div>
   );

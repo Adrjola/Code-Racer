@@ -6,6 +6,7 @@ import eyeOpen from '../assets/icons/eye-open.svg';
 type TextFieldProps = {
   autoComplete?: string;
   className?: string;
+  disabled?: boolean;
   error?: string;
   icon: ReactNode;
   id: string;
@@ -20,6 +21,7 @@ type TextFieldProps = {
 export default function TextField({
   autoComplete,
   className = '',
+  disabled = false,
   error,
   icon,
   id,
@@ -59,6 +61,7 @@ export default function TextField({
           className={`w-full bg-transparent font-mono text-text-primary outline-none placeholder:text-text-muted ${
             isPassword ? 'text-[14.5px]' : 'text-[16px]'
           }`}
+          disabled={disabled}
           id={id}
           maxLength={maxLength}
           onChange={(event) => onChange?.(event.target.value)}
@@ -70,6 +73,7 @@ export default function TextField({
           <button
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             className="shrink-0"
+            disabled={disabled}
             onClick={() => setShowPassword((visible) => !visible)}
             type="button"
           >

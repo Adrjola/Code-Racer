@@ -1,0 +1,262 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  clearSession,
+  loadSession,
+  loginUser,
+  registerUser,
+  type AuthSession,
+  type LoginCredentials,
+  type RegistrationValues,
+} from '@/features/auth/auth';
+import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage';
+import LoginPage from '@/features/auth/pages/LoginPage';
+import RegisterPage from '@/features/auth/pages/RegisterPage';
+import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
+import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
+import DashboardPage from '@/features/dashboard/DashboardPage';
+
+type Route =
+  | 'admin'
+  | 'dashboard'
+  | 'forgot'
+  | 'login'
+  | 'pending'
+  | 'register'
+  | 'verify';
+
+type AppState = {
+  dashboardNotice?: string;
+  loginNotice?: string;
+  pendingEmail?: string;
+  route: Route;
+  session: AuthSession | null;
+};
+
+type RouteResult = Pick<AppState, 'dashboardNotice' | 'loginNotice' | 'route'>;
+
+const LOGIN_REQUIRED_MESSAGE = 'Please log in to continue.';
+const ADMIN_REQUIRED_MESSAGE = 'Admin access requires an admin account.';
+
+function routeFromPath(pathname: string): Route {
+  switch (pathname) {
+    case '/admin':
+      return 'admin';
+    case '/dashboard':
+      return 'dashboard';
+    case '/forgot-password':
+      return 'forgot';
+    case '/login':
+      return 'login';
+    case '/verify-email-pending':
+      return 'pending';
+    case '/verify-email':
+      return 'verify';
+    default:
+      return 'register';
+  }
+}
+
+function pathFromRoute(route: Route): string {
+  switch (route) {
+    case 'admin':
+      return '/admin';
+    case 'dashboard':
+      return '/dashboard';
+    case 'forgot':
+      return '/forgot-password';
+    case 'login':
+      return '/login';
+    case 'pending':
+      return '/verify-email-pending';
+    case 'register':
+      return '/';
+    case 'verify':
+      return '/verify-email';
+  }
+}
+
+function isProtected(route: Route) {
+  return route === 'admin' || route === 'dashboard';
+}
+
+function isAuthRoute(route: Route) {
+  return (
+    route === 'forgot' ||
+    route === 'login' ||
+    route === 'pending' ||
+    route === 'register'
+  );
+}
+
+function defaultAuthenticatedRoute(session: AuthSession): Route {
+  return session.user.role === 'ADMIN' ? 'admin' : 'dashboard';
+}
+
+function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
+  if (!session && isProtected(route)) {
+    return { loginNotice: LOGIN_REQUIRED_MESSAGE, route: 'login' };
+  }
+
+  if (session && isAuthRoute(route)) {
+    return { route: defaultAuthenticatedRoute(session) };
+  }
+
+  if (session && route === 'admin' && session.user.role !== 'ADMIN') {
+    return { dashboardNotice: ADMIN_REQUIRED_MESSAGE, route: 'dashboard' };
+  }
+
+  return { route };
+}
+
+function createInitialState(): AppState {
+  const session = loadSession();
+  const routeResult = resolveRoute(
+    routeFromPath(window.location.pathname),
+    session,
+  );
+  const nextPath = pathFromRoute(routeResult.route);
+
+  if (window.location.pathname !== nextPath) {
+    window.history.replaceState(null, '', nextPath);
+  }
+
+  return {
+    ...routeResult,
+    session,
+  };
+}
+
+export default function App() {
+  const [state, setState] = useState<AppState>(createInitialState);
+  const { dashboardNotice, loginNotice, pendingEmail, route, session } = state;
+
+  const commitRoute = useCallback(
+    (
+      requestedRoute: Route,
+      nextSession: AuthSession | null,
+      replace = false,
+      notices: Pick<AppState, 'dashboardNotice' | 'loginNotice'> = {},
+    ) => {
+      const routeResult = resolveRoute(requestedRoute, nextSession);
+      const nextRoute = routeResult.route;
+      const nextPath = pathFromRoute(nextRoute);
+
+      if (window.location.pathname !== nextPath) {
+        if (replace) {
+          window.history.replaceState(null, '', nextPath);
+        } else {
+          window.history.pushState(null, '', nextPath);
+        }
+      }
+
+      setState((current) => ({
+        ...current,
+        dashboardNotice: notices.dashboardNotice ?? routeResult.dashboardNotice,
+        loginNotice: notices.loginNotice ?? routeResult.loginNotice,
+        route: nextRoute,
+        session: nextSession,
+      }));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const handlePopState = () => {
+      commitRoute(routeFromPath(window.location.pathname), session, true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [commitRoute, session]);
+
+  const navigate = (nextRoute: Route) => {
+    commitRoute(nextRoute, session);
+  };
+
+  const handleLogin = async (values: LoginCredentials) => {
+    const nextSession = await loginUser(values);
+    commitRoute(defaultAuthenticatedRoute(nextSession), nextSession);
+  };
+
+  const handleRegister = async (values: RegistrationValues) => {
+    const user = await registerUser(values);
+    setState((current) => ({ ...current, pendingEmail: user.email }));
+    commitRoute('pending', null);
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    commitRoute('login', null, false, {
+      loginNotice: 'You have been logged out.',
+    });
+  };
+
+  const handleVerificationComplete = (notice?: string) => {
+    commitRoute('login', null, false, { loginNotice: notice });
+  };
+
+  if (session && route === 'admin') {
+    return (
+      <DashboardPage
+        notice={dashboardNotice}
+        onGoAdmin={() => navigate('admin')}
+        onGoDashboard={() => navigate('dashboard')}
+        onLogout={handleLogout}
+        session={session}
+        view="admin"
+      />
+    );
+  }
+
+  if (session && route === 'dashboard') {
+    return (
+      <DashboardPage
+        notice={dashboardNotice}
+        onGoAdmin={() => navigate('admin')}
+        onGoDashboard={() => navigate('dashboard')}
+        onLogout={handleLogout}
+        session={session}
+        view="dashboard"
+      />
+    );
+  }
+
+  if (route === 'forgot') {
+    return <ForgotPasswordPage onBackToLogin={() => navigate('login')} />;
+  }
+
+  if (route === 'login') {
+    return (
+      <LoginPage
+        notice={loginNotice}
+        onCreateAccount={() => navigate('register')}
+        onForgotPassword={() => navigate('forgot')}
+        onLogin={handleLogin}
+      />
+    );
+  }
+
+  if (route === 'pending') {
+    return (
+      <VerificationPendingPage
+        email={pendingEmail}
+        onBackToLogin={() => navigate('login')}
+      />
+    );
+  }
+
+  if (route === 'verify') {
+    return (
+      <VerifyEmailPage
+        onBackToLogin={handleVerificationComplete}
+        token={new URLSearchParams(window.location.search).get('token')}
+      />
+    );
+  }
+
+  return (
+    <RegisterPage
+      onRegister={handleRegister}
+      onSignIn={() => navigate('login')}
+    />
+  );
+}
