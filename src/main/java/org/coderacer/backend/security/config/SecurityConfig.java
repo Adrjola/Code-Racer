@@ -7,7 +7,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.coderacer.backend.security.jwt.JwtAccountValidator;
 import org.coderacer.backend.security.jwt.JwtProperties;
-import org.coderacer.backend.security.web.SecurityProblemSupport;
+import org.coderacer.backend.security.web.SecurityProblemHandler;
 import org.coderacer.backend.user.model.UserRole;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +34,7 @@ public class SecurityConfig {
 
   @Bean
   SecurityFilterChain securityFilterChain(
-      HttpSecurity http, SecurityProblemSupport problemSupport, JwtDecoder jwtDecoder)
+      HttpSecurity http, SecurityProblemHandler problemHandler, JwtDecoder jwtDecoder)
       throws Exception {
     return http.csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())
@@ -42,8 +42,8 @@ public class SecurityConfig {
         .exceptionHandling(
             exceptions ->
                 exceptions
-                    .authenticationEntryPoint(problemSupport)
-                    .accessDeniedHandler(problemSupport))
+                    .authenticationEntryPoint(problemHandler)
+                    .accessDeniedHandler(problemHandler))
         .authorizeHttpRequests(
             authorize ->
                 authorize
@@ -64,8 +64,8 @@ public class SecurityConfig {
         .oauth2ResourceServer(
             oauth2 ->
                 oauth2
-                    .authenticationEntryPoint(problemSupport)
-                    .accessDeniedHandler(problemSupport)
+                    .authenticationEntryPoint(problemHandler)
+                    .accessDeniedHandler(problemHandler)
                     .jwt(
                         jwt ->
                             jwt.decoder(jwtDecoder)

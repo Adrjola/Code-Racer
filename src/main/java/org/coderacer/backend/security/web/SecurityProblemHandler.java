@@ -18,7 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
-public class SecurityProblemSupport implements AuthenticationEntryPoint, AccessDeniedHandler {
+public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
   private final ObjectMapper objectMapper;
 
