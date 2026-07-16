@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -57,6 +58,15 @@ class GlobalExceptionHandlerTest {
         .andExpect(jsonPath("$.status").value(409))
         .andExpect(jsonPath("$.code").value("ALREADY_EXISTS"))
         .andExpect(jsonPath("$.detail").value("Conflict occurred"));
+  }
+
+  @Test
+  void shouldHandleOptimisticLockingFailureAsConflict() throws Exception {
+    mockMvc
+        .perform(get("/api/test/optimistic-lock"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(jsonPath("$.code").value("VERSION_CONFLICT"));
   }
 
   @Test
@@ -158,6 +168,11 @@ class GlobalExceptionHandlerTest {
     @GetMapping("/api/test/conflict")
     public void conflict() {
       throw new ConflictException("Conflict occurred", "ALREADY_EXISTS");
+    }
+
+    @GetMapping("/api/test/optimistic-lock")
+    public void optimisticLock() {
+      throw new OptimisticLockingFailureException("stale revision");
     }
 
     @PostMapping("/api/test/validation")
