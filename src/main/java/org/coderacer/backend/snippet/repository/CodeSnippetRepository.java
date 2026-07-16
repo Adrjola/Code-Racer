@@ -15,6 +15,9 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
 
   boolean existsByContentHashAndLifecycle(String contentHash, SnippetLifecycle lifecycle);
 
+  boolean existsByContentHashAndLifecycleAndIdNot(
+      String contentHash, SnippetLifecycle lifecycle, UUID id);
+
   Optional<CodeSnippet> findFirstBySnippetIdOrderByRevisionNumberDesc(UUID snippetId);
 
   @Query(
@@ -33,18 +36,42 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
   @Query(
       value =
           """
-          select * from code_snippet
+          select *
+          from code_snippet
           where lifecycle = 'ACTIVE'
             and (cast(:categoryId as uuid) is null or category_id = cast(:categoryId as uuid))
             and (cast(:difficulty as varchar) is null or difficulty = cast(:difficulty as varchar))
             and (cast(:excludeContentHash as varchar) is null
                  or content_hash <> cast(:excludeContentHash as varchar))
-          order by random()
+            and selection_key >= :selectionKey
+          order by selection_key
           limit 1
           """,
       nativeQuery = true)
-  Optional<CodeSnippet> findRandomEligible(
+  Optional<CodeSnippet> findFirstEligibleAtOrAfter(
       @Param("categoryId") UUID categoryId,
       @Param("difficulty") String difficulty,
-      @Param("excludeContentHash") String excludeContentHash);
+      @Param("excludeContentHash") String excludeContentHash,
+      @Param("selectionKey") double selectionKey);
+
+  @Query(
+      value =
+          """
+          select *
+          from code_snippet
+          where lifecycle = 'ACTIVE'
+            and (cast(:categoryId as uuid) is null or category_id = cast(:categoryId as uuid))
+            and (cast(:difficulty as varchar) is null or difficulty = cast(:difficulty as varchar))
+            and (cast(:excludeContentHash as varchar) is null
+                 or content_hash <> cast(:excludeContentHash as varchar))
+            and selection_key < :selectionKey
+          order by selection_key
+          limit 1
+          """,
+      nativeQuery = true)
+  Optional<CodeSnippet> findFirstEligibleBefore(
+      @Param("categoryId") UUID categoryId,
+      @Param("difficulty") String difficulty,
+      @Param("excludeContentHash") String excludeContentHash,
+      @Param("selectionKey") double selectionKey);
 }

@@ -8,6 +8,7 @@ import org.coderacer.backend.common.error.ProblemDetails;
 import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -63,6 +64,17 @@ public class GlobalExceptionHandler {
             .toList();
     return buildResponse(
         HttpStatus.BAD_REQUEST, "Validation failed", "INVALID_INPUT", request, errors);
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ResponseEntity<ProblemDetails> handleOptimisticLockingFailure(
+      OptimisticLockingFailureException ex, HttpServletRequest request) {
+    return buildResponse(
+        HttpStatus.CONFLICT,
+        "Resource was changed by someone else, reload it and try again",
+        "VERSION_CONFLICT",
+        request,
+        null);
   }
 
   @ExceptionHandler(BaseException.class)

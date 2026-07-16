@@ -23,6 +23,7 @@ import org.coderacer.backend.snippet.model.SnippetLifecycle;
 import org.coderacer.backend.snippet.service.SnippetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
@@ -114,6 +115,23 @@ class SnippetControllerTest {
                         + categoryId
                         + "\",\"version\":0}"))
         .andExpect(status().isOk());
+  }
+
+  @Test
+  void update_returns409_whenOptimisticLockingFailsDuringFlush() throws Exception {
+    when(service.update(eq(id), any())).thenThrow(new OptimisticLockingFailureException("stale"));
+
+    mockMvc
+        .perform(
+            put("/api/admin/snippets/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"difficulty\":\"EASY\","
+                        + "\"categoryId\":\""
+                        + categoryId
+                        + "\",\"version\":0}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("VERSION_CONFLICT"));
   }
 
   @Test

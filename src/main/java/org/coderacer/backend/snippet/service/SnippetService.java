@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.category.repository.CategoryRepository;
@@ -22,6 +23,7 @@ import org.coderacer.backend.snippet.model.CodeSnippet;
 import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.snippet.model.SnippetLifecycle;
 import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,16 +48,10 @@ public class SnippetService {
     requireNoDuplicateActiveContent(contentHash);
     Category category = requireAvailableCategory(request.categoryId());
 
-    CodeSnippet snippet = new CodeSnippet();
-    snippet.setSnippetId(UUID.randomUUID());
-    snippet.setRevisionNumber(1);
-    snippet.setTitle(request.title());
-    snippet.setSource(canonicalSource);
-    snippet.setContentHash(contentHash);
-    snippet.setDifficulty(request.difficulty());
-    snippet.setCategory(category);
-    snippet.setLifecycle(SnippetLifecycle.ACTIVE);
-    return mapper.toResponse(repository.saveAndFlush(snippet));
+    CodeSnippet snippet =
+        CodeSnippet.firstRevision(
+            request.title(), canonicalSource, contentHash, request.difficulty(), category);
+    return saveAndMap(snippet);
   }
 
   @Transactional
@@ -70,24 +66,24 @@ public class SnippetService {
     Category category = requireAvailableCategory(request.categoryId());
 
     if (!gameplayChanged(existing, contentHash, request.difficulty(), category)) {
-      existing.setTitle(request.title());
-      return mapper.toResponse(repository.saveAndFlush(existing));
+      existing.rename(request.title());
+      return saveAndMap(existing);
     }
 
-    requireNoDuplicateActiveContent(contentHash);
-    existing.setLifecycle(SnippetLifecycle.RETIRED);
-    repository.save(existing);
+    requireNoDuplicateActiveContent(contentHash, existing.getId());
+    existing.retire();
+    repository.saveAndFlush(existing);
 
-    CodeSnippet revision = new CodeSnippet();
-    revision.setSnippetId(existing.getSnippetId());
-    revision.setRevisionNumber(nextRevisionNumber(existing.getSnippetId()));
-    revision.setTitle(request.title());
-    revision.setSource(canonicalSource);
-    revision.setContentHash(contentHash);
-    revision.setDifficulty(request.difficulty());
-    revision.setCategory(category);
-    revision.setLifecycle(SnippetLifecycle.ACTIVE);
-    return mapper.toResponse(repository.saveAndFlush(revision));
+    CodeSnippet revision =
+        CodeSnippet.nextRevision(
+            existing.getSnippetId(),
+            nextRevisionNumber(existing.getSnippetId()),
+            request.title(),
+            canonicalSource,
+            contentHash,
+            request.difficulty(),
+            category);
+    return saveAndMap(revision);
   }
 
   @Transactional
@@ -111,7 +107,7 @@ public class SnippetService {
     if (snippet.getLifecycle() == SnippetLifecycle.DELETED) {
       throw illegalTransition(snippet, "delete");
     }
-    snippet.setLifecycle(SnippetLifecycle.DELETED);
+    snippet.softDelete();
     repository.save(snippet);
   }
 
@@ -133,15 +129,16 @@ public class SnippetService {
             ? null
             : repository.findById(excludeId).map(CodeSnippet::getContentHash).orElse(null);
 
+    String difficultyName = difficulty == null ? null : difficulty.name();
+    double selectionKey = ThreadLocalRandom.current().nextDouble();
     return repository
-        .findRandomEligible(
-            categoryId, difficulty == null ? null : difficulty.name(), excludeContentHash)
-        .map(mapper::toResponse)
-        .orElseThrow(
+        .findFirstEligibleAtOrAfter(categoryId, difficultyName, excludeContentHash, selectionKey)
+        .or(
             () ->
-                new ResourceNotFoundException(
-                    "No eligible snippet is available for the requested filters",
-                    "NO_ELIGIBLE_SNIPPET"));
+                repository.findFirstEligibleBefore(
+                    categoryId, difficultyName, excludeContentHash, selectionKey))
+        .map(mapper::toResponse)
+        .orElseThrow(this::noEligibleSnippet);
   }
 
   private SnippetResponse transition(
@@ -150,8 +147,11 @@ public class SnippetService {
     if (snippet.getLifecycle() != required) {
       throw illegalTransition(snippet, action);
     }
-    snippet.setLifecycle(target);
-    return mapper.toResponse(repository.saveAndFlush(snippet));
+    if (target == SnippetLifecycle.ACTIVE) {
+      requireNoDuplicateActiveContent(snippet.getContentHash());
+    }
+    applyLifecycle(snippet, target);
+    return saveAndMap(snippet);
   }
 
   private boolean gameplayChanged(
@@ -185,8 +185,14 @@ public class SnippetService {
 
   private void requireNoDuplicateActiveContent(String contentHash) {
     if (repository.existsByContentHashAndLifecycle(contentHash, SnippetLifecycle.ACTIVE)) {
-      throw new ConflictException(
-          "An active snippet with identical content already exists", "DUPLICATE_CONTENT");
+      throw duplicateContentConflict();
+    }
+  }
+
+  private void requireNoDuplicateActiveContent(String contentHash, UUID excludedRevisionId) {
+    if (repository.existsByContentHashAndLifecycleAndIdNot(
+        contentHash, SnippetLifecycle.ACTIVE, excludedRevisionId)) {
+      throw duplicateContentConflict();
     }
   }
 
@@ -215,6 +221,52 @@ public class SnippetService {
     return new ConflictException(
         "Cannot " + action + " a revision that is " + snippet.getLifecycle(),
         "ILLEGAL_LIFECYCLE_TRANSITION");
+  }
+
+  private SnippetResponse saveAndMap(CodeSnippet snippet) {
+    try {
+      return mapper.toResponse(repository.saveAndFlush(snippet));
+    } catch (DataIntegrityViolationException ex) {
+      throw mapDataIntegrityViolation(ex);
+    }
+  }
+
+  private ConflictException mapDataIntegrityViolation(DataIntegrityViolationException ex) {
+    Throwable cause = ex.getMostSpecificCause();
+    String detail = cause == null ? "" : cause.getMessage();
+    if (detail.contains("uq_code_snippet_active_content_hash")) {
+      return duplicateContentConflict();
+    }
+    if (detail.contains("uq_code_snippet_revision")) {
+      return versionConflict();
+    }
+    return new ConflictException(
+        "Snippet revision conflicts with existing data", "SNIPPET_REVISION_CONFLICT");
+  }
+
+  private ConflictException duplicateContentConflict() {
+    return new ConflictException(
+        "An active snippet with identical content already exists", "DUPLICATE_CONTENT");
+  }
+
+  private ConflictException versionConflict() {
+    return new ConflictException(
+        "Snippet revision was changed by someone else, reload it and try again",
+        "VERSION_CONFLICT");
+  }
+
+  private ResourceNotFoundException noEligibleSnippet() {
+    return new ResourceNotFoundException(
+        "No eligible snippet is available for the requested filters", "NO_ELIGIBLE_SNIPPET");
+  }
+
+  private void applyLifecycle(CodeSnippet snippet, SnippetLifecycle target) {
+    switch (target) {
+      case ACTIVE -> snippet.activate();
+      case INACTIVE -> snippet.deactivate();
+      case RETIRED -> snippet.retire();
+      case DELETED -> snippet.softDelete();
+    }
   }
 
   private void validateLengths(String title, String canonicalSource) {

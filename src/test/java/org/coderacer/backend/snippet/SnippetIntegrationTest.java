@@ -12,12 +12,15 @@ import org.coderacer.backend.common.exception.ResourceNotFoundException;
 import org.coderacer.backend.snippet.dto.CreateSnippetRequest;
 import org.coderacer.backend.snippet.dto.SnippetResponse;
 import org.coderacer.backend.snippet.dto.UpdateSnippetRequest;
+import org.coderacer.backend.snippet.model.CodeSnippet;
 import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.snippet.model.SnippetLifecycle;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.snippet.service.SnippetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -25,12 +28,14 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
 
   @Autowired private SnippetService service;
   @Autowired private CategoryRepository categoryRepository;
+  @Autowired private CodeSnippetRepository snippetRepository;
 
+  private Category category;
   private UUID categoryId;
 
   @BeforeEach
   void setUp() {
-    Category category = new Category();
+    category = new Category();
     category.setName("Java " + UUID.randomUUID());
     category.setDescription("Java exercises");
     categoryId = categoryRepository.saveAndFlush(category).getId();
@@ -71,6 +76,30 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
     SnippetResponse original = service.getById(first.id());
     assertThat(original.lifecycle()).isEqualTo(SnippetLifecycle.RETIRED);
     assertThat(original.source()).isEqualTo("old source");
+    assertThat(original.difficulty()).isEqualTo(Difficulty.EASY);
+  }
+
+  @Test
+  void difficultyEditCreatesANewRevisionWithoutChangingTheOriginalRevision() {
+    SnippetResponse first =
+        service.create(
+            new CreateSnippetRequest("FizzBuzz", "same source", Difficulty.EASY, categoryId));
+
+    SnippetResponse second =
+        service.update(
+            first.id(),
+            new UpdateSnippetRequest(
+                "FizzBuzz", "same source", Difficulty.MEDIUM, categoryId, first.version()));
+
+    assertThat(second.id()).isNotEqualTo(first.id());
+    assertThat(second.snippetId()).isEqualTo(first.snippetId());
+    assertThat(second.revisionNumber()).isEqualTo(2);
+    assertThat(second.source()).isEqualTo("same source");
+    assertThat(second.difficulty()).isEqualTo(Difficulty.MEDIUM);
+
+    SnippetResponse original = service.getById(first.id());
+    assertThat(original.lifecycle()).isEqualTo(SnippetLifecycle.RETIRED);
+    assertThat(original.source()).isEqualTo("same source");
     assertThat(original.difficulty()).isEqualTo(Difficulty.EASY);
   }
 
@@ -124,6 +153,20 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
                 service.create(
                     new CreateSnippetRequest("B", "same source", Difficulty.MEDIUM, categoryId)))
         .isInstanceOf(ConflictException.class);
+  }
+
+  @Test
+  void databaseRejectsDuplicateActiveContentHash() {
+    String contentHash = "a".repeat(64);
+    CodeSnippet first =
+        CodeSnippet.firstRevision("A", "first source", contentHash, Difficulty.EASY, category);
+    CodeSnippet duplicate =
+        CodeSnippet.firstRevision("B", "second source", contentHash, Difficulty.MEDIUM, category);
+
+    snippetRepository.saveAndFlush(first);
+
+    assertThatThrownBy(() -> snippetRepository.saveAndFlush(duplicate))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test

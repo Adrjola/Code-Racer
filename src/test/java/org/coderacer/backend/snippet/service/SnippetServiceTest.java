@@ -3,8 +3,10 @@ package org.coderacer.backend.snippet.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +36,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class SnippetServiceTest {
@@ -129,6 +133,20 @@ class SnippetServiceTest {
   }
 
   @Test
+  void create_mapsDatabaseDuplicateRaceToConflict() {
+    givenCategoryIsAvailable();
+    givenContentIsNotDuplicated();
+    when(repository.saveAndFlush(any(CodeSnippet.class)))
+        .thenThrow(new DataIntegrityViolationException("uq_code_snippet_active_content_hash"));
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, categoryId)))
+        .isInstanceOf(ConflictException.class);
+  }
+
+  @Test
   void create_rejectsUnknownCategory() {
     givenContentIsNotDuplicated();
     when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
@@ -173,7 +191,7 @@ class SnippetServiceTest {
     CodeSnippet existing = existingRevision("old code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
     when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
     givenCategoryIsAvailable();
-    givenContentIsNotDuplicated();
+    givenContentIsNotDuplicatedExceptCurrentRevision();
     when(repository.findFirstBySnippetIdOrderByRevisionNumberDesc(existing.getSnippetId()))
         .thenReturn(Optional.of(existing));
     when(repository.saveAndFlush(any(CodeSnippet.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -182,7 +200,7 @@ class SnippetServiceTest {
         revisionId, new UpdateSnippetRequest("Title", "new code", Difficulty.EASY, categoryId, 0L));
 
     assertThat(existing.getLifecycle()).isEqualTo(SnippetLifecycle.RETIRED);
-    CodeSnippet revision = savedSnippet();
+    CodeSnippet revision = lastSavedSnippet();
     assertThat(revision.getSnippetId()).isEqualTo(existing.getSnippetId());
     assertThat(revision.getRevisionNumber()).isEqualTo(2);
     assertThat(revision.getLifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
@@ -192,7 +210,7 @@ class SnippetServiceTest {
   @Test
   void update_rejectsAStaleVersion() {
     CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
-    existing.setVersion(3);
+    ReflectionTestUtils.setField(existing, "version", 3L);
     when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
 
     assertThatThrownBy(
@@ -281,18 +299,38 @@ class SnippetServiceTest {
   void randomEligible_excludesTheContentThePlayerAlreadyHas() {
     CodeSnippet current = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
     when(repository.findById(revisionId)).thenReturn(Optional.of(current));
-    when(repository.findRandomEligible(categoryId, "EASY", current.getContentHash()))
+    when(repository.findFirstEligibleAtOrAfter(
+            eq(categoryId), eq("EASY"), eq(current.getContentHash()), anyDouble()))
         .thenReturn(Optional.of(current));
     when(mapper.toResponse(current)).thenReturn(response(current));
 
     service.randomEligible(categoryId, Difficulty.EASY, revisionId);
 
-    verify(repository).findRandomEligible(categoryId, "EASY", current.getContentHash());
+    verify(repository)
+        .findFirstEligibleAtOrAfter(
+            eq(categoryId), eq("EASY"), eq(current.getContentHash()), anyDouble());
+  }
+
+  @Test
+  void randomEligible_wrapsToTheBeginningWhenNoLaterRevisionExists() {
+    CodeSnippet current = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
+    when(repository.findFirstEligibleAtOrAfter(eq(null), eq(null), eq(null), anyDouble()))
+        .thenReturn(Optional.empty());
+    when(repository.findFirstEligibleBefore(eq(null), eq(null), eq(null), anyDouble()))
+        .thenReturn(Optional.of(current));
+    when(mapper.toResponse(current)).thenReturn(response(current));
+
+    service.randomEligible(null, null, null);
+
+    verify(repository).findFirstEligibleBefore(eq(null), eq(null), eq(null), anyDouble());
   }
 
   @Test
   void randomEligible_failsWhenNoRevisionIsEligible() {
-    when(repository.findRandomEligible(null, null, null)).thenReturn(Optional.empty());
+    when(repository.findFirstEligibleAtOrAfter(eq(null), eq(null), eq(null), anyDouble()))
+        .thenReturn(Optional.empty());
+    when(repository.findFirstEligibleBefore(eq(null), eq(null), eq(null), anyDouble()))
+        .thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.randomEligible(null, null, null))
         .isInstanceOf(ResourceNotFoundException.class);
@@ -307,24 +345,37 @@ class SnippetServiceTest {
         .thenReturn(false);
   }
 
+  private void givenContentIsNotDuplicatedExceptCurrentRevision() {
+    when(repository.existsByContentHashAndLifecycleAndIdNot(
+            any(), eq(SnippetLifecycle.ACTIVE), eq(revisionId)))
+        .thenReturn(false);
+  }
+
   private CodeSnippet savedSnippet() {
     ArgumentCaptor<CodeSnippet> captor = ArgumentCaptor.forClass(CodeSnippet.class);
     verify(repository).saveAndFlush(captor.capture());
     return captor.getValue();
   }
 
+  private CodeSnippet lastSavedSnippet() {
+    ArgumentCaptor<CodeSnippet> captor = ArgumentCaptor.forClass(CodeSnippet.class);
+    verify(repository, times(2)).saveAndFlush(captor.capture());
+    return captor.getAllValues().get(1);
+  }
+
   private CodeSnippet existingRevision(
       String source, Difficulty difficulty, SnippetLifecycle lifecycle) {
-    CodeSnippet snippet = new CodeSnippet();
-    snippet.setId(revisionId);
-    snippet.setSnippetId(UUID.randomUUID());
-    snippet.setRevisionNumber(1);
-    snippet.setTitle("Title");
-    snippet.setSource(source);
-    snippet.setContentHash(sha256Hex(source));
-    snippet.setDifficulty(difficulty);
-    snippet.setCategory(category);
-    snippet.setLifecycle(lifecycle);
+    CodeSnippet snippet =
+        new CodeSnippet(
+            UUID.randomUUID(),
+            1,
+            "Title",
+            source,
+            sha256Hex(source),
+            difficulty,
+            category,
+            lifecycle);
+    ReflectionTestUtils.setField(snippet, "id", revisionId);
     return snippet;
   }
 
