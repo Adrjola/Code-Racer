@@ -17,7 +17,7 @@ startup, and the initial automated test suites:
 
 Backend coverage enforcement is enabled through JaCoCo, with basic infrastructure tests in place:
 
-- `GlobalExceptionHandlerTest`: Verifies RFC 9457 error responses and exception mapping.
+- `GlobalExceptionHandlerTest`: Verifies simplified API error responses and exception mapping.
 - `CorrelationIdFilterTest`: Verifies request correlation ID propagation and MDC cleanup.
 - `CorsConfigTest`: Verifies CORS policy enforcement for allowed and rejected origins.
 - `CorsPropertiesTest`: Verifies fail-fast CORS configuration validation.
@@ -79,8 +79,7 @@ outside this Task's scope.
 The backend testing foundation is implemented and provides:
 
 - JUnit 5, Mockito, and AssertJ for unit tests;
-- MockMvc and Spring Boot Test for web-layer slice tests (Spring Security
-  Test will be added when security is introduced);
+- MockMvc, Spring Boot Test, and Spring Security Test for web-layer slice tests;
 - Testcontainers with PostgreSQL for repository and full integration tests;
 - JaCoCo backend coverage reporting and enforcement, wired into
   `./gradlew check`.
@@ -191,6 +190,12 @@ PostgreSQL container for the test run. Repository tests should use
 `AbstractPostgresIntegrationTest`, but new tests should prefer the
 meta-annotations so they do not depend on a developer's local database. Docker
 must be running to execute them.
+
+Email delivery tests must use the captured email adapter configured by the
+`test` profile. Automated tests must not send real emails or depend on a real
+SMTP provider. Local manual testing uses Mailpit from `compose.yaml`, so
+verification links can be inspected in the Mailpit web inbox without reaching
+external recipients.
 
 ## Test Tier Conventions
 

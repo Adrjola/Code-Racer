@@ -2,26 +2,23 @@
 
 This document outlines the shared HTTP, validation, exception handling, and logging conventions used in the Code Racer backend.
 
-#### 1. Error Handling (RFC 9457)
-All error responses follow the **RFC 9457 (Problem Details for HTTP APIs)** standard. This ensures a consistent error structure across the entire API.
+#### 1. Error Handling
+All error responses use a small shared JSON shape. Keep it simple and stable so
+frontend code, tests, and developers can read failures quickly.
 
 **Structure:**
 ```json
 {
-  "type": "about:blank",
-  "title": "Not Found",
   "status": 404,
-  "detail": "User with id 123 not found",
   "instance": "/api/users/123",
   "code": "RESOURCE_NOT_FOUND",
-  "timestamp": "2026-07-13T12:00:00Z",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
-  "errors": []
+  "message": "User with id 123 not found"
 }
 ```
+- `status`: The HTTP status code.
+- `instance`: The request path where the error happened.
 - `code`: A stable, machine-readable string (e.g., `INVALID_INPUT`, `ALREADY_EXISTS`, `FRAMEWORK_ERROR`).
-- `correlationId`: A unique ID for tracing the request in logs.
-- `errors`: A list of field-specific validation errors (optional, containing `field` and `message`).
+- `message`: The human-readable error message.
 
 #### 2. Exception Hierarchy
 Do not catch broad exceptions in controllers. Instead, throw domain-specific exceptions:
@@ -30,12 +27,14 @@ Do not catch broad exceptions in controllers. Instead, throw domain-specific exc
 - `ValidationException`: Maps to `400 Bad Request` (for service-level rules).
 - `BaseException`: Base for all custom exceptions.
 
-The `GlobalExceptionHandler` centrally manages these and converts them into the `ProblemDetails` format.
+The `GlobalExceptionHandler` centrally manages these and converts them into the
+shared `ApiError` response format.
 
 #### 3. Validation
 - **Request Boundary**: Use Jakarta Bean Validation annotations (`@NotNull`, `@NotBlank`, `@Size`, etc.) in DTOs.
 - **Trigger**: Annotate controller parameters with `@Valid`.
-- **Response**: Validation failures automatically return a `400 Bad Request` with a collection of field errors in the `errors` array.
+- **Response**: Validation failures automatically return a `400 Bad Request`
+  with `code: "INVALID_INPUT"` and a readable `message`.
 
 #### 4. DTO & Response Wrapping
 - **Separation**: Never serialize JPA entities directly. Use Request DTOs for input and Response DTOs for output.
@@ -53,6 +52,23 @@ The `GlobalExceptionHandler` centrally manages these and converts them into the 
 - **CORS**: Configured via `app.cors.allowed-origins`, with the `ALLOWED_ORIGINS`
   environment variable available for deployment overrides. Origins must be
   explicit; wildcard origins are rejected while credentials are enabled.
+- **Authentication**: Public authentication routes live under `/api/auth`.
+  Login accepts `identifier` and `password`; `identifier` can be either a username
+  or an email address. Failed login attempts are throttled per identifier and
+  client address. Deployments should still add edge or gateway rate limiting for
+  distributed brute-force protection.
+- **Email verification**: New registrations create unverified USER accounts and
+  send a verification email. Verification links contain a high-entropy, expiring,
+  single-use token; only the token hash is stored server-side. Confirmation and
+  resend routes are public under `/api/auth/email-verification`. Resend responses
+  are neutral and must not reveal whether an email address belongs to an account.
+- **JWTs**: Access tokens are short-lived bearer tokens. Raw tokens, passwords,
+  and password hashes must never be logged or returned outside the login
+  response. Password reset and password change flows must invalidate existing
+  tokens by updating the user's token-valid-from timestamp.
+- **Authorization**: `/api/admin/**` requires the `ADMIN` role. General
+  authenticated API routes require `USER` or `ADMIN` unless explicitly marked
+  public.
 - **Actuator**: Only `health` and `info` endpoints are exposed by default.
 
 #### 7. Testing
