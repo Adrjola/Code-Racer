@@ -37,6 +37,18 @@ class ActiveAttemptStateStoreTest {
   }
 
   @Test
+  void reregisteringDoesNotResetAlreadyAdvancedProgress() {
+    UUID id = UUID.randomUUID();
+    Instant now = Instant.parse("2026-01-01T00:00:00Z");
+    store.register(id, now);
+    store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now.plusSeconds(1));
+
+    store.register(id, now.plusSeconds(2));
+
+    assertThat(store.get(id)).contains(new ActiveProgress(2, 1, now.plusSeconds(1)));
+  }
+
+  @Test
   void appliesFirstDeltaInSequence() {
     UUID id = UUID.randomUUID();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");

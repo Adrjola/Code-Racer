@@ -82,6 +82,12 @@ class SoloAttemptFlowIntegrationTest {
             "Title", content, sha256Hex(content + UUID.randomUUID()), Difficulty.EASY, category));
   }
 
+  private CodeSnippet newRetiredSnippet(String content) {
+    CodeSnippet snippet = newSnippet(content);
+    snippet.retire();
+    return codeSnippetRepository.saveAndFlush(snippet);
+  }
+
   private static String sha256Hex(String value) {
     try {
       return HexFormat.of()
@@ -93,10 +99,14 @@ class SoloAttemptFlowIntegrationTest {
   }
 
   private HttpHeaders headersFor(User user) {
+    return headersFor(user, user);
+  }
+
+  private HttpHeaders headersFor(User tokenUser, User spoofedHeaderUser) {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.set("X-User-Id", user.getId().toString());
-    headers.setBearerAuth(jwtService.createAccessToken(user));
+    headers.set("X-User-Id", spoofedHeaderUser.getId().toString());
+    headers.setBearerAuth(jwtService.createAccessToken(tokenUser));
     return headers;
   }
 
@@ -124,6 +134,43 @@ class SoloAttemptFlowIntegrationTest {
             "{\"sequence\":" + sequence + ",\"characters\":\"" + characters + "\"}",
             headersFor(user)),
         Map.class);
+  }
+
+  @Test
+  void spoofedUserIdHeaderIsIgnoredInFavorOfJwtClaim() throws Exception {
+    User authenticatedUser = newUser("eve");
+    User spoofedUser = newUser("victim");
+    CodeSnippet snippet = newSnippet("hi");
+
+    ResponseEntity<Map> response =
+        restTemplate.exchange(
+            "/api/solo-attempts",
+            HttpMethod.POST,
+            new HttpEntity<>(
+                "{\"codeSnippetId\":\"" + snippet.getId() + "\"}",
+                headersFor(authenticatedUser, spoofedUser)),
+            Map.class);
+    UUID attemptId = UUID.fromString((String) data(response).get("attemptId"));
+
+    SoloAttempt attempt = soloAttemptRepository.findById(attemptId).orElseThrow();
+    assertThat(attempt.getUser().getId()).isEqualTo(authenticatedUser.getId());
+    assertThat(attempt.getUser().getId()).isNotEqualTo(spoofedUser.getId());
+    assertThat(soloAttemptRepository.findByUserId(spoofedUser.getId())).isEmpty();
+  }
+
+  @Test
+  void startRejectsAttemptAgainstRetiredSnippet() throws Exception {
+    User user = newUser("frank");
+    CodeSnippet snippet = newRetiredSnippet("hi");
+
+    ResponseEntity<Map> response =
+        restTemplate.exchange(
+            "/api/solo-attempts",
+            HttpMethod.POST,
+            new HttpEntity<>("{\"codeSnippetId\":\"" + snippet.getId() + "\"}", headersFor(user)),
+            Map.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
   }
 
   @Test

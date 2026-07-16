@@ -19,7 +19,7 @@ public class ActiveAttemptStateStore {
   private final Map<UUID, ActiveProgress> progressByAttemptId = new ConcurrentHashMap<>();
 
   public void register(UUID attemptId, Instant activatedAt) {
-    progressByAttemptId.put(attemptId, new ActiveProgress(0, 0, activatedAt));
+    progressByAttemptId.putIfAbsent(attemptId, new ActiveProgress(0, 0, activatedAt));
   }
 
   public Optional<ActiveProgress> get(UUID attemptId) {

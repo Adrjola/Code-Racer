@@ -5,12 +5,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.SnippetLifecycle;
 import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.exception.IllegalSoloAttemptStateTransitionException;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptOwnershipException;
+import org.coderacer.backend.soloattempt.exception.SoloAttemptSnippetUnavailableException;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 import org.coderacer.backend.soloattempt.progress.ActiveAttemptStateStore;
@@ -61,6 +63,14 @@ public class SoloAttemptService {
         codeSnippetRepository
             .findById(codeSnippetId)
             .orElseThrow(() -> new SoloAttemptNotFoundException(codeSnippetId));
+    if (snippet.getLifecycle() != SnippetLifecycle.ACTIVE) {
+      throw new SoloAttemptSnippetUnavailableException(
+          "Code snippet "
+              + codeSnippetId
+              + " is not available (lifecycle="
+              + snippet.getLifecycle()
+              + ")");
+    }
 
     Instant startedAt = clock.instant().plus(COUNTDOWN_DURATION);
     SoloAttempt attempt = new SoloAttempt(user, snippet, snippet.getDifficulty(), startedAt);

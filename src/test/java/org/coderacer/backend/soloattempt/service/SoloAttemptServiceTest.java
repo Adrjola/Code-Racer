@@ -15,11 +15,13 @@ import java.util.UUID;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.snippet.model.CodeSnippet;
 import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.snippet.model.SnippetLifecycle;
 import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptOwnershipException;
+import org.coderacer.backend.soloattempt.exception.SoloAttemptSnippetUnavailableException;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 import org.coderacer.backend.soloattempt.progress.ActiveAttemptStateStore;
@@ -98,6 +100,12 @@ class SoloAttemptServiceTest {
     return snippet;
   }
 
+  private CodeSnippet snippet(SnippetLifecycle lifecycle) {
+    CodeSnippet snippet = snippet();
+    ReflectionTestUtils.setField(snippet, "lifecycle", lifecycle);
+    return snippet;
+  }
+
   private SoloAttempt newAttempt(Instant startedAt) {
     SoloAttempt attempt = new SoloAttempt(user(), snippet(), Difficulty.EASY, startedAt);
     ReflectionTestUtils.setField(attempt, "id", attemptId);
@@ -133,6 +141,36 @@ class SoloAttemptServiceTest {
     when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
     assertThrows(SoloAttemptNotFoundException.class, () -> service.start(userId, snippetId));
+  }
+
+  @Test
+  void startRejectsInactiveSnippet() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+    when(codeSnippetRepository.findById(snippetId))
+        .thenReturn(Optional.of(snippet(SnippetLifecycle.INACTIVE)));
+
+    assertThrows(
+        SoloAttemptSnippetUnavailableException.class, () -> service.start(userId, snippetId));
+  }
+
+  @Test
+  void startRejectsRetiredSnippet() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+    when(codeSnippetRepository.findById(snippetId))
+        .thenReturn(Optional.of(snippet(SnippetLifecycle.RETIRED)));
+
+    assertThrows(
+        SoloAttemptSnippetUnavailableException.class, () -> service.start(userId, snippetId));
+  }
+
+  @Test
+  void startRejectsDeletedSnippet() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+    when(codeSnippetRepository.findById(snippetId))
+        .thenReturn(Optional.of(snippet(SnippetLifecycle.DELETED)));
+
+    assertThrows(
+        SoloAttemptSnippetUnavailableException.class, () -> service.start(userId, snippetId));
   }
 
   @Test
