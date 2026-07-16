@@ -2,12 +2,12 @@ package org.coderacer.backend.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.common.error.FieldError;
 import org.coderacer.backend.common.error.ProblemDetails;
+import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -17,9 +17,12 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  private final ProblemDetailsFactory problemDetailsFactory;
 
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ProblemDetails> handleNotFound(
@@ -96,22 +99,8 @@ public class GlobalExceptionHandler {
       String code,
       HttpServletRequest request,
       List<FieldError> errors) {
-    String correlationId = MDC.get("correlationId");
-    if (correlationId == null) {
-      correlationId = UUID.randomUUID().toString();
-    }
-
     ProblemDetails problem =
-        ProblemDetails.builder()
-            .type("about:blank")
-            .status(status.value())
-            .title(status.getReasonPhrase())
-            .detail(detail)
-            .instance(request.getRequestURI())
-            .code(code)
-            .correlationId(correlationId)
-            .errors(errors)
-            .build();
+        problemDetailsFactory.create(status, detail, code, request.getRequestURI(), errors);
 
     return ResponseEntity.status(status).body(problem);
   }

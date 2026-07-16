@@ -50,6 +50,13 @@ public class User {
   @Column(nullable = false)
   private boolean deleted;
 
+  @Column(name = "token_valid_from", nullable = false)
+  private Instant tokenValidFrom = Instant.EPOCH;
+
+  public boolean canAuthenticate() {
+    return emailVerified && enabled && !deleted;
+  }
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;

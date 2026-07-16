@@ -13,6 +13,7 @@ import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
 import org.coderacer.backend.user.service.InitialAdminBootstrap;
 import org.coderacer.backend.user.service.UserRegistrationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,6 +27,11 @@ class UserRegistrationIntegrationTest {
   @Autowired private UserRegistrationService service;
   @Autowired private UserRepository repository;
   @Autowired private PasswordEncoder passwordEncoder;
+
+  @BeforeEach
+  void setUp() {
+    repository.deleteAll();
+  }
 
   @Test
   void registrationPersistsNormalizedUnverifiedUserWithHashedPassword() {
