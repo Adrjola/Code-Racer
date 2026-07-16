@@ -22,6 +22,12 @@ services:
       retries: 10
       start_period: 5s
 
+  mailpit:
+    image: axllent/mailpit:v1.30.4
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
   backend:
     build:
       context: .
@@ -39,10 +45,19 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-code_racer}
       POSTGRES_USER: ${POSTGRES_USER:-code_racer}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      APP_EMAIL_DELIVERY_MODE: smtp
+      APP_EMAIL_FROM: ${APP_EMAIL_FROM:-no-reply@coderacer.local}
+      APP_EMAIL_VERIFICATION_URL: ${APP_EMAIL_VERIFICATION_URL:-http://localhost:5173/verify-email}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-}
 
     depends_on:
       database:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
 volumes:
   postgres-data:

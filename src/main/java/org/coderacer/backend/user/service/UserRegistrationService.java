@@ -14,6 +14,7 @@ import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
+import org.coderacer.backend.user.verification.service.EmailVerificationService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class UserRegistrationService {
   private final UserRepository repository;
   private final PasswordEncoder passwordEncoder;
   private final UserMapper mapper;
+  private final EmailVerificationService emailVerificationService;
 
   @Transactional
   public UserResponse register(UserRegistrationRequest request) {
@@ -67,7 +69,11 @@ public class UserRegistrationService {
     user.setDeleted(false);
 
     try {
-      return mapper.toResponse(repository.saveAndFlush(user));
+      User savedUser = repository.saveAndFlush(user);
+      if (!emailVerified) {
+        emailVerificationService.sendVerificationEmail(savedUser);
+      }
+      return mapper.toResponse(savedUser);
     } catch (DataIntegrityViolationException ex) {
       throw duplicateUserConflict();
     }

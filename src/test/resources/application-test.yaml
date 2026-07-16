@@ -1,4 +1,12 @@
 app:
+  email:
+    delivery:
+      mode: captured
+      from: no-reply@coderacer.test
+  email-verification:
+    verification-url: http://localhost:5173/verify-email
+    token-ttl: 30m
+    resend-cooldown: 0s
   security:
     jwt:
       secret: dev-only-change-me-code-racer-jwt-secret-32

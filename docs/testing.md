@@ -192,6 +192,12 @@ PostgreSQL container for the test run. Repository tests should use
 meta-annotations so they do not depend on a developer's local database. Docker
 must be running to execute them.
 
+Email delivery tests must use the captured email adapter configured by the
+`test` profile. Automated tests must not send real emails or depend on a real
+SMTP provider. Local manual testing uses Mailpit from `compose.yaml`, so
+verification links can be inspected in the Mailpit web inbox without reaching
+external recipients.
+
 ## Test Tier Conventions
 
 Backend tests fall into four tiers, from cheapest to most expensive. Default to

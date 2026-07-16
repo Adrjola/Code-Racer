@@ -58,6 +58,11 @@ The `GlobalExceptionHandler` centrally manages these and converts them into the 
   Failed login attempts are throttled per username and client address. Deployments
   should still add edge or gateway rate limiting for distributed brute-force
   protection.
+- **Email verification**: New registrations create unverified USER accounts and
+  send a verification email. Verification links contain a high-entropy, expiring,
+  single-use token; only the token hash is stored server-side. Confirmation and
+  resend routes are public under `/api/auth/email-verification`. Resend responses
+  are neutral and must not reveal whether an email address belongs to an account.
 - **JWTs**: Access tokens are short-lived bearer tokens. Raw tokens, passwords,
   and password hashes must never be logged or returned outside the login
   response. Password reset and password change flows must invalidate existing

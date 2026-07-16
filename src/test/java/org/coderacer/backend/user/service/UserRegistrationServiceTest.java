@@ -15,6 +15,7 @@ import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
+import org.coderacer.backend.user.verification.service.EmailVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +30,15 @@ class UserRegistrationServiceTest {
 
   @Mock private UserRepository repository;
   @Mock private PasswordEncoder passwordEncoder;
+  @Mock private EmailVerificationService emailVerificationService;
 
   private UserRegistrationService service;
 
   @BeforeEach
   void setUp() {
-    service = new UserRegistrationService(repository, passwordEncoder, new UserMapper());
+    service =
+        new UserRegistrationService(
+            repository, passwordEncoder, new UserMapper(), emailVerificationService);
   }
 
   @Test
@@ -53,6 +57,7 @@ class UserRegistrationServiceTest {
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     verify(repository).saveAndFlush(userCaptor.capture());
     User savedUser = userCaptor.getValue();
+    verify(emailVerificationService).sendVerificationEmail(savedUser);
     assertThat(savedUser.getEmail()).isEqualTo("player@example.com");
     assertThat(savedUser.getUsername()).isEqualTo("speed_racer");
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-password");
@@ -165,5 +170,6 @@ class UserRegistrationServiceTest {
     assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
     assertThat(savedUser.isEmailVerified()).isTrue();
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-admin-password");
+    verify(emailVerificationService, never()).sendVerificationEmail(any());
   }
 }
