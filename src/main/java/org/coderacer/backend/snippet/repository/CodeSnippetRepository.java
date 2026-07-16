@@ -1,0 +1,50 @@
+package org.coderacer.backend.snippet.repository;
+
+import java.util.Optional;
+import java.util.UUID;
+import org.coderacer.backend.snippet.model.CodeSnippet;
+import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.snippet.model.SnippetLifecycle;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> {
+
+  boolean existsByContentHashAndLifecycle(String contentHash, SnippetLifecycle lifecycle);
+
+  Optional<CodeSnippet> findFirstBySnippetIdOrderByRevisionNumberDesc(UUID snippetId);
+
+  @Query(
+      """
+      select s from CodeSnippet s
+      where (:categoryId is null or s.category.id = :categoryId)
+        and (:difficulty is null or s.difficulty = :difficulty)
+        and (:lifecycle is null or s.lifecycle = :lifecycle)
+      """)
+  Page<CodeSnippet> search(
+      @Param("categoryId") UUID categoryId,
+      @Param("difficulty") Difficulty difficulty,
+      @Param("lifecycle") SnippetLifecycle lifecycle,
+      Pageable pageable);
+
+  @Query(
+      value =
+          """
+          select * from code_snippet
+          where lifecycle = 'ACTIVE'
+            and (cast(:categoryId as uuid) is null or category_id = cast(:categoryId as uuid))
+            and (cast(:difficulty as varchar) is null or difficulty = cast(:difficulty as varchar))
+            and (cast(:excludeContentHash as varchar) is null
+                 or content_hash <> cast(:excludeContentHash as varchar))
+          order by random()
+          limit 1
+          """,
+      nativeQuery = true)
+  Optional<CodeSnippet> findRandomEligible(
+      @Param("categoryId") UUID categoryId,
+      @Param("difficulty") String difficulty,
+      @Param("excludeContentHash") String excludeContentHash);
+}
