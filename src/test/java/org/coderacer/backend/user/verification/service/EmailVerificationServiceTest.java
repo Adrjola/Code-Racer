@@ -112,7 +112,8 @@ class EmailVerificationServiceTest {
             true,
             NOW,
             NOW);
-    when(tokenRepository.findByTokenHash(hash("raw-token"))).thenReturn(Optional.of(token));
+    when(tokenRepository.findByTokenHashForUpdate(hash("raw-token")))
+        .thenReturn(Optional.of(token));
     when(userMapper.toResponse(user)).thenReturn(response);
 
     UserResponse result = service.confirm(new EmailVerificationConfirmRequest(" raw-token "));
@@ -128,7 +129,8 @@ class EmailVerificationServiceTest {
     User user = unverifiedUser();
     user.setEnabled(false);
     EmailVerificationToken token = usableToken(user, "raw-token");
-    when(tokenRepository.findByTokenHash(hash("raw-token"))).thenReturn(Optional.of(token));
+    when(tokenRepository.findByTokenHashForUpdate(hash("raw-token")))
+        .thenReturn(Optional.of(token));
 
     assertThatThrownBy(() -> service.confirm(new EmailVerificationConfirmRequest("raw-token")))
         .isInstanceOf(EmailVerificationFailedException.class);
@@ -148,10 +150,14 @@ class EmailVerificationServiceTest {
     EmailVerificationToken revoked = usableToken(user, "revoked-token");
     revoked.setRevokedAt(NOW.minusSeconds(30));
 
-    when(tokenRepository.findByTokenHash(hash("missing-token"))).thenReturn(Optional.empty());
-    when(tokenRepository.findByTokenHash(hash("expired-token"))).thenReturn(Optional.of(expired));
-    when(tokenRepository.findByTokenHash(hash("used-token"))).thenReturn(Optional.of(used));
-    when(tokenRepository.findByTokenHash(hash("revoked-token"))).thenReturn(Optional.of(revoked));
+    when(tokenRepository.findByTokenHashForUpdate(hash("missing-token")))
+        .thenReturn(Optional.empty());
+    when(tokenRepository.findByTokenHashForUpdate(hash("expired-token")))
+        .thenReturn(Optional.of(expired));
+    when(tokenRepository.findByTokenHashForUpdate(hash("used-token")))
+        .thenReturn(Optional.of(used));
+    when(tokenRepository.findByTokenHashForUpdate(hash("revoked-token")))
+        .thenReturn(Optional.of(revoked));
 
     assertThatThrownBy(() -> service.confirm(new EmailVerificationConfirmRequest("missing-token")))
         .isInstanceOf(EmailVerificationFailedException.class);

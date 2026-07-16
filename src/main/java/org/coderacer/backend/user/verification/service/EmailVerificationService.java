@@ -77,7 +77,7 @@ public class EmailVerificationService {
     }
 
     return tokenRepository
-        .findByTokenHash(Sha256Hasher.hashHex(token))
+        .findByTokenHashForUpdate(Sha256Hasher.hashHex(token))
         .filter(candidate -> candidate.isUsable(now))
         .orElseThrow(EmailVerificationFailedException::new);
   }

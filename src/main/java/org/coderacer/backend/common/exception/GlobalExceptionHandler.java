@@ -23,18 +23,18 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ApiError> handleNotFound(
       ResourceNotFoundException ex, HttpServletRequest request) {
-    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
+    return handleBaseException(ex, request);
   }
 
   @ExceptionHandler(ConflictException.class)
   public ResponseEntity<ApiError> handleConflict(ConflictException ex, HttpServletRequest request) {
-    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
+    return handleBaseException(ex, request);
   }
 
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<ApiError> handleValidation(
       ValidationException ex, HttpServletRequest request) {
-    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
+    return handleBaseException(ex, request);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -64,6 +64,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(BaseException.class)
   public ResponseEntity<ApiError> handleBaseException(
       BaseException ex, HttpServletRequest request) {
+    log.warn(
+        "Handled domain exception status={} code={} path={} message={}",
+        ex.getStatus().value(),
+        ex.getCode(),
+        request.getRequestURI(),
+        ex.getMessage());
     return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
   }
 

@@ -25,25 +25,38 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final UserMapper userMapper;
+  private final LoginAttemptService loginAttemptService;
 
   @Transactional(readOnly = true)
-  public LoginResponse login(LoginRequest request) {
+  public LoginResponse login(LoginRequest request, String clientAddress) {
     String identifier = normalize(request.identifier());
     var userCandidate = repository.findByEmailOrUsername(identifier, identifier);
+    String attemptKey = loginAttemptKey(identifier, userCandidate.orElse(null));
+    loginAttemptService.assertAllowed(attemptKey, clientAddress);
+
     String passwordHash = userCandidate.map(User::getPasswordHash).orElse(DUMMY_PASSWORD_HASH);
     boolean passwordMatches =
         passwordEncoder.matches(normalizePassword(request.password()), passwordHash);
     User user = userCandidate.filter(User::canAuthenticate).orElse(null);
 
     if (user == null || !passwordMatches) {
+      loginAttemptService.recordFailure(attemptKey, clientAddress);
       throw new AuthenticationFailedException();
     }
 
+    loginAttemptService.recordSuccess(attemptKey, clientAddress);
     return new LoginResponse(
         jwtService.createAccessToken(user),
         TOKEN_TYPE,
         jwtService.accessTokenTtl().toSeconds(),
         userMapper.toResponse(user));
+  }
+
+  private String loginAttemptKey(String identifier, User user) {
+    if (user == null || user.getId() == null) {
+      return identifier;
+    }
+    return user.getId().toString();
   }
 
   private String normalize(String value) {
