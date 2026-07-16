@@ -3,10 +3,9 @@ package org.coderacer.backend.security.web;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.common.error.ProblemDetails;
-import org.slf4j.MDC;
+import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,6 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
   private final ObjectMapper objectMapper;
+  private final ProblemDetailsFactory problemDetailsFactory;
 
   @Override
   public void commence(
@@ -54,23 +54,10 @@ public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessD
       HttpServletRequest request)
       throws IOException {
     ProblemDetails problem =
-        ProblemDetails.builder()
-            .type("about:blank")
-            .title(status.getReasonPhrase())
-            .status(status.value())
-            .detail(detail)
-            .instance(request.getRequestURI())
-            .code(code)
-            .correlationId(correlationId())
-            .build();
+        problemDetailsFactory.create(status, detail, code, request.getRequestURI(), null);
 
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
     objectMapper.writeValue(response.getOutputStream(), problem);
-  }
-
-  private String correlationId() {
-    String correlationId = MDC.get("correlationId");
-    return correlationId == null ? UUID.randomUUID().toString() : correlationId;
   }
 }

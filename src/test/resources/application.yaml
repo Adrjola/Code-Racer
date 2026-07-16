@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    active: test
+
+app:
+  security:
+    jwt:
+      secret: dev-only-change-me-code-racer-jwt-secret-32

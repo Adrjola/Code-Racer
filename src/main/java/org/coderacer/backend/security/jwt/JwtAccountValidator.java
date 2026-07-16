@@ -28,15 +28,11 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
 
     return repository
         .findByUsername(username)
-        .filter(this::canAuthenticate)
+        .filter(User::canAuthenticate)
         .filter(user -> tokenRoleMatchesUser(token, user))
         .filter(user -> tokenValidFromMatchesUser(token, user))
         .map(user -> OAuth2TokenValidatorResult.success())
         .orElseGet(() -> OAuth2TokenValidatorResult.failure(INVALID_TOKEN));
-  }
-
-  private boolean canAuthenticate(User user) {
-    return user.isEmailVerified() && user.isEnabled() && !user.isDeleted();
   }
 
   private boolean tokenRoleMatchesUser(Jwt token, User user) {

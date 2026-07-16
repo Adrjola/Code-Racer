@@ -2,7 +2,8 @@ package org.coderacer.backend.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,13 +69,13 @@ class AuthenticationServiceTest {
   }
 
   @Test
-  void login_rejectsEmailIdentifierWithoutPasswordCheck() {
+  void login_rejectsEmailIdentifierAfterDummyPasswordCheck() {
     when(repository.findByUsername("player@example.com")).thenReturn(Optional.empty());
 
     assertThatThrownBy(
             () -> service.login(new LoginRequest("player@example.com", "StrongerPass123")))
         .isInstanceOf(AuthenticationFailedException.class);
-    verify(passwordEncoder, never()).matches("StrongerPass123", "hashed-password");
+    verify(passwordEncoder).matches(eq("StrongerPass123"), anyString());
   }
 
   @Test
@@ -83,7 +84,7 @@ class AuthenticationServiceTest {
 
     assertThatThrownBy(() -> service.login(new LoginRequest(null, "StrongerPass123")))
         .isInstanceOf(AuthenticationFailedException.class);
-    verify(passwordEncoder, never()).matches("StrongerPass123", "hashed-password");
+    verify(passwordEncoder).matches(eq("StrongerPass123"), anyString());
   }
 
   @Test
@@ -104,29 +105,29 @@ class AuthenticationServiceTest {
 
     assertThatThrownBy(() -> service.login(new LoginRequest("player", "StrongerPass123")))
         .isInstanceOf(AuthenticationFailedException.class);
-    verify(passwordEncoder, never()).matches("StrongerPass123", "hashed-password");
+    verify(passwordEncoder).matches("StrongerPass123", "hashed-password");
   }
 
   @Test
-  void login_rejectsDisabledUsersWithoutPasswordCheck() {
+  void login_rejectsDisabledUsersAfterPasswordCheck() {
     User disabled = verifiedUser("player");
     disabled.setEnabled(false);
     when(repository.findByUsername("player")).thenReturn(Optional.of(disabled));
 
     assertThatThrownBy(() -> service.login(new LoginRequest("player", "StrongerPass123")))
         .isInstanceOf(AuthenticationFailedException.class);
-    verify(passwordEncoder, never()).matches("StrongerPass123", "hashed-password");
+    verify(passwordEncoder).matches("StrongerPass123", "hashed-password");
   }
 
   @Test
-  void login_rejectsDeletedUsersWithoutPasswordCheck() {
+  void login_rejectsDeletedUsersAfterPasswordCheck() {
     User deleted = verifiedUser("player");
     deleted.setDeleted(true);
     when(repository.findByUsername("player")).thenReturn(Optional.of(deleted));
 
     assertThatThrownBy(() -> service.login(new LoginRequest("player", "StrongerPass123")))
         .isInstanceOf(AuthenticationFailedException.class);
-    verify(passwordEncoder, never()).matches("StrongerPass123", "hashed-password");
+    verify(passwordEncoder).matches("StrongerPass123", "hashed-password");
   }
 
   private User verifiedUser(String username) {

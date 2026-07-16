@@ -30,7 +30,7 @@ app:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
   security:
     jwt:
-      secret: ${APP_JWT_SECRET:dev-only-change-me-code-racer-jwt-secret-32}
+      secret: ${APP_JWT_SECRET:}
       access-token-ttl: ${APP_JWT_ACCESS_TOKEN_TTL:15m}
   admin:
     bootstrap:

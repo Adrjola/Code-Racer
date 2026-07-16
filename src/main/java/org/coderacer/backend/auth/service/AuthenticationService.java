@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthenticationService {
 
   private static final String TOKEN_TYPE = "Bearer";
+  private static final String DUMMY_PASSWORD_HASH =
+      "$2a$12$C6UzMDM.H6dfI/f/IKcEeO5.6.p5bL/sR7ZI86c0C2t4h8W2cC9rK";
 
   private final UserRepository repository;
   private final PasswordEncoder passwordEncoder;
@@ -27,13 +29,13 @@ public class AuthenticationService {
   @Transactional(readOnly = true)
   public LoginResponse login(LoginRequest request) {
     String username = normalize(request.username());
-    User user =
-        repository
-            .findByUsername(username)
-            .filter(this::canAuthenticate)
-            .orElseThrow(AuthenticationFailedException::new);
+    var userCandidate = repository.findByUsername(username);
+    String passwordHash = userCandidate.map(User::getPasswordHash).orElse(DUMMY_PASSWORD_HASH);
+    boolean passwordMatches =
+        passwordEncoder.matches(normalizePassword(request.password()), passwordHash);
+    User user = userCandidate.filter(User::canAuthenticate).orElse(null);
 
-    if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+    if (user == null || !passwordMatches) {
       throw new AuthenticationFailedException();
     }
 
@@ -44,11 +46,11 @@ public class AuthenticationService {
         userMapper.toResponse(user));
   }
 
-  private boolean canAuthenticate(User user) {
-    return user.isEmailVerified() && user.isEnabled() && !user.isDeleted();
-  }
-
   private String normalize(String value) {
     return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private String normalizePassword(String value) {
+    return value == null ? "" : value;
   }
 }
