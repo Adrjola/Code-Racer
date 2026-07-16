@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import java.util.UUID;
 import org.coderacer.backend.common.error.FieldError;
 import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.core.PropertyReferenceException;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,6 +28,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -156,9 +160,38 @@ class GlobalExceptionHandlerTest {
         .andExpect(jsonPath("$.errors[0].field").value("name"));
   }
 
+  @Test
+  void shouldHandleTypeMismatchAsBadRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/test/typed").param("id", "not-a-uuid"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.errors[0].field").value("id"));
+  }
+
+  @Test
+  void shouldHandleUnknownSortPropertyAsBadRequest() throws Exception {
+    mockMvc
+        .perform(get("/api/test/unknown-property"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.errors[0].field").value("bogusProperty"));
+  }
+
   @RestController
   static class TestController {
     private static final Logger log = LoggerFactory.getLogger(TestController.class);
+
+    @GetMapping("/api/test/typed")
+    public void typed(@RequestParam UUID id) {}
+
+    @GetMapping("/api/test/unknown-property")
+    public void unknownProperty() {
+      throw new PropertyReferenceException(
+          "bogusProperty", TypeInformation.of(TestRequest.class), List.of());
+    }
 
     @GetMapping("/api/test/not-found")
     public void notFound() {
