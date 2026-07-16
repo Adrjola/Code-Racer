@@ -7,7 +7,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.coderacer.backend.common.error.FieldError;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ValidationException;
 import org.coderacer.backend.user.dto.UserRegistrationRequest;
@@ -79,10 +78,7 @@ class UserRegistrationServiceTest {
     assertThatThrownBy(() -> service.register(request))
         .isInstanceOfSatisfying(
             ValidationException.class,
-            ex ->
-                assertThat(ex.getErrors())
-                    .extracting(FieldError::field)
-                    .contains("confirmPassword"));
+            ex -> assertThat(ex.getMessage()).contains("confirmPassword must match password"));
     verify(repository, never()).saveAndFlush(any());
   }
 
@@ -95,10 +91,7 @@ class UserRegistrationServiceTest {
     assertThatThrownBy(() -> service.register(request))
         .isInstanceOfSatisfying(
             ValidationException.class,
-            ex ->
-                assertThat(ex.getErrors())
-                    .extracting(FieldError::field)
-                    .contains("email", "username"));
+            ex -> assertThat(ex.getMessage()).contains("email", "username"));
     verify(repository, never()).saveAndFlush(any());
   }
 
@@ -113,10 +106,7 @@ class UserRegistrationServiceTest {
     assertThatThrownBy(() -> service.register(request))
         .isInstanceOfSatisfying(
             ValidationException.class,
-            ex ->
-                assertThat(ex.getErrors())
-                    .extracting(FieldError::field)
-                    .contains("email", "username", "password"));
+            ex -> assertThat(ex.getMessage()).contains("email", "username", "password"));
     verify(repository, never()).saveAndFlush(any());
   }
 

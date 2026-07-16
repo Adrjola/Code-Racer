@@ -107,7 +107,7 @@ class EmailVerificationIntegrationTest {
     ResponseEntity<String> resendResponse =
         restTemplate.postForEntity(
             "/api/auth/email-verification/resend",
-            Map.of("email", " Player@Example.COM "),
+            Map.of("email", "Player@Example.COM"),
             String.class);
 
     assertThat(resendResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);

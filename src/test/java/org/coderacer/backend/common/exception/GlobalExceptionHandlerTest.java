@@ -8,14 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import java.util.List;
-import org.coderacer.backend.common.error.FieldError;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,7 +31,7 @@ class GlobalExceptionHandlerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(new TestController())
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
 
@@ -45,8 +41,15 @@ class GlobalExceptionHandlerTest {
         .perform(get("/api/test/not-found"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.instance").value("/api/test/not-found"))
         .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
-        .andExpect(jsonPath("$.detail").value("Resource not found"));
+        .andExpect(jsonPath("$.message").value("Resource not found"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(jsonPath("$.type").doesNotExist())
+        .andExpect(jsonPath("$.title").doesNotExist())
+        .andExpect(jsonPath("$.timestamp").doesNotExist())
+        .andExpect(jsonPath("$.correlationId").doesNotExist())
+        .andExpect(jsonPath("$.errors").doesNotExist());
   }
 
   @Test
@@ -55,8 +58,9 @@ class GlobalExceptionHandlerTest {
         .perform(get("/api/test/conflict"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.status").value(409))
+        .andExpect(jsonPath("$.instance").value("/api/test/conflict"))
         .andExpect(jsonPath("$.code").value("ALREADY_EXISTS"))
-        .andExpect(jsonPath("$.detail").value("Conflict occurred"));
+        .andExpect(jsonPath("$.message").value("Conflict occurred"));
   }
 
   @Test
@@ -69,8 +73,8 @@ class GlobalExceptionHandlerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
-        .andExpect(jsonPath("$.errors[0].field").value("name"))
-        .andExpect(jsonPath("$.errors[0].rejectedValue").doesNotExist());
+        .andExpect(jsonPath("$.message").value("Validation failed: name must not be blank"))
+        .andExpect(jsonPath("$.errors").doesNotExist());
   }
 
   @Test
@@ -79,7 +83,8 @@ class GlobalExceptionHandlerTest {
         .perform(get("/api/test/validation")) // GET on a POST endpoint
         .andExpect(status().isMethodNotAllowed())
         .andExpect(jsonPath("$.status").value(405))
-        .andExpect(jsonPath("$.code").value("FRAMEWORK_ERROR"));
+        .andExpect(jsonPath("$.code").value("FRAMEWORK_ERROR"))
+        .andExpect(jsonPath("$.message").isNotEmpty());
   }
 
   @Test
@@ -88,7 +93,8 @@ class GlobalExceptionHandlerTest {
         .perform(get("/api/test/error"))
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.status").value(500))
-        .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"));
+        .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+        .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
   }
 
   @Test
@@ -98,7 +104,7 @@ class GlobalExceptionHandlerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-        .andExpect(jsonPath("$.errors[0].field").value("testField"));
+        .andExpect(jsonPath("$.message").value("Validation failed: testField must not be null"));
   }
 
   @Test
@@ -111,29 +117,6 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void shouldGenerateCorrelationIdWhenMdcIsEmpty() throws Exception {
-    MDC.clear();
-    mockMvc
-        .perform(get("/api/test/error"))
-        .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.correlationId").isNotEmpty());
-  }
-
-  @Test
-  void shouldReuseCorrelationIdFromMdcIfPresent() throws Exception {
-    String existingId = "mdc-correlation-id";
-    MDC.put("correlationId", existingId);
-    try {
-      mockMvc
-          .perform(get("/api/test/error"))
-          .andExpect(status().isInternalServerError())
-          .andExpect(jsonPath("$.correlationId").value(existingId));
-    } finally {
-      MDC.clear();
-    }
-  }
-
-  @Test
   void shouldHandleBindException() throws Exception {
     TestRequest target = new TestRequest("");
     BindException ex = new BindException(target, "testRequest");
@@ -143,7 +126,18 @@ class GlobalExceptionHandlerTest {
         .perform(get("/api/test/bind-exception").requestAttr("ex", ex))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
-        .andExpect(jsonPath("$.errors[0].field").value("name"));
+        .andExpect(jsonPath("$.message").value("Validation failed: name must not be blank"));
+  }
+
+  @Test
+  void shouldHandleBindExceptionWithoutFieldErrors() throws Exception {
+    BindException ex = new BindException(new Object(), "target");
+
+    mockMvc
+        .perform(get("/api/test/bind-exception").requestAttr("ex", ex))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.message").value("Validation failed"));
   }
 
   @RestController
@@ -168,8 +162,7 @@ class GlobalExceptionHandlerTest {
 
     @GetMapping("/api/test/manual-validation")
     public void manualValidation() {
-      throw new ValidationException(
-          "Validation failed", List.of(new FieldError("testField", "must not be null")));
+      throw new ValidationException("Validation failed: testField must not be null");
     }
 
     @GetMapping("/api/test/response-status")

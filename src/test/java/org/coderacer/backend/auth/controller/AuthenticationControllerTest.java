@@ -17,7 +17,6 @@ import org.coderacer.backend.auth.exception.AuthenticationFailedException;
 import org.coderacer.backend.auth.exception.TooManyLoginAttemptsException;
 import org.coderacer.backend.auth.service.AuthenticationService;
 import org.coderacer.backend.auth.service.LoginAttemptService;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.model.UserRole;
@@ -37,7 +36,7 @@ class AuthenticationControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(new AuthenticationController(service, loginAttemptService))
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
 

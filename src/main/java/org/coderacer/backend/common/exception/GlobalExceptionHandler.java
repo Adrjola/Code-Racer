@@ -1,87 +1,66 @@
 package org.coderacer.backend.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.coderacer.backend.common.error.FieldError;
-import org.coderacer.backend.common.error.ProblemDetails;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
+import java.util.stream.Collectors;
+import org.coderacer.backend.common.error.ApiError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice
-@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-  private final ProblemDetailsFactory problemDetailsFactory;
-
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<ProblemDetails> handleNotFound(
+  public ResponseEntity<ApiError> handleNotFound(
       ResourceNotFoundException ex, HttpServletRequest request) {
-    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request, null);
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
   }
 
   @ExceptionHandler(ConflictException.class)
-  public ResponseEntity<ProblemDetails> handleConflict(
-      ConflictException ex, HttpServletRequest request) {
-    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request, null);
+  public ResponseEntity<ApiError> handleConflict(ConflictException ex, HttpServletRequest request) {
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
   }
 
   @ExceptionHandler(ValidationException.class)
-  public ResponseEntity<ProblemDetails> handleValidation(
+  public ResponseEntity<ApiError> handleValidation(
       ValidationException ex, HttpServletRequest request) {
-    return buildResponse(
-        ex.getStatus(), "Validation failed", ex.getCode(), request, ex.getErrors());
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ProblemDetails> handleMethodArgumentNotValid(
+  public ResponseEntity<ApiError> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex, HttpServletRequest request) {
-    List<FieldError> errors =
-        ex.getBindingResult().getFieldErrors().stream()
-            .map(e -> new FieldError(e.getField(), e.getDefaultMessage()))
-            .toList();
     return buildResponse(
-        HttpStatus.BAD_REQUEST, "Validation failed", "INVALID_INPUT", request, errors);
+        HttpStatus.BAD_REQUEST, validationMessage(ex.getBindingResult()), "INVALID_INPUT", request);
   }
 
   @ExceptionHandler(BindException.class)
-  public ResponseEntity<ProblemDetails> handleBindException(
+  public ResponseEntity<ApiError> handleBindException(
       BindException ex, HttpServletRequest request) {
-    List<FieldError> errors =
-        ex.getBindingResult().getFieldErrors().stream()
-            .map(e -> new FieldError(e.getField(), e.getDefaultMessage()))
-            .toList();
     return buildResponse(
-        HttpStatus.BAD_REQUEST, "Validation failed", "INVALID_INPUT", request, errors);
+        HttpStatus.BAD_REQUEST, validationMessage(ex.getBindingResult()), "INVALID_INPUT", request);
   }
 
   @ExceptionHandler(BaseException.class)
-  public ResponseEntity<ProblemDetails> handleBaseException(
+  public ResponseEntity<ApiError> handleBaseException(
       BaseException ex, HttpServletRequest request) {
-    log.error("Domain exception occurred: {}", ex.getMessage());
-    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request, null);
+    return buildResponse(ex.getStatus(), ex.getMessage(), ex.getCode(), request);
   }
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ProblemDetails> handleGeneralException(
-      Exception ex, HttpServletRequest request) {
+  public ResponseEntity<ApiError> handleGeneralException(Exception ex, HttpServletRequest request) {
     if (ex instanceof ErrorResponse errorResponse) {
-      return buildResponse(
-          HttpStatus.valueOf(errorResponse.getStatusCode().value()),
-          errorResponse.getBody().getDetail(),
-          "FRAMEWORK_ERROR",
-          request,
-          null);
+      HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
+      return buildResponse(status, status.getReasonPhrase(), "FRAMEWORK_ERROR", request);
     }
 
     log.error("Unhandled exception occurred", ex);
@@ -89,19 +68,23 @@ public class GlobalExceptionHandler {
         HttpStatus.INTERNAL_SERVER_ERROR,
         "An unexpected error occurred",
         "INTERNAL_SERVER_ERROR",
-        request,
-        null);
+        request);
   }
 
-  private ResponseEntity<ProblemDetails> buildResponse(
-      HttpStatus status,
-      String detail,
-      String code,
-      HttpServletRequest request,
-      List<FieldError> errors) {
-    ProblemDetails problem =
-        problemDetailsFactory.create(status, detail, code, request.getRequestURI(), errors);
+  private ResponseEntity<ApiError> buildResponse(
+      HttpStatus status, String message, String code, HttpServletRequest request) {
+    ApiError error = ApiError.of(status, request.getRequestURI(), code, message);
 
-    return ResponseEntity.status(status).body(problem);
+    return ResponseEntity.status(status).body(error);
+  }
+
+  private String validationMessage(BindingResult bindingResult) {
+    String fields =
+        bindingResult.getFieldErrors().stream()
+            .map(error -> error.getField() + " " + error.getDefaultMessage())
+            .distinct()
+            .collect(Collectors.joining("; "));
+
+    return fields.isBlank() ? "Validation failed" : "Validation failed: " + fields;
   }
 }

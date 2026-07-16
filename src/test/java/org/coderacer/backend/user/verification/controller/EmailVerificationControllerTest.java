@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.util.UUID;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.model.UserRole;
@@ -31,7 +30,7 @@ class EmailVerificationControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(new EmailVerificationController(service))
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
 

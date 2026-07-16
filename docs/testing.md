@@ -17,7 +17,7 @@ startup, and the initial automated test suites:
 
 Backend coverage enforcement is enabled through JaCoCo, with basic infrastructure tests in place:
 
-- `GlobalExceptionHandlerTest`: Verifies RFC 9457 error responses and exception mapping.
+- `GlobalExceptionHandlerTest`: Verifies simplified API error responses and exception mapping.
 - `CorrelationIdFilterTest`: Verifies request correlation ID propagation and MDC cleanup.
 - `CorsConfigTest`: Verifies CORS policy enforcement for allowed and rejected origins.
 - `CorsPropertiesTest`: Verifies fail-fast CORS configuration validation.

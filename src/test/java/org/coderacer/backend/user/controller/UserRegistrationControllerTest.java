@@ -8,10 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
-import org.coderacer.backend.common.error.FieldError;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.common.exception.ValidationException;
@@ -33,7 +30,7 @@ class UserRegistrationControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(new UserRegistrationController(service))
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
 
@@ -98,8 +95,7 @@ class UserRegistrationControllerTest {
     when(service.register(any()))
         .thenThrow(
             new ValidationException(
-                "Registration validation failed",
-                List.of(new FieldError("confirmPassword", "must match password"))));
+                "Registration validation failed: confirmPassword must match password"));
 
     mockMvc
         .perform(
@@ -116,7 +112,10 @@ class UserRegistrationControllerTest {
                     """))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-        .andExpect(jsonPath("$.errors[0].field").value("confirmPassword"));
+        .andExpect(
+            jsonPath("$.message")
+                .value("Registration validation failed: confirmPassword must match password"))
+        .andExpect(jsonPath("$.errors").doesNotExist());
   }
 
   @Test
