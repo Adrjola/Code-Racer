@@ -36,10 +36,7 @@ public class SoloAttemptLifecycleWriter {
   public void invalidate(UUID attemptId) {
     repository
         .findById(attemptId)
-        .filter(
-            attempt ->
-                attempt.getState() == SoloAttemptState.ACTIVE
-                    || attempt.getState() == SoloAttemptState.COUNTDOWN)
+        .filter(attempt -> attempt.getState() == SoloAttemptState.ACTIVE)
         .ifPresent(
             attempt -> {
               attempt.invalidate();
