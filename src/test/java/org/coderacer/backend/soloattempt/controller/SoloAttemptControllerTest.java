@@ -26,10 +26,12 @@ import org.coderacer.backend.soloattempt.identity.CurrentUserProvider;
 import org.coderacer.backend.soloattempt.mapper.SoloAttemptMapper;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
 import org.coderacer.backend.soloattempt.service.ProgressResult;
+import org.coderacer.backend.soloattempt.service.SoloAttemptHistoryService;
 import org.coderacer.backend.soloattempt.service.SoloAttemptService;
 import org.coderacer.backend.user.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +40,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class SoloAttemptControllerTest {
 
   private final SoloAttemptService service = mock(SoloAttemptService.class);
+  private final SoloAttemptHistoryService historyService = mock(SoloAttemptHistoryService.class);
   private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
   private MockMvc mockMvc;
@@ -46,8 +49,9 @@ class SoloAttemptControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
-                new SoloAttemptController(service, currentUserProvider, mapper))
+                new SoloAttemptController(service, historyService, currentUserProvider, mapper))
             .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();
   }
 
