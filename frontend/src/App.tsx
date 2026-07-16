@@ -1,7 +1,25 @@
+import { useState } from 'react';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+type Page = 'forgot' | 'login' | 'register';
+
 export default function App() {
-  return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 text-slate-50">
-      <h1 className="text-5xl font-bold tracking-tight">Code Racer</h1>
-    </main>
-  );
+  const [page, setPage] = useState<Page>('register');
+
+  if (page === 'login') {
+    return (
+      <LoginPage
+        onCreateAccount={() => setPage('register')}
+        onForgotPassword={() => setPage('forgot')}
+      />
+    );
+  }
+
+  if (page === 'forgot') {
+    return <ForgotPasswordPage onBackToLogin={() => setPage('login')} />;
+  }
+
+  return <RegisterPage onSignIn={() => setPage('login')} />;
 }
