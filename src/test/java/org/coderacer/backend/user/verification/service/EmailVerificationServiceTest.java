@@ -7,16 +7,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.common.crypto.Sha256Hasher;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
@@ -64,11 +61,11 @@ class EmailVerificationServiceTest {
   }
 
   @Test
-  void sendVerificationEmail_storesOnlyTokenHashAndPublishesEmailEvent() {
+  void sendInitialVerificationEmail_storesOnlyTokenHashAndPublishesEmailEvent() {
     User user = unverifiedUser();
     when(tokenGenerator.generate()).thenReturn("raw-token");
 
-    service.sendVerificationEmail(user);
+    service.sendInitialVerificationEmail(user);
 
     ArgumentCaptor<EmailVerificationToken> tokenCaptor =
         ArgumentCaptor.forClass(EmailVerificationToken.class);
@@ -87,14 +84,15 @@ class EmailVerificationServiceTest {
     assertThat(event.verificationLink())
         .isEqualTo("http://localhost:5173/verify-email?token=raw-token");
     assertThat(event.expiresAt()).isEqualTo(savedToken.getExpiresAt());
+    verify(tokenRepository, never()).revokeActiveTokensForUser(any(), any());
   }
 
   @Test
-  void sendVerificationEmail_skipsUsersThatDoNotNeedVerification() {
+  void sendInitialVerificationEmail_skipsUsersThatDoNotNeedVerification() {
     User verified = unverifiedUser();
     verified.setEmailVerified(true);
 
-    service.sendVerificationEmail(verified);
+    service.sendInitialVerificationEmail(verified);
 
     verify(tokenRepository, never()).save(any());
     verify(eventPublisher, never()).publishEvent(any());
@@ -123,6 +121,21 @@ class EmailVerificationServiceTest {
     assertThat(user.isEmailVerified()).isTrue();
     assertThat(token.getUsedAt()).isEqualTo(NOW);
     verify(tokenRepository).revokeOtherActiveTokensForUser(user, token.getId(), NOW);
+  }
+
+  @Test
+  void confirm_rejectsUsersThatCannotVerifyEmail() {
+    User user = unverifiedUser();
+    user.setEnabled(false);
+    EmailVerificationToken token = usableToken(user, "raw-token");
+    when(tokenRepository.findByTokenHash(hash("raw-token"))).thenReturn(Optional.of(token));
+
+    assertThatThrownBy(() -> service.confirm(new EmailVerificationConfirmRequest("raw-token")))
+        .isInstanceOf(EmailVerificationFailedException.class);
+
+    assertThat(user.isEmailVerified()).isFalse();
+    assertThat(token.getUsedAt()).isNull();
+    verify(tokenRepository, never()).revokeOtherActiveTokensForUser(any(), any(), any());
   }
 
   @Test
@@ -227,11 +240,6 @@ class EmailVerificationServiceTest {
   }
 
   private String hash(String rawToken) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      return HexFormat.of().formatHex(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalStateException(ex);
-    }
+    return Sha256Hasher.hashHex(rawToken);
   }
 }

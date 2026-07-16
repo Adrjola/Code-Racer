@@ -2,11 +2,11 @@ package org.coderacer.backend.user.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ValidationException;
+import org.coderacer.backend.common.text.IdentifierNormalizer;
 import org.coderacer.backend.user.dto.UserRegistrationRequest;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.mapper.UserMapper;
@@ -67,12 +67,16 @@ public class UserRegistrationService {
     user.setEnabled(true);
     user.setDeleted(false);
 
+    User savedUser = saveUser(user);
+    if (!emailVerified) {
+      emailVerificationService.sendInitialVerificationEmail(savedUser);
+    }
+    return mapper.toResponse(savedUser);
+  }
+
+  private User saveUser(User user) {
     try {
-      User savedUser = repository.saveAndFlush(user);
-      if (!emailVerified) {
-        emailVerificationService.sendVerificationEmail(savedUser);
-      }
-      return mapper.toResponse(savedUser);
+      return repository.saveAndFlush(user);
     } catch (DataIntegrityViolationException ex) {
       throw duplicateUserConflict();
     }
@@ -142,7 +146,7 @@ public class UserRegistrationService {
   }
 
   private String normalize(String value) {
-    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return IdentifierNormalizer.normalize(value);
   }
 
   private record NormalizedRegistration(String email, String username, String password) {}

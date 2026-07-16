@@ -5,20 +5,22 @@ import org.coderacer.backend.email.EmailMessage;
 import org.coderacer.backend.email.EmailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-class EmailVerificationEmailListener {
+public class EmailVerificationEmailListener {
 
   private static final Logger log = LoggerFactory.getLogger(EmailVerificationEmailListener.class);
 
   private final EmailSender emailSender;
 
+  @Async("emailTaskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  void sendVerificationEmail(EmailVerificationRequestedEvent event) {
+  public void sendVerificationEmail(EmailVerificationRequestedEvent event) {
     try {
       emailSender.send(
           new EmailMessage(
@@ -34,10 +36,7 @@ class EmailVerificationEmailListener {
               """
                   .formatted(event.username(), event.verificationLink(), event.expiresAt())));
     } catch (RuntimeException ex) {
-      log.error(
-          "Verification email delivery failed for user {} with {}",
-          event.userId(),
-          ex.getClass().getSimpleName());
+      log.error("Verification email delivery failed for user {}", event.userId(), ex);
     }
   }
 }

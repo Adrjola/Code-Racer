@@ -1,15 +1,15 @@
 package org.coderacer.backend.user.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.coderacer.backend.common.crypto.Sha256Hasher;
 import org.coderacer.backend.email.CapturingEmailSender;
+import org.coderacer.backend.email.EmailMessage;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
@@ -55,8 +55,7 @@ class EmailVerificationIntegrationTest {
     ResponseEntity<String> response = register("player@example.com", "speed_racer");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-    assertThat(emailSender.sentMessages()).hasSize(1);
-    String rawToken = extractToken(emailSender.sentMessages().getFirst().text());
+    String rawToken = extractToken(awaitSingleEmail().text());
     EmailVerificationToken savedToken = tokenRepository.findAll().getFirst();
     User savedUser = userRepository.findByEmail("player@example.com").orElseThrow();
 
@@ -70,7 +69,7 @@ class EmailVerificationIntegrationTest {
   @Test
   void validVerificationTokenVerifiesOnceAndAllowsLogin() {
     register("player@example.com", "speed_racer");
-    String rawToken = extractToken(emailSender.sentMessages().getFirst().text());
+    String rawToken = extractToken(awaitSingleEmail().text());
 
     ResponseEntity<String> loginBeforeVerification = login("speed_racer", "StrongerPass123");
     ResponseEntity<String> verificationResponse = confirm(rawToken);
@@ -104,7 +103,7 @@ class EmailVerificationIntegrationTest {
   @Test
   void resendUsesNeutralResponseAndRevokesPreviousActiveToken() {
     register("player@example.com", "speed_racer");
-    String firstToken = extractToken(emailSender.sentMessages().getFirst().text());
+    String firstToken = extractToken(awaitSingleEmail().text());
     emailSender.clear();
 
     ResponseEntity<String> resendResponse =
@@ -116,8 +115,7 @@ class EmailVerificationIntegrationTest {
     assertThat(resendResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
     assertThat(resendResponse.getBody())
         .contains("If an unverified account exists, a verification email will be sent.");
-    assertThat(emailSender.sentMessages()).hasSize(1);
-    String replacementToken = extractToken(emailSender.sentMessages().getFirst().text());
+    String replacementToken = extractToken(awaitSingleEmail().text());
 
     assertThat(confirm(firstToken).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(confirm(replacementToken).getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -197,12 +195,14 @@ class EmailVerificationIntegrationTest {
     return matcher.group(1);
   }
 
+  private EmailMessage awaitSingleEmail() {
+    await()
+        .atMost(Duration.ofSeconds(3))
+        .untilAsserted(() -> assertThat(emailSender.sentMessages()).hasSize(1));
+    return emailSender.sentMessages().getFirst();
+  }
+
   private String hash(String rawToken) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      return HexFormat.of().formatHex(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalStateException(ex);
-    }
+    return Sha256Hasher.hashHex(rawToken);
   }
 }

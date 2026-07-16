@@ -3,6 +3,7 @@ package org.coderacer.backend.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,7 +57,7 @@ class UserRegistrationServiceTest {
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     verify(repository).saveAndFlush(userCaptor.capture());
     User savedUser = userCaptor.getValue();
-    verify(emailVerificationService).sendVerificationEmail(savedUser);
+    verify(emailVerificationService).sendInitialVerificationEmail(savedUser);
     assertThat(savedUser.getEmail()).isEqualTo("player@example.com");
     assertThat(savedUser.getUsername()).isEqualTo("speed_racer");
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-password");
@@ -142,6 +143,24 @@ class UserRegistrationServiceTest {
   }
 
   @Test
+  void register_doesNotMapVerificationTokenFailureToDuplicateUser() {
+    UserRegistrationRequest request =
+        new UserRegistrationRequest(
+            "player@example.com", "speed_racer", "StrongerPass123", "StrongerPass123");
+    when(repository.existsByEmail("player@example.com")).thenReturn(false);
+    when(repository.existsByUsername("speed_racer")).thenReturn(false);
+    when(passwordEncoder.encode("StrongerPass123")).thenReturn("hashed-password");
+    when(repository.saveAndFlush(any(User.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+    doThrow(new DataIntegrityViolationException("token collision"))
+        .when(emailVerificationService)
+        .sendInitialVerificationEmail(any(User.class));
+
+    assertThatThrownBy(() -> service.register(request))
+        .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
   void createInitialAdmin_createsVerifiedAdmin() {
     UserRegistrationRequest request =
         new UserRegistrationRequest(
@@ -160,6 +179,6 @@ class UserRegistrationServiceTest {
     assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
     assertThat(savedUser.isEmailVerified()).isTrue();
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-admin-password");
-    verify(emailVerificationService, never()).sendVerificationEmail(any());
+    verify(emailVerificationService, never()).sendInitialVerificationEmail(any());
   }
 }

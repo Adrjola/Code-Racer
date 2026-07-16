@@ -3,10 +3,10 @@ package org.coderacer.backend.auth.service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.coderacer.backend.auth.exception.TooManyLoginAttemptsException;
+import org.coderacer.backend.common.text.IdentifierNormalizer;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -65,7 +65,7 @@ public class LoginAttemptService {
   }
 
   private String normalize(String value) {
-    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return IdentifierNormalizer.normalize(value);
   }
 
   private String normalizeClient(String value) {

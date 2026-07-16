@@ -1,16 +1,13 @@
 package org.coderacer.backend.snippet.service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.category.repository.CategoryRepository;
+import org.coderacer.backend.common.crypto.Sha256Hasher;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ResourceNotFoundException;
 import org.coderacer.backend.common.exception.ValidationException;
@@ -286,14 +283,7 @@ public class SnippetService {
   }
 
   private static String hash(String canonicalSource) {
-    try {
-      byte[] digest =
-          MessageDigest.getInstance("SHA-256")
-              .digest(canonicalSource.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest);
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 is required but unavailable", e);
-    }
+    return Sha256Hasher.hashHex(canonicalSource);
   }
 
   private static int codePointLength(String text) {

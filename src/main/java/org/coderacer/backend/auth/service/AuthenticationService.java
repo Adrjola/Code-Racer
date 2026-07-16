@@ -1,10 +1,10 @@
 package org.coderacer.backend.auth.service;
 
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.auth.dto.LoginRequest;
 import org.coderacer.backend.auth.dto.LoginResponse;
 import org.coderacer.backend.auth.exception.AuthenticationFailedException;
+import org.coderacer.backend.common.text.IdentifierNormalizer;
 import org.coderacer.backend.security.jwt.JwtService;
 import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
@@ -47,7 +47,7 @@ public class AuthenticationService {
   }
 
   private String normalize(String value) {
-    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return IdentifierNormalizer.normalize(value);
   }
 
   private String normalizePassword(String value) {

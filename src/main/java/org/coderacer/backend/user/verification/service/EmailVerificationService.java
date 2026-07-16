@@ -1,13 +1,10 @@
 package org.coderacer.backend.user.verification.service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.HexFormat;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.coderacer.backend.common.crypto.Sha256Hasher;
+import org.coderacer.backend.common.text.IdentifierNormalizer;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
@@ -37,8 +34,8 @@ public class EmailVerificationService {
   private final Clock clock;
 
   @Transactional
-  public void sendVerificationEmail(User user) {
-    if (user.isEmailVerified() || !user.isEnabled() || user.isDeleted()) {
+  public void sendInitialVerificationEmail(User user) {
+    if (!user.canVerifyEmail()) {
       return;
     }
 
@@ -50,7 +47,7 @@ public class EmailVerificationService {
     Instant now = clock.instant();
     EmailVerificationToken token = findUsableToken(request.token(), now);
     User user = token.getUser();
-    if (user.isDeleted()) {
+    if (!user.canVerifyEmail()) {
       throw new EmailVerificationFailedException();
     }
 
@@ -66,10 +63,9 @@ public class EmailVerificationService {
     Instant now = clock.instant();
     userRepository
         .findByEmail(normalize(request.email()))
-        .filter(user -> !user.isEmailVerified())
-        .filter(user -> user.isEnabled() && !user.isDeleted())
+        .filter(User::canVerifyEmail)
         .filter(user -> resendCooldownElapsed(user, now))
-        .ifPresent(user -> createAndPublishToken(user, now));
+        .ifPresent(user -> replaceAndPublishToken(user, now));
 
     return EmailVerificationResendResponse.accepted();
   }
@@ -81,18 +77,21 @@ public class EmailVerificationService {
     }
 
     return tokenRepository
-        .findByTokenHash(hashToken(token))
+        .findByTokenHash(Sha256Hasher.hashHex(token))
         .filter(candidate -> candidate.isUsable(now))
         .orElseThrow(EmailVerificationFailedException::new);
   }
 
-  private void createAndPublishToken(User user, Instant now) {
+  private void replaceAndPublishToken(User user, Instant now) {
     tokenRepository.revokeActiveTokensForUser(user, now);
+    createAndPublishToken(user, now);
+  }
 
+  private void createAndPublishToken(User user, Instant now) {
     String rawToken = tokenGenerator.generate();
     EmailVerificationToken token = new EmailVerificationToken();
     token.setUser(user);
-    token.setTokenHash(hashToken(rawToken));
+    token.setTokenHash(Sha256Hasher.hashHex(rawToken));
     token.setExpiresAt(now.plus(properties.tokenTtl()));
     tokenRepository.save(token);
 
@@ -124,17 +123,7 @@ public class EmailVerificationService {
         .toUriString();
   }
 
-  private String hashToken(String rawToken) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(hash);
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalStateException("SHA-256 is not available", ex);
-    }
-  }
-
   private String normalize(String value) {
-    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return IdentifierNormalizer.normalize(value);
   }
 }
