@@ -13,6 +13,7 @@ public enum SoloAttemptState {
 
   private static final Set<SoloAttemptState> TERMINAL_STATES =
       EnumSet.of(COMPLETED, ABANDONED, EXPIRED, INVALIDATED);
+
   public static Set<SoloAttemptState> terminalStates() {
     return TERMINAL_STATES;
   }
