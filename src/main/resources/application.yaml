@@ -7,6 +7,18 @@ spring:
     username: ${POSTGRES_USER:code_racer}
     password: ${POSTGRES_PASSWORD:change-me}
 
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+
   jpa:
     open-in-view: false
     hibernate:
@@ -28,6 +40,14 @@ logging:
 app:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+  email:
+    delivery:
+      mode: ${APP_EMAIL_DELIVERY_MODE:smtp}
+      from: ${APP_EMAIL_FROM:no-reply@coderacer.local}
+  email-verification:
+    verification-url: ${APP_EMAIL_VERIFICATION_URL:http://localhost:5173/verify-email}
+    token-ttl: ${APP_EMAIL_VERIFICATION_TOKEN_TTL:24h}
+    resend-cooldown: ${APP_EMAIL_VERIFICATION_RESEND_COOLDOWN:2m}
   security:
     jwt:
       secret: ${APP_JWT_SECRET:}

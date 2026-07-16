@@ -4,4 +4,4 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record LoginRequest(
-    @NotBlank @Size(max = 20) String username, @NotBlank @Size(max = 72) String password) {}
+    @NotBlank @Size(max = 120) String identifier, @NotBlank @Size(max = 72) String password) {}

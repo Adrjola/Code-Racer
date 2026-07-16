@@ -11,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.category.repository.CategoryRepository;
-import org.coderacer.backend.common.error.FieldError;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ResourceNotFoundException;
 import org.coderacer.backend.common.exception.ValidationException;
@@ -270,15 +269,15 @@ public class SnippetService {
   }
 
   private void validateLengths(String title, String canonicalSource) {
-    List<FieldError> errors = new ArrayList<>();
+    List<String> errors = new ArrayList<>();
     if (codePointLength(title) > MAX_TITLE_LENGTH) {
-      errors.add(new FieldError("title", "must be at most " + MAX_TITLE_LENGTH + " characters"));
+      errors.add("title must be at most " + MAX_TITLE_LENGTH + " characters");
     }
     if (codePointLength(canonicalSource) > MAX_SOURCE_LENGTH) {
-      errors.add(new FieldError("source", "must be at most " + MAX_SOURCE_LENGTH + " characters"));
+      errors.add("source must be at most " + MAX_SOURCE_LENGTH + " characters");
     }
     if (!errors.isEmpty()) {
-      throw new ValidationException("Validation failed", errors);
+      throw new ValidationException("Validation failed: " + String.join("; ", errors));
     }
   }
 

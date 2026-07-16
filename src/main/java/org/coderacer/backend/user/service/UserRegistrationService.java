@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
-import org.coderacer.backend.common.error.FieldError;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ValidationException;
 import org.coderacer.backend.user.dto.UserRegistrationRequest;
@@ -14,6 +13,7 @@ import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
+import org.coderacer.backend.user.verification.service.EmailVerificationService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +35,7 @@ public class UserRegistrationService {
   private final UserRepository repository;
   private final PasswordEncoder passwordEncoder;
   private final UserMapper mapper;
+  private final EmailVerificationService emailVerificationService;
 
   @Transactional
   public UserResponse register(UserRegistrationRequest request) {
@@ -67,14 +68,18 @@ public class UserRegistrationService {
     user.setDeleted(false);
 
     try {
-      return mapper.toResponse(repository.saveAndFlush(user));
+      User savedUser = repository.saveAndFlush(user);
+      if (!emailVerified) {
+        emailVerificationService.sendVerificationEmail(savedUser);
+      }
+      return mapper.toResponse(savedUser);
     } catch (DataIntegrityViolationException ex) {
       throw duplicateUserConflict();
     }
   }
 
   private NormalizedRegistration validateAndNormalize(UserRegistrationRequest request) {
-    List<FieldError> errors = new ArrayList<>();
+    List<String> errors = new ArrayList<>();
 
     String email = normalize(request.email());
     String username = normalize(request.username());
@@ -83,50 +88,46 @@ public class UserRegistrationService {
     validatePassword(request.password(), request.confirmPassword(), errors);
 
     if (!errors.isEmpty()) {
-      throw new ValidationException("Registration validation failed", errors);
+      throw new ValidationException("Registration validation failed: " + String.join("; ", errors));
     }
 
     return new NormalizedRegistration(email, username, request.password());
   }
 
-  private void validateEmail(String email, List<FieldError> errors) {
+  private void validateEmail(String email, List<String> errors) {
     if (email.isBlank()) {
-      errors.add(new FieldError("email", "must not be blank"));
+      errors.add("email must not be blank");
     } else if (email.length() > 120 || !EMAIL_PATTERN.matcher(email).matches()) {
-      errors.add(new FieldError("email", "must be a valid email address"));
+      errors.add("email must be a valid email address");
     }
   }
 
-  private void validateUsername(String username, List<FieldError> errors) {
+  private void validateUsername(String username, List<String> errors) {
     if (username.isBlank()) {
-      errors.add(new FieldError("username", "must not be blank"));
+      errors.add("username must not be blank");
     } else if (!USERNAME_PATTERN.matcher(username).matches()) {
       errors.add(
-          new FieldError(
-              "username",
-              "must be 3 to 20 characters and contain only lowercase letters, numbers, underscores, or hyphens"));
+          "username must be 3 to 20 characters and contain only lowercase letters, numbers, underscores, or hyphens");
     }
   }
 
-  private void validatePassword(String password, String confirmPassword, List<FieldError> errors) {
+  private void validatePassword(String password, String confirmPassword, List<String> errors) {
     if (password == null || password.isBlank()) {
-      errors.add(new FieldError("password", "must not be blank"));
+      errors.add("password must not be blank");
       return;
     }
     if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
       errors.add(
-          new FieldError(
-              "password",
-              "must be between "
-                  + MIN_PASSWORD_LENGTH
-                  + " and "
-                  + MAX_PASSWORD_LENGTH
-                  + " characters"));
+          "password must be between "
+              + MIN_PASSWORD_LENGTH
+              + " and "
+              + MAX_PASSWORD_LENGTH
+              + " characters");
     }
     if (confirmPassword == null || confirmPassword.isBlank()) {
-      errors.add(new FieldError("confirmPassword", "must not be blank"));
+      errors.add("confirmPassword must not be blank");
     } else if (!password.equals(confirmPassword)) {
-      errors.add(new FieldError("confirmPassword", "must match password"));
+      errors.add("confirmPassword must match password");
     }
   }
 

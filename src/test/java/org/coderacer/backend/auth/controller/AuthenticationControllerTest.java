@@ -17,7 +17,6 @@ import org.coderacer.backend.auth.exception.AuthenticationFailedException;
 import org.coderacer.backend.auth.exception.TooManyLoginAttemptsException;
 import org.coderacer.backend.auth.service.AuthenticationService;
 import org.coderacer.backend.auth.service.LoginAttemptService;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.model.UserRole;
@@ -37,7 +36,7 @@ class AuthenticationControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(new AuthenticationController(service, loginAttemptService))
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
 
@@ -66,7 +65,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "StrongerPass123"
                     }
                     """))
@@ -91,7 +90,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "WrongPass123"
                     }
                     """))
@@ -113,7 +112,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "WrongPass123"
                     }
                     """))
@@ -122,7 +121,7 @@ class AuthenticationControllerTest {
   }
 
   @Test
-  void login_returns400ForBlankUsername() throws Exception {
+  void login_returns400ForBlankIdentifier() throws Exception {
     mockMvc
         .perform(
             post("/api/auth/login")
@@ -130,7 +129,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "",
+                      "identifier": "",
                       "password": "StrongerPass123"
                     }
                     """))

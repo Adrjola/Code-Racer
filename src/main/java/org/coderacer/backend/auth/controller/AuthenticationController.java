@@ -27,13 +27,13 @@ public class AuthenticationController {
   public BaseResponse<LoginResponse> login(
       @Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
     String clientAddress = servletRequest.getRemoteAddr();
-    loginAttemptService.assertAllowed(request.username(), clientAddress);
+    loginAttemptService.assertAllowed(request.identifier(), clientAddress);
     try {
       LoginResponse response = service.login(request);
-      loginAttemptService.recordSuccess(request.username(), clientAddress);
+      loginAttemptService.recordSuccess(request.identifier(), clientAddress);
       return new BaseResponse<>(response, MDC.get("correlationId"));
     } catch (AuthenticationFailedException ex) {
-      loginAttemptService.recordFailure(request.username(), clientAddress);
+      loginAttemptService.recordFailure(request.identifier(), clientAddress);
       throw ex;
     }
   }

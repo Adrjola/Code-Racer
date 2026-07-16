@@ -28,8 +28,8 @@ public class AuthenticationService {
 
   @Transactional(readOnly = true)
   public LoginResponse login(LoginRequest request) {
-    String username = normalize(request.username());
-    var userCandidate = repository.findByUsername(username);
+    String identifier = normalize(request.identifier());
+    var userCandidate = repository.findByEmailOrUsername(identifier, identifier);
     String passwordHash = userCandidate.map(User::getPasswordHash).orElse(DUMMY_PASSWORD_HASH);
     boolean passwordMatches =
         passwordEncoder.matches(normalizePassword(request.password()), passwordHash);
