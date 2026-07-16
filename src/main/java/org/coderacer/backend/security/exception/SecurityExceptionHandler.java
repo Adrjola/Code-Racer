@@ -1,11 +1,10 @@
-package org.coderacer.backend.security.web;
+package org.coderacer.backend.security.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
-import org.coderacer.backend.common.error.ProblemDetails;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
+import org.coderacer.backend.common.error.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,10 +16,9 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
-public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
+public class SecurityExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
   private final ObjectMapper objectMapper;
-  private final ProblemDetailsFactory problemDetailsFactory;
 
   @Override
   public void commence(
@@ -49,15 +47,14 @@ public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessD
   private void writeProblem(
       HttpServletResponse response,
       HttpStatus status,
-      String detail,
+      String message,
       String code,
       HttpServletRequest request)
       throws IOException {
-    ProblemDetails problem =
-        problemDetailsFactory.create(status, detail, code, request.getRequestURI(), null);
+    ApiError error = ApiError.of(status, request.getRequestURI(), code, message);
 
     response.setStatus(status.value());
-    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-    objectMapper.writeValue(response.getOutputStream(), problem);
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    objectMapper.writeValue(response.getOutputStream(), error);
   }
 }

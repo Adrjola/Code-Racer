@@ -1,7 +1,6 @@
 package org.coderacer.backend.config;
 
 import java.util.List;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -9,7 +8,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 @Configuration
-@EnableConfigurationProperties(CorsProperties.class)
 public class CorsConfig {
 
   private final CorsProperties properties;

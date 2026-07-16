@@ -1,10 +1,10 @@
 package org.coderacer.backend.auth.service;
 
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.auth.dto.LoginRequest;
 import org.coderacer.backend.auth.dto.LoginResponse;
 import org.coderacer.backend.auth.exception.AuthenticationFailedException;
+import org.coderacer.backend.common.text.IdentifierNormalizer;
 import org.coderacer.backend.security.jwt.JwtService;
 import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
@@ -25,20 +25,26 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final UserMapper userMapper;
+  private final LoginAttemptService loginAttemptService;
 
   @Transactional(readOnly = true)
-  public LoginResponse login(LoginRequest request) {
-    String username = normalize(request.username());
-    var userCandidate = repository.findByUsername(username);
+  public LoginResponse login(LoginRequest request, String clientAddress) {
+    String identifier = normalize(request.identifier());
+    var userCandidate = repository.findByEmailOrUsername(identifier, identifier);
+    String attemptKey = loginAttemptKey(identifier, userCandidate.orElse(null));
+    loginAttemptService.assertAllowed(attemptKey, clientAddress);
+
     String passwordHash = userCandidate.map(User::getPasswordHash).orElse(DUMMY_PASSWORD_HASH);
     boolean passwordMatches =
         passwordEncoder.matches(normalizePassword(request.password()), passwordHash);
     User user = userCandidate.filter(User::canAuthenticate).orElse(null);
 
     if (user == null || !passwordMatches) {
+      loginAttemptService.recordFailure(attemptKey, clientAddress);
       throw new AuthenticationFailedException();
     }
 
+    loginAttemptService.recordSuccess(attemptKey, clientAddress);
     return new LoginResponse(
         jwtService.createAccessToken(user),
         TOKEN_TYPE,
@@ -46,8 +52,15 @@ public class AuthenticationService {
         userMapper.toResponse(user));
   }
 
+  private String loginAttemptKey(String identifier, User user) {
+    if (user == null || user.getId() == null) {
+      return identifier;
+    }
+    return user.getId().toString();
+  }
+
   private String normalize(String value) {
-    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return IdentifierNormalizer.normalize(value);
   }
 
   private String normalizePassword(String value) {

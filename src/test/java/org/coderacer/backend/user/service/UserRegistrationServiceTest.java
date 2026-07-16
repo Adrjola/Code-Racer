@@ -3,11 +3,11 @@ package org.coderacer.backend.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.coderacer.backend.common.error.FieldError;
 import org.coderacer.backend.common.exception.ConflictException;
 import org.coderacer.backend.common.exception.ValidationException;
 import org.coderacer.backend.user.dto.UserRegistrationRequest;
@@ -15,6 +15,7 @@ import org.coderacer.backend.user.mapper.UserMapper;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
+import org.coderacer.backend.user.verification.service.EmailVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +30,15 @@ class UserRegistrationServiceTest {
 
   @Mock private UserRepository repository;
   @Mock private PasswordEncoder passwordEncoder;
+  @Mock private EmailVerificationService emailVerificationService;
 
   private UserRegistrationService service;
 
   @BeforeEach
   void setUp() {
-    service = new UserRegistrationService(repository, passwordEncoder, new UserMapper());
+    service =
+        new UserRegistrationService(
+            repository, passwordEncoder, new UserMapper(), emailVerificationService);
   }
 
   @Test
@@ -53,6 +57,7 @@ class UserRegistrationServiceTest {
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     verify(repository).saveAndFlush(userCaptor.capture());
     User savedUser = userCaptor.getValue();
+    verify(emailVerificationService).sendInitialVerificationEmail(savedUser);
     assertThat(savedUser.getEmail()).isEqualTo("player@example.com");
     assertThat(savedUser.getUsername()).isEqualTo("speed_racer");
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-password");
@@ -74,10 +79,7 @@ class UserRegistrationServiceTest {
     assertThatThrownBy(() -> service.register(request))
         .isInstanceOfSatisfying(
             ValidationException.class,
-            ex ->
-                assertThat(ex.getErrors())
-                    .extracting(FieldError::field)
-                    .contains("confirmPassword"));
+            ex -> assertThat(ex.getMessage()).contains("confirmPassword must match password"));
     verify(repository, never()).saveAndFlush(any());
   }
 
@@ -90,10 +92,7 @@ class UserRegistrationServiceTest {
     assertThatThrownBy(() -> service.register(request))
         .isInstanceOfSatisfying(
             ValidationException.class,
-            ex ->
-                assertThat(ex.getErrors())
-                    .extracting(FieldError::field)
-                    .contains("email", "username"));
+            ex -> assertThat(ex.getMessage()).contains("email", "username"));
     verify(repository, never()).saveAndFlush(any());
   }
 
@@ -108,10 +107,7 @@ class UserRegistrationServiceTest {
     assertThatThrownBy(() -> service.register(request))
         .isInstanceOfSatisfying(
             ValidationException.class,
-            ex ->
-                assertThat(ex.getErrors())
-                    .extracting(FieldError::field)
-                    .contains("email", "username", "password"));
+            ex -> assertThat(ex.getMessage()).contains("email", "username", "password"));
     verify(repository, never()).saveAndFlush(any());
   }
 
@@ -147,6 +143,24 @@ class UserRegistrationServiceTest {
   }
 
   @Test
+  void register_doesNotMapVerificationTokenFailureToDuplicateUser() {
+    UserRegistrationRequest request =
+        new UserRegistrationRequest(
+            "player@example.com", "speed_racer", "StrongerPass123", "StrongerPass123");
+    when(repository.existsByEmail("player@example.com")).thenReturn(false);
+    when(repository.existsByUsername("speed_racer")).thenReturn(false);
+    when(passwordEncoder.encode("StrongerPass123")).thenReturn("hashed-password");
+    when(repository.saveAndFlush(any(User.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+    doThrow(new DataIntegrityViolationException("token collision"))
+        .when(emailVerificationService)
+        .sendInitialVerificationEmail(any(User.class));
+
+    assertThatThrownBy(() -> service.register(request))
+        .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
   void createInitialAdmin_createsVerifiedAdmin() {
     UserRegistrationRequest request =
         new UserRegistrationRequest(
@@ -165,5 +179,6 @@ class UserRegistrationServiceTest {
     assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
     assertThat(savedUser.isEmailVerified()).isTrue();
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-admin-password");
+    verify(emailVerificationService, never()).sendInitialVerificationEmail(any());
   }
 }

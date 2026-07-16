@@ -1,10 +1,7 @@
 package org.coderacer.backend.auth.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,8 +13,6 @@ import org.coderacer.backend.auth.dto.LoginResponse;
 import org.coderacer.backend.auth.exception.AuthenticationFailedException;
 import org.coderacer.backend.auth.exception.TooManyLoginAttemptsException;
 import org.coderacer.backend.auth.service.AuthenticationService;
-import org.coderacer.backend.auth.service.LoginAttemptService;
-import org.coderacer.backend.common.error.ProblemDetailsFactory;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
 import org.coderacer.backend.user.dto.UserResponse;
 import org.coderacer.backend.user.model.UserRole;
@@ -30,20 +25,19 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class AuthenticationControllerTest {
 
   private final AuthenticationService service = mock(AuthenticationService.class);
-  private final LoginAttemptService loginAttemptService = mock(LoginAttemptService.class);
   private MockMvc mockMvc;
 
   @BeforeEach
   void setUp() {
     mockMvc =
-        MockMvcBuilders.standaloneSetup(new AuthenticationController(service, loginAttemptService))
-            .setControllerAdvice(new GlobalExceptionHandler(new ProblemDetailsFactory()))
+        MockMvcBuilders.standaloneSetup(new AuthenticationController(service))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
   }
 
   @Test
   void login_returnsBearerToken() throws Exception {
-    when(service.login(any()))
+    when(service.login(any(), any()))
         .thenReturn(
             new LoginResponse(
                 "jwt-token",
@@ -66,7 +60,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "StrongerPass123"
                     }
                     """))
@@ -77,12 +71,11 @@ class AuthenticationControllerTest {
         .andExpect(jsonPath("$.data.user.username").value("player"))
         .andExpect(jsonPath("$.data.password").doesNotExist())
         .andExpect(jsonPath("$.data.passwordHash").doesNotExist());
-    verify(loginAttemptService).recordSuccess(eq("player"), any());
   }
 
   @Test
   void login_returns401ForInvalidCredentials() throws Exception {
-    when(service.login(any())).thenThrow(new AuthenticationFailedException());
+    when(service.login(any(), any())).thenThrow(new AuthenticationFailedException());
 
     mockMvc
         .perform(
@@ -91,20 +84,17 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "WrongPass123"
                     }
                     """))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
-    verify(loginAttemptService).recordFailure(eq("player"), any());
   }
 
   @Test
   void login_returns429WhenAttemptLimitIsExceeded() throws Exception {
-    doThrow(new TooManyLoginAttemptsException())
-        .when(loginAttemptService)
-        .assertAllowed(eq("player"), any());
+    when(service.login(any(), any())).thenThrow(new TooManyLoginAttemptsException());
 
     mockMvc
         .perform(
@@ -113,7 +103,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "player",
+                      "identifier": "player",
                       "password": "WrongPass123"
                     }
                     """))
@@ -122,7 +112,7 @@ class AuthenticationControllerTest {
   }
 
   @Test
-  void login_returns400ForBlankUsername() throws Exception {
+  void login_returns400ForBlankIdentifier() throws Exception {
     mockMvc
         .perform(
             post("/api/auth/login")
@@ -130,7 +120,7 @@ class AuthenticationControllerTest {
                 .content(
                     """
                     {
-                      "username": "",
+                      "identifier": "",
                       "password": "StrongerPass123"
                     }
                     """))
