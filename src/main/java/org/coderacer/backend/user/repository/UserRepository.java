@@ -1,10 +1,14 @@
 package org.coderacer.backend.user.repository;
 
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
@@ -15,6 +19,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByRole(UserRole role);
 
   Optional<User> findByEmail(String email);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select u from User u where u.email = :email")
+  Optional<User> findByEmailForUpdate(@Param("email") String email);
 
   Optional<User> findByEmailOrUsernameNormalized(String email, String usernameNormalized);
 

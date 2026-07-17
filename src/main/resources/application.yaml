@@ -47,7 +47,7 @@ app:
   email-verification:
     verification-url: ${APP_EMAIL_VERIFICATION_URL:http://localhost:5173/verify-email}
     token-ttl: ${APP_EMAIL_VERIFICATION_TOKEN_TTL:24h}
-    resend-cooldown: ${APP_EMAIL_VERIFICATION_RESEND_COOLDOWN:0s}
+    resend-cooldown: ${APP_EMAIL_VERIFICATION_RESEND_COOLDOWN:2m}
   security:
     jwt:
       secret: ${APP_JWT_SECRET:}

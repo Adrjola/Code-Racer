@@ -6,6 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -57,12 +58,25 @@ public class User {
   @Column(name = "token_valid_from", nullable = false)
   private Instant tokenValidFrom = Instant.EPOCH;
 
+  @Column(name = "verification_email_resent_at")
+  private Instant verificationEmailResentAt;
+
   public boolean canAuthenticate() {
     return emailVerified && enabled && !deleted;
   }
 
   public boolean canVerifyEmail() {
     return !emailVerified && enabled && !deleted;
+  }
+
+  public boolean canResendVerificationEmail(Instant now, Duration cooldown) {
+    return cooldown.isZero()
+        || verificationEmailResentAt == null
+        || !verificationEmailResentAt.plus(cooldown).isAfter(now);
+  }
+
+  public void markVerificationEmailResent(Instant resentAt) {
+    this.verificationEmailResentAt = resentAt;
   }
 
   public void setUsername(String username) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GradientButton from '@/components/GradientButton';
 import TextField from '@/components/TextField';
 import { MailIcon } from '@/components/icons';
@@ -12,6 +12,14 @@ type ResendVerificationFormProps = {
   defaultEmail?: string;
 };
 
+const RESEND_COOLDOWN_SECONDS = 120;
+
+function formatCooldown(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
 export default function ResendVerificationForm({
   defaultEmail,
 }: ResendVerificationFormProps) {
@@ -19,7 +27,21 @@ export default function ResendVerificationForm({
   const [error, setError] = useState<string | undefined>();
   const [message, setMessage] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const shouldAskForEmail = !defaultEmail;
+  const isCoolingDown = cooldownSeconds > 0;
+
+  useEffect(() => {
+    if (!isCoolingDown) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setCooldownSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isCoolingDown]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -28,6 +50,10 @@ export default function ResendVerificationForm({
   };
 
   const handleResend = async () => {
+    if (isCoolingDown) {
+      return;
+    }
+
     const nextError = emailError(email);
     setError(nextError);
     if (nextError) {
@@ -38,6 +64,7 @@ export default function ResendVerificationForm({
     setMessage(undefined);
     try {
       setMessage(await resendVerificationEmail({ email }));
+      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
     } catch (error) {
       setMessage(readableAuthError(error));
     } finally {
@@ -50,7 +77,7 @@ export default function ResendVerificationForm({
       {shouldAskForEmail && (
         <TextField
           autoComplete="email"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isCoolingDown}
           error={error}
           icon={<MailIcon />}
           id="resend-verification-email"
@@ -74,11 +101,15 @@ export default function ResendVerificationForm({
 
       <GradientButton
         className="mt-[clamp(1.25rem,3.8dvh,2.25rem)] lg:mt-[28px]"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isCoolingDown}
         onClick={handleResend}
         type="button"
       >
-        {isSubmitting ? 'Sending...' : 'Resend verification email'}
+        {isSubmitting
+          ? 'Sending...'
+          : isCoolingDown
+            ? `Try again in ${formatCooldown(cooldownSeconds)}`
+            : 'Resend verification email'}
       </GradientButton>
     </div>
   );

@@ -176,8 +176,9 @@ class EmailVerificationServiceTest {
   void resend_returnsNeutralResponseWithoutSendingForUnknownOrVerifiedAccounts() {
     User verified = unverifiedUser();
     verified.setEmailVerified(true);
-    when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
-    when(userRepository.findByEmail("verified@example.com")).thenReturn(Optional.of(verified));
+    when(userRepository.findByEmailForUpdate("missing@example.com")).thenReturn(Optional.empty());
+    when(userRepository.findByEmailForUpdate("verified@example.com"))
+        .thenReturn(Optional.of(verified));
 
     assertThat(
             service.resend(new EmailVerificationResendRequest(" missing@example.com ")).message())
@@ -192,28 +193,36 @@ class EmailVerificationServiceTest {
   @Test
   void resend_createsNewTokenForUnverifiedUserWhenCooldownElapsed() {
     User user = unverifiedUser();
-    EmailVerificationToken previousToken = usableToken(user, "previous-token");
-    previousToken.setCreatedAt(NOW.minus(Duration.ofMinutes(3)));
-    when(userRepository.findByEmail("player@example.com")).thenReturn(Optional.of(user));
-    when(tokenRepository.findFirstByUserOrderByCreatedAtDesc(user))
-        .thenReturn(Optional.of(previousToken));
+    user.markVerificationEmailResent(NOW.minus(Duration.ofMinutes(3)));
+    when(userRepository.findByEmailForUpdate("player@example.com")).thenReturn(Optional.of(user));
     when(tokenGenerator.generate()).thenReturn("new-token");
 
     service.resend(new EmailVerificationResendRequest(" Player@Example.COM "));
 
+    assertThat(user.getVerificationEmailResentAt()).isEqualTo(NOW);
     verify(tokenRepository).revokeActiveTokensForUser(user, NOW);
     verify(tokenRepository).save(any(EmailVerificationToken.class));
     verify(eventPublisher).publishEvent(any(EmailVerificationRequestedEvent.class));
   }
 
   @Test
+  void resend_allowsFirstResendWithoutWaitingForInitialRegistrationTokenCooldown() {
+    User user = unverifiedUser();
+    when(userRepository.findByEmailForUpdate("player@example.com")).thenReturn(Optional.of(user));
+    when(tokenGenerator.generate()).thenReturn("new-token");
+
+    service.resend(new EmailVerificationResendRequest("player@example.com"));
+
+    assertThat(user.getVerificationEmailResentAt()).isEqualTo(NOW);
+    verify(tokenRepository).save(any());
+    verify(eventPublisher).publishEvent(any(EmailVerificationRequestedEvent.class));
+  }
+
+  @Test
   void resend_obeysCooldownWithoutReusingRawToken() {
     User user = unverifiedUser();
-    EmailVerificationToken previousToken = usableToken(user, "previous-token");
-    previousToken.setCreatedAt(NOW.minusSeconds(30));
-    when(userRepository.findByEmail("player@example.com")).thenReturn(Optional.of(user));
-    when(tokenRepository.findFirstByUserOrderByCreatedAtDesc(user))
-        .thenReturn(Optional.of(previousToken));
+    user.markVerificationEmailResent(NOW.minusSeconds(30));
+    when(userRepository.findByEmailForUpdate("player@example.com")).thenReturn(Optional.of(user));
 
     service.resend(new EmailVerificationResendRequest("player@example.com"));
 

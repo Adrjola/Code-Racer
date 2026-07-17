@@ -141,6 +141,9 @@ describe('App', () => {
     expect(
       await screen.findByText(/verification email will be sent/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /try again in 2:00/i }),
+    ).toBeDisabled();
   });
 
   it('confirms email verification links and returns to login', async () => {
