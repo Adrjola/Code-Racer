@@ -122,6 +122,7 @@ describe('apiRequest', () => {
     );
 
     await expect(apiRequest('/api/admin/snippets')).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
       message: 'Network request failed',
     });
   });

@@ -263,8 +263,8 @@ describe('admin api', () => {
       http.put(`${API_URL}/api/admin/categories/${snippet.categoryId}`, () =>
         HttpResponse.json(
           {
-            code: 'ALREADY_EXISTS',
-            message: 'A category with this name already exists',
+            code: 'CONFLICT',
+            message: "Category with name 'Java' already exists",
             status: 409,
           },
           { status: 409 },
@@ -274,6 +274,6 @@ describe('admin api', () => {
 
     await expect(
       updateCategory(snippet.categoryId, { description: '', name: 'Java' }),
-    ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 });

@@ -8,7 +8,7 @@ type TextFieldProps = {
   className?: string;
   disabled?: boolean;
   error?: string;
-  icon: ReactNode;
+  icon?: ReactNode;
   id: string;
   label: string;
   maxLength?: number;

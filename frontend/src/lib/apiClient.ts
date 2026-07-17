@@ -59,7 +59,7 @@ export async function apiRequest<T>(
       headers: requestHeaders,
     });
   } catch {
-    throw new ApiRequestError('Network request failed');
+    throw new ApiRequestError('Network request failed', 'NETWORK_ERROR');
   }
 
   if (!response.ok) {
