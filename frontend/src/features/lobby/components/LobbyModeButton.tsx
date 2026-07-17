@@ -5,7 +5,7 @@ type LobbyModeButtonProps = {
 };
 
 const BASE_BUTTON_CLASSNAME =
-  'rounded-[9px] px-5 py-2 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300/70';
+  'min-w-[184px] rounded-[9px] px-6 py-2.5 text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300/70';
 
 const VARIANT_CLASSNAME: Record<LobbyModeButtonProps['variant'], string> = {
   primary:
