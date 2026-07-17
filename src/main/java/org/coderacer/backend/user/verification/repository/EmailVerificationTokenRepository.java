@@ -25,8 +25,6 @@ public interface EmailVerificationTokenRepository
       """)
   Optional<EmailVerificationToken> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 
-  Optional<EmailVerificationToken> findFirstByUserOrderByCreatedAtDesc(User user);
-
   @Modifying
   @Query(
       """

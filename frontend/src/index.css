@@ -1,1 +1,36 @@
 @import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-surface: #0e0c16;
+  --color-text-primary: #e7e5ef;
+  --color-text-secondary: #c9c7d6;
+  --color-text-muted: #6e6c78;
+  --color-text-faint: #8b8794;
+}
+
+html {
+  --auth-center-x: 960px;
+  --auth-login-center-x: 960px;
+  --auth-login-scale: 1;
+  --auth-scale: 1;
+
+  background: #0e0c16;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+button,
+input {
+  font: inherit;
+}

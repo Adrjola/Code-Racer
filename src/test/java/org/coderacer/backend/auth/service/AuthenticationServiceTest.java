@@ -61,7 +61,8 @@ class AuthenticationServiceTest {
             true,
             Instant.now(),
             Instant.now());
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(user));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(user));
     when(passwordEncoder.matches("StrongerPass123", "hashed-password")).thenReturn(true);
     when(jwtService.createAccessToken(user)).thenReturn("jwt-token");
     when(jwtService.accessTokenTtl()).thenReturn(Duration.ofMinutes(15));
@@ -90,7 +91,7 @@ class AuthenticationServiceTest {
             true,
             Instant.now(),
             Instant.now());
-    when(repository.findByEmailOrUsername("player@example.com", "player@example.com"))
+    when(repository.findByEmailOrUsernameNormalized("player@example.com", "player@example.com"))
         .thenReturn(Optional.of(user));
     when(passwordEncoder.matches("StrongerPass123", "hashed-password")).thenReturn(true);
     when(jwtService.createAccessToken(user)).thenReturn("jwt-token");
@@ -108,7 +109,7 @@ class AuthenticationServiceTest {
 
   @Test
   void login_rejectsUnknownIdentifierAfterDummyPasswordCheck() {
-    when(repository.findByEmailOrUsername("unknown@example.com", "unknown@example.com"))
+    when(repository.findByEmailOrUsernameNormalized("unknown@example.com", "unknown@example.com"))
         .thenReturn(Optional.empty());
 
     assertThatThrownBy(
@@ -123,7 +124,7 @@ class AuthenticationServiceTest {
 
   @Test
   void login_rejectsNullIdentifierAsUnknownIdentifier() {
-    when(repository.findByEmailOrUsername("", "")).thenReturn(Optional.empty());
+    when(repository.findByEmailOrUsernameNormalized("", "")).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.login(new LoginRequest(null, "StrongerPass123"), "127.0.0.1"))
         .isInstanceOf(AuthenticationFailedException.class);
@@ -135,7 +136,8 @@ class AuthenticationServiceTest {
   @Test
   void login_rejectsWrongPassword() {
     User user = verifiedUser("player");
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(user));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(user));
     when(passwordEncoder.matches("WrongPass123", "hashed-password")).thenReturn(false);
 
     assertThatThrownBy(() -> service.login(new LoginRequest("player", "WrongPass123"), "127.0.0.1"))
@@ -148,7 +150,8 @@ class AuthenticationServiceTest {
   void login_rejectsUsersThatCannotAuthenticate() {
     User unverified = verifiedUser("player");
     unverified.setEmailVerified(false);
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(unverified));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(unverified));
 
     assertThatThrownBy(
             () -> service.login(new LoginRequest("player", "StrongerPass123"), "127.0.0.1"))
@@ -161,7 +164,8 @@ class AuthenticationServiceTest {
   void login_rejectsDisabledUsersAfterPasswordCheck() {
     User disabled = verifiedUser("player");
     disabled.setEnabled(false);
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(disabled));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(disabled));
 
     assertThatThrownBy(
             () -> service.login(new LoginRequest("player", "StrongerPass123"), "127.0.0.1"))
@@ -174,7 +178,8 @@ class AuthenticationServiceTest {
   void login_rejectsDeletedUsersAfterPasswordCheck() {
     User deleted = verifiedUser("player");
     deleted.setDeleted(true);
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(deleted));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(deleted));
 
     assertThatThrownBy(
             () -> service.login(new LoginRequest("player", "StrongerPass123"), "127.0.0.1"))
@@ -186,9 +191,10 @@ class AuthenticationServiceTest {
   @Test
   void login_usesTheSameAttemptKeyForUsernameAndEmailIdentifiers() {
     User user = verifiedUser("player");
-    when(repository.findByEmailOrUsername("player@example.com", "player@example.com"))
+    when(repository.findByEmailOrUsernameNormalized("player@example.com", "player@example.com"))
         .thenReturn(Optional.of(user));
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(user));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(user));
     when(passwordEncoder.matches("WrongPass123", "hashed-password")).thenReturn(false);
 
     assertThatThrownBy(
@@ -204,7 +210,8 @@ class AuthenticationServiceTest {
   @Test
   void login_doesNotCheckPasswordWhenAttemptLimitIsExceeded() {
     User user = verifiedUser("player");
-    when(repository.findByEmailOrUsername("player", "player")).thenReturn(Optional.of(user));
+    when(repository.findByEmailOrUsernameNormalized("player", "player"))
+        .thenReturn(Optional.of(user));
     doThrow(new TooManyLoginAttemptsException())
         .when(loginAttemptService)
         .assertAllowed(user.getId().toString(), "127.0.0.1");

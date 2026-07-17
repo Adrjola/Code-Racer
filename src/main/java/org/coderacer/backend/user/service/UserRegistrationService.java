@@ -23,12 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserRegistrationService {
 
-  static final int MIN_PASSWORD_LENGTH = 12;
-  static final int MAX_PASSWORD_LENGTH = 72;
+  static final int MIN_PASSWORD_LENGTH = 8;
+  static final int MAX_PASSWORD_LENGTH = 16;
 
   private static final Pattern EMAIL_PATTERN =
       Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
-  private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9_-]{2,19}$");
+  private static final Pattern USERNAME_PATTERN =
+      Pattern.compile("^[A-Z0-9][A-Z0-9_-]{2,19}$", Pattern.CASE_INSENSITIVE);
   private static final String DUPLICATE_USER_MESSAGE =
       "A user with this email or username already exists";
 
@@ -56,7 +57,7 @@ public class UserRegistrationService {
 
   private UserResponse createUser(
       NormalizedRegistration registration, UserRole role, boolean emailVerified) {
-    rejectDuplicateIdentifiers(registration.email(), registration.username());
+    rejectDuplicateIdentifiers(registration.email(), registration.usernameNormalized());
 
     User user = new User();
     user.setEmail(registration.email());
@@ -86,7 +87,8 @@ public class UserRegistrationService {
     List<String> errors = new ArrayList<>();
 
     String email = normalize(request.email());
-    String username = normalize(request.username());
+    String username = trim(request.username());
+    String usernameNormalized = normalize(username);
     validateEmail(email, errors);
     validateUsername(username, errors);
     validatePassword(request.password(), request.confirmPassword(), errors);
@@ -95,7 +97,7 @@ public class UserRegistrationService {
       throw new ValidationException("Registration validation failed: " + String.join("; ", errors));
     }
 
-    return new NormalizedRegistration(email, username, request.password());
+    return new NormalizedRegistration(email, username, usernameNormalized, request.password());
   }
 
   private void validateEmail(String email, List<String> errors) {
@@ -111,7 +113,7 @@ public class UserRegistrationService {
       errors.add("username must not be blank");
     } else if (!USERNAME_PATTERN.matcher(username).matches()) {
       errors.add(
-          "username must be 3 to 20 characters and contain only lowercase letters, numbers, underscores, or hyphens");
+          "username must be 3 to 20 characters and contain only letters, numbers, underscores, or hyphens");
     }
   }
 
@@ -135,8 +137,9 @@ public class UserRegistrationService {
     }
   }
 
-  private void rejectDuplicateIdentifiers(String email, String username) {
-    if (repository.existsByEmail(email) || repository.existsByUsername(username)) {
+  private void rejectDuplicateIdentifiers(String email, String usernameNormalized) {
+    if (repository.existsByEmail(email)
+        || repository.existsByUsernameNormalized(usernameNormalized)) {
       throw duplicateUserConflict();
     }
   }
@@ -149,5 +152,10 @@ public class UserRegistrationService {
     return IdentifierNormalizer.normalize(value);
   }
 
-  private record NormalizedRegistration(String email, String username, String password) {}
+  private String trim(String value) {
+    return value == null ? "" : value.trim();
+  }
+
+  private record NormalizedRegistration(
+      String email, String username, String usernameNormalized, String password) {}
 }

@@ -12,6 +12,7 @@ afterEach(() => {
   server.resetHandlers();
   vi.restoreAllMocks();
   vi.useRealTimers();
+  window.history.replaceState(null, '', '/');
   window.localStorage.clear();
   window.sessionStorage.clear();
 });

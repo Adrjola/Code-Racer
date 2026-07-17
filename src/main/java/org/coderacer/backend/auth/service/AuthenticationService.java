@@ -30,7 +30,7 @@ public class AuthenticationService {
   @Transactional(readOnly = true)
   public LoginResponse login(LoginRequest request, String clientAddress) {
     String identifier = normalize(request.identifier());
-    var userCandidate = repository.findByEmailOrUsername(identifier, identifier);
+    var userCandidate = repository.findByEmailOrUsernameNormalized(identifier, identifier);
     String attemptKey = loginAttemptKey(identifier, userCandidate.orElse(null));
     loginAttemptService.assertAllowed(attemptKey, clientAddress);
 
