@@ -52,6 +52,10 @@ services:
       APP_EMAIL_FROM: ${APP_EMAIL_FROM:-no-reply@coderacer.local}
       APP_EMAIL_VERIFICATION_URL: ${APP_EMAIL_VERIFICATION_URL:-http://localhost:5173/verify-email}
       APP_JWT_SECRET: ${APP_JWT_SECRET:-}
+      APP_ADMIN_BOOTSTRAP_ENABLED: ${APP_ADMIN_BOOTSTRAP_ENABLED:-false}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
 
     depends_on:
       database:
