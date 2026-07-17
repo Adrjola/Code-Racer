@@ -3,6 +3,9 @@ import type { LoginCredentials, RegistrationValues } from './auth';
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{2,19}$/;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 16;
 
 function requiredError(value: string, fieldName: string): string | undefined {
   return value.trim() ? undefined : `${fieldName} is required`;
@@ -24,7 +27,25 @@ export function identifierError(value: string): string | undefined {
 }
 
 export function passwordError(value: string): string | undefined {
-  return value ? undefined : 'Password is required';
+  if (!value) return 'Password is required';
+  if (
+    value.length < MIN_PASSWORD_LENGTH ||
+    value.length > MAX_PASSWORD_LENGTH
+  ) {
+    return `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters`;
+  }
+  return undefined;
+}
+
+export function usernameError(value: string): string | undefined {
+  const missingUsername = requiredError(value, 'Username');
+  if (missingUsername) return missingUsername;
+
+  if (!USERNAME_PATTERN.test(value)) {
+    return 'Username must be 3 to 20 characters and use lowercase letters, numbers, underscores, or hyphens';
+  }
+
+  return undefined;
 }
 
 export function confirmPasswordError(
@@ -55,7 +76,7 @@ export function validateRegistration(
     ),
     email: emailError(values.email),
     password: passwordError(values.password),
-    username: requiredError(values.username, 'Username'),
+    username: usernameError(values.username),
   };
 }
 

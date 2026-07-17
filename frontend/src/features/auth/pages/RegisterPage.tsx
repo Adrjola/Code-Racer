@@ -105,7 +105,7 @@ export default function RegisterPage({
         icon={<LockIcon />}
         id="register-password"
         label="Password"
-        maxLength={72}
+        maxLength={16}
         onChange={setValue('password')}
         placeholder="**********"
         type="password"
@@ -118,7 +118,7 @@ export default function RegisterPage({
         icon={<LockIcon />}
         id="register-confirm-password"
         label="Confirm password"
-        maxLength={72}
+        maxLength={16}
         onChange={setValue('confirmPassword')}
         placeholder="**********"
         type="password"

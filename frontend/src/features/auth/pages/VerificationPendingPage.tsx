@@ -1,5 +1,6 @@
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
+import ResendVerificationForm from '@/features/auth/components/ResendVerificationForm';
 
 type VerificationPendingPageProps = {
   email?: string;
@@ -30,6 +31,7 @@ export default function VerificationPendingPage({
         ) : null}
         . Verify your email, then come back to log in.
       </div>
+      <ResendVerificationForm defaultEmail={email} />
       <GradientButton
         className="mt-[clamp(1.25rem,3.8dvh,2.25rem)] lg:mt-[36px]"
         onClick={onBackToLogin}

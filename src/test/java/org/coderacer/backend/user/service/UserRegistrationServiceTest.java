@@ -100,7 +100,7 @@ class UserRegistrationServiceTest {
   void register_rejectsValuesAboveConfiguredLengthLimits() {
     String longEmail = "a".repeat(110) + "@example.com";
     String longUsername = "u".repeat(21);
-    String longPassword = "P".repeat(73);
+    String longPassword = "P".repeat(17);
     UserRegistrationRequest request =
         new UserRegistrationRequest(longEmail, longUsername, longPassword, longPassword);
 
@@ -108,6 +108,17 @@ class UserRegistrationServiceTest {
         .isInstanceOfSatisfying(
             ValidationException.class,
             ex -> assertThat(ex.getMessage()).contains("email", "username", "password"));
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void register_rejectsPasswordBelowConfiguredMinimumLength() {
+    UserRegistrationRequest request =
+        new UserRegistrationRequest("player@example.com", "speed_racer", "Short1", "Short1");
+
+    assertThatThrownBy(() -> service.register(request))
+        .isInstanceOfSatisfying(
+            ValidationException.class, ex -> assertThat(ex.getMessage()).contains("password"));
     verify(repository, never()).saveAndFlush(any());
   }
 

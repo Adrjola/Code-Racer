@@ -30,6 +30,10 @@ export type RegistrationValues = {
   username: string;
 };
 
+export type ResendVerificationValues = {
+  email: string;
+};
+
 type BaseResponse<T> = {
   data: T;
 };
@@ -39,6 +43,10 @@ type LoginResponse = {
   expiresInSeconds: number;
   tokenType: string;
   user: CurrentUser;
+};
+
+type EmailVerificationResendResponse = {
+  message: string;
 };
 
 type ApiErrorBody = {
@@ -114,8 +122,25 @@ export async function confirmEmail(token: string): Promise<CurrentUser> {
   return response.data;
 }
 
+export async function resendVerificationEmail(
+  values: ResendVerificationValues,
+): Promise<string> {
+  const response = await apiRequest<
+    BaseResponse<EmailVerificationResendResponse>
+  >('/api/auth/email-verification/resend', {
+    body: JSON.stringify({ email: values.email }),
+    method: 'POST',
+  });
+
+  return response.data.message;
+}
+
 export function clearSession() {
   window.sessionStorage.removeItem(SESSION_KEY);
+}
+
+export function isSessionExpired(session: AuthSession): boolean {
+  return session.expiresAt <= Date.now();
 }
 
 export function loadSession(): AuthSession | null {
@@ -126,11 +151,7 @@ export function loadSession(): AuthSession | null {
 
   try {
     const session = JSON.parse(raw) as AuthSession;
-    if (
-      !session.accessToken ||
-      !session.user ||
-      session.expiresAt <= Date.now()
-    ) {
+    if (!session.accessToken || !session.user || isSessionExpired(session)) {
       clearSession();
       return null;
     }

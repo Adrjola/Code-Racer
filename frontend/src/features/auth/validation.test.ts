@@ -27,4 +27,30 @@ describe('auth validation', () => {
       confirmPassword: 'Passwords do not match',
     });
   });
+
+  it('matches the backend password and username rules', () => {
+    expect(
+      validateRegistration({
+        confirmPassword: 'short',
+        email: 'racer@example.com',
+        password: 'short',
+        username: 'Speed_Racer',
+      }),
+    ).toMatchObject({
+      password: 'Password must be between 8 and 16 characters',
+      username:
+        'Username must be 3 to 20 characters and use lowercase letters, numbers, underscores, or hyphens',
+    });
+
+    expect(
+      validateRegistration({
+        confirmPassword: 'LongPassword12345',
+        email: 'racer@example.com',
+        password: 'LongPassword12345',
+        username: 'speed_racer',
+      }),
+    ).toMatchObject({
+      password: 'Password must be between 8 and 16 characters',
+    });
+  });
 });

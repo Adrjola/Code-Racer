@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   clearSession,
+  isSessionExpired,
   loadSession,
   loginUser,
   registerUser,
@@ -10,6 +11,7 @@ import {
 } from '@/features/auth/auth';
 import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage';
 import LoginPage from '@/features/auth/pages/LoginPage';
+import NotFoundPage from '@/features/auth/pages/NotFoundPage';
 import RegisterPage from '@/features/auth/pages/RegisterPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
@@ -20,6 +22,7 @@ type Route =
   | 'dashboard'
   | 'forgot'
   | 'login'
+  | 'notFound'
   | 'pending'
   | 'register'
   | 'verify';
@@ -36,9 +39,12 @@ type RouteResult = Pick<AppState, 'dashboardNotice' | 'loginNotice' | 'route'>;
 
 const LOGIN_REQUIRED_MESSAGE = 'Please log in to continue.';
 const ADMIN_REQUIRED_MESSAGE = 'Admin access requires an admin account.';
+const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please log in again.';
 
 function routeFromPath(pathname: string): Route {
   switch (pathname) {
+    case '/':
+      return 'register';
     case '/admin':
       return 'admin';
     case '/dashboard':
@@ -47,12 +53,14 @@ function routeFromPath(pathname: string): Route {
       return 'forgot';
     case '/login':
       return 'login';
+    case '/not-found':
+      return 'notFound';
     case '/verify-email-pending':
       return 'pending';
     case '/verify-email':
       return 'verify';
     default:
-      return 'register';
+      return 'notFound';
   }
 }
 
@@ -66,6 +74,8 @@ function pathFromRoute(route: Route): string {
       return '/forgot-password';
     case 'login':
       return '/login';
+    case 'notFound':
+      return '/not-found';
     case 'pending':
       return '/verify-email-pending';
     case 'register':
@@ -137,12 +147,19 @@ export default function App() {
       replace = false,
       notices: Pick<AppState, 'dashboardNotice' | 'loginNotice'> = {},
     ) => {
-      const routeResult = resolveRoute(requestedRoute, nextSession);
+      const activeSession =
+        nextSession && isSessionExpired(nextSession) ? null : nextSession;
+      if (nextSession && !activeSession) {
+        clearSession();
+      }
+
+      const routeResult = resolveRoute(requestedRoute, activeSession);
       const nextRoute = routeResult.route;
       const nextPath = pathFromRoute(nextRoute);
+      const shouldReplace = replace || nextRoute !== requestedRoute;
 
       if (window.location.pathname !== nextPath) {
-        if (replace) {
+        if (shouldReplace) {
           window.history.replaceState(null, '', nextPath);
         } else {
           window.history.pushState(null, '', nextPath);
@@ -154,7 +171,7 @@ export default function App() {
         dashboardNotice: notices.dashboardNotice ?? routeResult.dashboardNotice,
         loginNotice: notices.loginNotice ?? routeResult.loginNotice,
         route: nextRoute,
-        session: nextSession,
+        session: activeSession,
       }));
     },
     [],
@@ -166,6 +183,24 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, [commitRoute, session]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(
+      () => {
+        clearSession();
+        commitRoute('login', null, true, {
+          loginNotice: SESSION_EXPIRED_MESSAGE,
+        });
+      },
+      Math.max(0, session.expiresAt - Date.now()),
+    );
+
+    return () => window.clearTimeout(timeoutId);
   }, [commitRoute, session]);
 
   const navigate = (nextRoute: Route) => {
@@ -194,7 +229,7 @@ export default function App() {
     commitRoute('login', null, false, { loginNotice: notice });
   };
 
-  if (session && route === 'admin') {
+  if (session && (route === 'admin' || route === 'dashboard')) {
     return (
       <DashboardPage
         notice={dashboardNotice}
@@ -202,20 +237,7 @@ export default function App() {
         onGoDashboard={() => navigate('dashboard')}
         onLogout={handleLogout}
         session={session}
-        view="admin"
-      />
-    );
-  }
-
-  if (session && route === 'dashboard') {
-    return (
-      <DashboardPage
-        notice={dashboardNotice}
-        onGoAdmin={() => navigate('admin')}
-        onGoDashboard={() => navigate('dashboard')}
-        onLogout={handleLogout}
-        session={session}
-        view="dashboard"
+        view={route === 'admin' ? 'admin' : 'dashboard'}
       />
     );
   }
@@ -249,6 +271,16 @@ export default function App() {
       <VerifyEmailPage
         onBackToLogin={handleVerificationComplete}
         token={new URLSearchParams(window.location.search).get('token')}
+      />
+    );
+  }
+
+  if (route === 'notFound') {
+    return (
+      <NotFoundPage
+        onGoHome={() =>
+          navigate(session ? defaultAuthenticatedRoute(session) : 'register')
+        }
       />
     );
   }

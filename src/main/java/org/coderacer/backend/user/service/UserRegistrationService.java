@@ -23,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserRegistrationService {
 
-  static final int MIN_PASSWORD_LENGTH = 12;
-  static final int MAX_PASSWORD_LENGTH = 72;
+  static final int MIN_PASSWORD_LENGTH = 8;
+  static final int MAX_PASSWORD_LENGTH = 16;
 
   private static final Pattern EMAIL_PATTERN =
       Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);

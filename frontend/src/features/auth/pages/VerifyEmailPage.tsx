@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
 import { confirmEmail, readableAuthError } from '@/features/auth/auth';
+import ResendVerificationForm from '@/features/auth/components/ResendVerificationForm';
 
 type VerifyEmailPageProps = {
   onBackToLogin: (notice?: string) => void;
@@ -77,6 +78,7 @@ export default function VerifyEmailPage({
         )}
         {state.status === 'error' && state.message}
       </div>
+      {state.status === 'error' && <ResendVerificationForm />}
       <GradientButton
         className="mt-[clamp(1.25rem,3.8dvh,2.25rem)] lg:mt-[36px]"
         onClick={() =>
