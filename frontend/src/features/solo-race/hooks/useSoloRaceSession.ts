@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RaceSnippet } from '../types/race.types';
 import { soloRaceApi } from '../api/soloRaceApi';
 import { createSoloRaceTransport } from '../api/soloRaceTransport';
@@ -28,10 +28,10 @@ export function useSoloRaceSession() {
     type: snippet.difficulty,
   });
 
-  const loadPreviewSnippet = async () => {
+  const loadPreviewSnippet = useCallback(async () => {
     const snippet = await soloRaceApi.getRandomSnippet();
     return mapSnippet(snippet);
-  };
+  }, []);
 
   const loadSnippetForRace = async (currentSnippetId?: string) => {
     let latestSnippet = await soloRaceApi.getRandomSnippet();
@@ -51,7 +51,7 @@ export function useSoloRaceSession() {
     return latestSnippet;
   };
 
-  const startNewRace = async () => {
+  const startNewRace = useCallback(async () => {
     const actionId = ++actionIdRef.current;
     setIsLoading(true);
     setError(null);
@@ -72,12 +72,13 @@ export function useSoloRaceSession() {
       if (actionId !== actionIdRef.current) return;
       setError('failed_to_start_solo_race');
     } finally {
-      if (actionId !== actionIdRef.current) return;
-      setIsLoading(false);
+      if (actionId === actionIdRef.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [preview?.snippet.id, session?.snippet.id]);
 
-  const resetToMenuState = async () => {
+  const resetToMenuState = useCallback(async () => {
     const actionId = ++actionIdRef.current;
     setSession(null);
     setIsLoading(true);
@@ -90,10 +91,11 @@ export function useSoloRaceSession() {
       if (actionId !== actionIdRef.current) return;
       setError('failed_to_start_solo_race');
     } finally {
-      if (actionId !== actionIdRef.current) return;
-      setIsLoading(false);
+      if (actionId === actionIdRef.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [loadPreviewSnippet]);
 
   useEffect(() => {
     let active = true;
@@ -115,8 +117,9 @@ export function useSoloRaceSession() {
         setPreview(null);
         setError('failed_to_start_solo_race');
       } finally {
-        if (!active || actionId !== actionIdRef.current) return;
-        setIsLoading(false);
+        if (active && actionId === actionIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -125,7 +128,7 @@ export function useSoloRaceSession() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadPreviewSnippet]);
 
   return useMemo(
     () => ({
@@ -136,6 +139,6 @@ export function useSoloRaceSession() {
       startNewRace,
       resetToMenuState,
     }),
-    [error, isLoading, preview, session],
+    [error, isLoading, preview, session, startNewRace, resetToMenuState],
   );
 }
