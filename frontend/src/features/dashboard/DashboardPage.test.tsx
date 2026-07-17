@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { AuthSession, CurrentUser } from '@/features/auth/auth';
+import type { AuthSession, CurrentUser } from '@/features/auth/session';
 import DashboardPage from './DashboardPage';
 
 function userResponse(overrides: Partial<CurrentUser> = {}): CurrentUser {

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import Logo from '@/components/Logo';
 import { ChevronRightIcon, PeopleIcon, PersonIcon } from '@/components/icons';
-import type { AuthSession } from '@/features/auth/auth';
+import AdminCatalogPage from '@/features/admin/pages/AdminCatalogPage';
+import type { AuthSession } from '@/features/auth/session';
 
 type DashboardPageProps = {
   notice?: string;
@@ -153,15 +154,15 @@ export default function DashboardPage({
           </p>
         )}
         {view === 'admin' ? (
-          <section>
-            <p className="text-sm font-semibold uppercase text-pink-300">
-              Admin
-            </p>
-            <h1 className="mt-2 text-3xl font-extrabold">Admin console</h1>
-            <p className="mt-3 max-w-2xl text-text-secondary">
-              Manage Code Racer content and moderation tools from here.
-            </p>
-          </section>
+          <>
+            <section>
+              <p className="text-sm font-semibold uppercase text-pink-300">
+                Admin
+              </p>
+              <h1 className="mt-2 text-3xl font-extrabold">Admin console</h1>
+            </section>
+            <AdminCatalogPage />
+          </>
         ) : (
           <section>
             <p className="text-sm font-semibold uppercase text-pink-300">

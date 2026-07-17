@@ -1,4 +1,4 @@
-import { apiRequest, ApiRequestError } from '@/features/auth/auth';
+import { apiRequest, ApiRequestError } from '@/lib/apiClient';
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
@@ -82,7 +82,7 @@ export async function fetchRandomSnippet(
 
   const response = await apiRequest<BaseResponse<SnippetPreview>>(
     `/api/snippets/random${queryString ? `?${queryString}` : ''}`,
-    { authenticated: true },
+    { auth: true },
   );
   return response.data;
 }
@@ -93,7 +93,7 @@ export async function startSoloAttempt(
   const response = await apiRequest<BaseResponse<StartSoloAttemptResponse>>(
     '/api/solo-attempts',
     {
-      authenticated: true,
+      auth: true,
       body: JSON.stringify({ codeSnippetId }),
       method: 'POST',
     },
@@ -106,7 +106,10 @@ function hasCode(error: unknown, code: string): boolean {
 }
 
 export function isSessionExpiredError(error: unknown): boolean {
-  return hasCode(error, 'AUTHENTICATION_REQUIRED');
+  return (
+    hasCode(error, 'AUTHENTICATION_REQUIRED') ||
+    hasCode(error, 'SESSION_EXPIRED')
+  );
 }
 
 export function isNoEligibleSnippetError(error: unknown): boolean {
@@ -130,6 +133,7 @@ export function readableSoloError(error: unknown): string {
     case 'ONE_ACTIVE_ATTEMPT_ALLOWED':
       return 'You already have an attempt in progress. Finish or abandon it before starting a new one.';
     case 'AUTHENTICATION_REQUIRED':
+    case 'SESSION_EXPIRED':
       return 'Your session has expired. Log in again to continue.';
     default:
       return error.message || 'Something went wrong. Please try again.';

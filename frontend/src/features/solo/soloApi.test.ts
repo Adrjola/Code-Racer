@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { saveSession, ApiRequestError } from '@/features/auth/auth';
-import type { AuthSession } from '@/features/auth/auth';
+import { saveSession, type AuthSession } from '@/features/auth/session';
+import { ApiRequestError } from '@/lib/apiClient';
 import { server } from '@/test/server';
 import {
   fetchCategories,

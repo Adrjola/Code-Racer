@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { saveSession, type AuthSession } from '@/features/auth/auth';
+import { saveSession, type AuthSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 import type { SnippetPreview } from './soloApi';
 import { useSoloSetup } from './useSoloSetup';

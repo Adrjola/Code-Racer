@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { saveSession, type AuthSession } from '@/features/auth/auth';
+import { saveSession, type AuthSession } from '@/features/auth/session';
 import type { Category } from '@/features/solo/soloApi';
 import { server } from '@/test/server';
 import SoloSetupPage from './SoloSetupPage';
