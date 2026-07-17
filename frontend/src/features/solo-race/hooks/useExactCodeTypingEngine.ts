@@ -82,7 +82,7 @@ export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string
         }, DEBOUNCE_MS);
       }
     }
-  }, [state.isExpired, state.isFinished, transport]);
+  }, [state, transport]);
 
   const requestCompletion = useCallback(async () => {
     /* v8 ignore next */
@@ -98,7 +98,7 @@ export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string
     } catch {
       dispatch({ type: 'TRANSPORT_FAILURE', reason: 'completion_send_failed' });
     }
-  }, [state.ackedVersion, state.completionRequested, state.isExpired, state.isFinished, transport]);
+  }, [state, transport]);
 
   useEffect(() => {
     const targetLength = Array.from(state.targetCode).length;
