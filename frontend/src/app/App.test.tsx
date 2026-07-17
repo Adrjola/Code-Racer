@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import {
@@ -174,6 +175,30 @@ describe('App', () => {
       screen.getByRole('heading', { name: /welcome back/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/email verified/i);
+  });
+
+  it('confirms email verification links once when StrictMode re-runs effects', async () => {
+    let confirmRequests = 0;
+    window.history.replaceState(null, '', '/verify-email?token=strict-token');
+    server.use(
+      http.post(`${API_URL}/api/auth/email-verification/confirm`, () => {
+        confirmRequests += 1;
+        return HttpResponse.json({
+          data: userResponse({ emailVerified: true }),
+        });
+      }),
+    );
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: /email verified/i }),
+    ).toBeInTheDocument();
+    expect(confirmRequests).toBe(1);
   });
 
   it('shows a safe message for invalid verification links', async () => {

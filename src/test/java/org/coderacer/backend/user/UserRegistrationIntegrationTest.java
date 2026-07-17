@@ -40,7 +40,8 @@ class UserRegistrationIntegrationTest {
             " Player@Example.COM ", " Speed_Racer ", "StrongerPass123", "StrongerPass123"));
 
     User savedUser = repository.findByEmail("player@example.com").orElseThrow();
-    assertThat(savedUser.getUsername()).isEqualTo("speed_racer");
+    assertThat(savedUser.getUsername()).isEqualTo("Speed_Racer");
+    assertThat(savedUser.getUsernameNormalized()).isEqualTo("speed_racer");
     assertThat(savedUser.getRole()).isEqualTo(UserRole.USER);
     assertThat(savedUser.isEmailVerified()).isFalse();
     assertThat(savedUser.isEnabled()).isTrue();
@@ -95,7 +96,7 @@ class UserRegistrationIntegrationTest {
   void databaseUniqueConstraintsRejectDuplicateNormalizedIdentifiers() {
     repository.saveAndFlush(user("player@example.com", "speed_racer"));
 
-    assertThatThrownBy(() -> repository.saveAndFlush(user("player@example.com", "another_racer")))
+    assertThatThrownBy(() -> repository.saveAndFlush(user("another@example.com", "Speed_Racer")))
         .isInstanceOf(DataIntegrityViolationException.class);
   }
 
@@ -115,7 +116,8 @@ class UserRegistrationIntegrationTest {
     assertThat(admins).hasSize(1);
     User admin = admins.getFirst();
     assertThat(admin.getEmail()).isEqualTo("admin@example.com");
-    assertThat(admin.getUsername()).isEqualTo("root_admin");
+    assertThat(admin.getUsername()).isEqualTo("Root_Admin");
+    assertThat(admin.getUsernameNormalized()).isEqualTo("root_admin");
     assertThat(admin.isEmailVerified()).isTrue();
     assertThat(passwordEncoder.matches("StrongerPass123", admin.getPasswordHash())).isTrue();
   }

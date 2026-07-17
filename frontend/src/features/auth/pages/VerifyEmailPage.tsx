@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
+import type { CurrentUser } from '@/features/auth/auth';
 import { confirmEmail, readableAuthError } from '@/features/auth/auth';
 import ResendVerificationForm from '@/features/auth/components/ResendVerificationForm';
 
@@ -13,6 +14,21 @@ type VerificationState =
   | { message: string; status: 'error' }
   | { email: string; status: 'success' }
   | { status: 'verifying' };
+
+const pendingConfirmations = new Map<string, Promise<CurrentUser>>();
+
+function confirmEmailOnce(token: string): Promise<CurrentUser> {
+  const existingConfirmation = pendingConfirmations.get(token);
+  if (existingConfirmation) {
+    return existingConfirmation;
+  }
+
+  const confirmation = confirmEmail(token).finally(() => {
+    pendingConfirmations.delete(token);
+  });
+  pendingConfirmations.set(token, confirmation);
+  return confirmation;
+}
 
 export default function VerifyEmailPage({
   onBackToLogin,
@@ -33,7 +49,7 @@ export default function VerifyEmailPage({
     }
 
     let isMounted = true;
-    confirmEmail(token)
+    confirmEmailOnce(token)
       .then((user) => {
         if (isMounted) {
           setState({ email: user.email, status: 'success' });

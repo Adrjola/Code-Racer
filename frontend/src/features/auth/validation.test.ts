@@ -34,13 +34,22 @@ describe('auth validation', () => {
         confirmPassword: 'short',
         email: 'racer@example.com',
         password: 'short',
-        username: 'Speed_Racer',
+        username: 'bad space',
       }),
     ).toMatchObject({
       password: 'Password must be between 8 and 16 characters',
       username:
-        'Username must be 3 to 20 characters and use lowercase letters, numbers, underscores, or hyphens',
+        'Username must be 3 to 20 characters and use letters, numbers, underscores, or hyphens',
     });
+
+    expect(
+      validateRegistration({
+        confirmPassword: 'ValidPass1',
+        email: 'racer@example.com',
+        password: 'ValidPass1',
+        username: 'Speed_Racer',
+      }).username,
+    ).toBeUndefined();
 
     expect(
       validateRegistration({
