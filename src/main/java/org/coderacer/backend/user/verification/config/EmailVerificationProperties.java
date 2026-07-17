@@ -15,7 +15,7 @@ public record EmailVerificationProperties(
       tokenTtl = Duration.ofHours(24);
     }
     if (resendCooldown == null) {
-      resendCooldown = Duration.ofMinutes(2);
+      resendCooldown = Duration.ZERO;
     }
     if (tokenTtl.isZero() || tokenTtl.isNegative()) {
       throw new IllegalArgumentException("Email verification token TTL must be positive");
