@@ -8,7 +8,7 @@ import {
   saveSession,
   type AuthSession,
   type CurrentUser,
-} from '@/features/auth/auth';
+} from '@/features/auth/session';
 import { server } from '@/test/server';
 
 const API_URL = 'http://localhost:8080';
@@ -452,6 +452,16 @@ describe('App', () => {
 
   it('restores valid admin sessions and allows admin navigation', async () => {
     const user = userEvent.setup();
+    server.use(
+      http.get(`${API_URL}/api/admin/categories`, () =>
+        HttpResponse.json({
+          data: {
+            content: [],
+            page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
+          },
+        }),
+      ),
+    );
     saveSession(
       session({
         user: userResponse({ role: 'ADMIN', username: 'admin' }),
@@ -467,6 +477,9 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /^admin$/i }));
     expect(
       await screen.findByRole('heading', { name: /admin console/i }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /^categories$/i }),
     ).toBeInTheDocument();
   });
 
