@@ -8,7 +8,11 @@ interface SoloRaceHeaderProps {
   children?: ReactNode;
 }
 
-export function SoloRaceHeader({ onRestart, onLobby, children }: SoloRaceHeaderProps) {
+export function SoloRaceHeader({
+  onRestart,
+  onLobby,
+  children,
+}: SoloRaceHeaderProps) {
   return (
     <header className="flex items-center justify-between px-10 pt-6 lg:px-[38px]">
       <SoloRaceBrand />

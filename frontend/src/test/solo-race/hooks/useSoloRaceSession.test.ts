@@ -16,7 +16,9 @@ describe('useSoloRaceSession', () => {
   });
 
   it('loads only preview snippet on mount and does not auto-start attempt', async () => {
-    (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (
+      soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
       id: 'snippet-preview',
       source: 'const preview = true;',
       difficulty: 'easy',
@@ -35,9 +37,19 @@ describe('useSoloRaceSession', () => {
 
   it('starts a new race by fetching random snippet and starting attempt', async () => {
     (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ id: 'preview', source: 'preview', difficulty: 'easy' })
-      .mockResolvedValueOnce({ id: 'snippet-race', source: 'const race = 1;', difficulty: 'medium' });
-    (soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      .mockResolvedValueOnce({
+        id: 'preview',
+        source: 'preview',
+        difficulty: 'easy',
+      })
+      .mockResolvedValueOnce({
+        id: 'snippet-race',
+        source: 'const race = 1;',
+        difficulty: 'medium',
+      });
+    (
+      soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
       attemptId: 'attempt-1',
       codeSnippetId: 'snippet-race',
       difficulty: 'medium',
@@ -61,10 +73,24 @@ describe('useSoloRaceSession', () => {
 
   it('retries snippet fetch on restart when random API returns the same snippet id', async () => {
     (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ id: 'preview-1', source: 'const preview = 1;', difficulty: 'easy' })
-      .mockResolvedValueOnce({ id: 'preview-1', source: 'const preview = 1;', difficulty: 'easy' })
-      .mockResolvedValueOnce({ id: 'snippet-race-2', source: 'const race = 2;', difficulty: 'medium' });
-    (soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      .mockResolvedValueOnce({
+        id: 'preview-1',
+        source: 'const preview = 1;',
+        difficulty: 'easy',
+      })
+      .mockResolvedValueOnce({
+        id: 'preview-1',
+        source: 'const preview = 1;',
+        difficulty: 'easy',
+      })
+      .mockResolvedValueOnce({
+        id: 'snippet-race-2',
+        source: 'const race = 2;',
+        difficulty: 'medium',
+      });
+    (
+      soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
       attemptId: 'attempt-2',
       codeSnippetId: 'snippet-race-2',
       difficulty: 'medium',
@@ -89,8 +115,14 @@ describe('useSoloRaceSession', () => {
   it('clears prior snippet-load error when a race starts successfully', async () => {
     (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
       .mockRejectedValueOnce(new Error('request_failed'))
-      .mockResolvedValueOnce({ id: 'snippet-race', source: 'const race = 1;', difficulty: 'medium' });
-    (soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      .mockResolvedValueOnce({
+        id: 'snippet-race',
+        source: 'const race = 1;',
+        difficulty: 'medium',
+      });
+    (
+      soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
       attemptId: 'attempt-1',
       codeSnippetId: 'snippet-race',
       difficulty: 'medium',
@@ -114,10 +146,24 @@ describe('useSoloRaceSession', () => {
 
   it('resets to menu state without starting an attempt', async () => {
     (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ id: 'preview', source: 'preview', difficulty: 'easy' })
-      .mockResolvedValueOnce({ id: 'snippet-race', source: 'const race = 1;', difficulty: 'medium' })
-      .mockResolvedValueOnce({ id: 'preview-2', source: 'const menu = 1;', difficulty: 'easy' });
-    (soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      .mockResolvedValueOnce({
+        id: 'preview',
+        source: 'preview',
+        difficulty: 'easy',
+      })
+      .mockResolvedValueOnce({
+        id: 'snippet-race',
+        source: 'const race = 1;',
+        difficulty: 'medium',
+      })
+      .mockResolvedValueOnce({
+        id: 'preview-2',
+        source: 'const menu = 1;',
+        difficulty: 'easy',
+      });
+    (
+      soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
       attemptId: 'attempt-1',
       codeSnippetId: 'snippet-race',
       difficulty: 'medium',

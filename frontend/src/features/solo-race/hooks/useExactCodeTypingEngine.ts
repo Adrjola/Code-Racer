@@ -1,7 +1,11 @@
 import { useReducer, useEffect, useCallback, useRef } from 'react';
 import { raceReducer, initialState } from '../reducer/race.reducer';
 import type { RaceState } from '../types/race.types';
-import type { ProgressEvent, RaceSnippet, ExactCodeTypingEngineTransport } from '../types/race.types';
+import type {
+  ProgressEvent,
+  RaceSnippet,
+  ExactCodeTypingEngineTransport,
+} from '../types/race.types';
 
 const MAX_BATCH_SIZE = 8;
 const DEBOUNCE_MS = 300;
@@ -29,11 +33,17 @@ export function shouldSkipFlush(
   return !mounted || inflight || queueLength === 0 || isExpired || isFinished;
 }
 
-export function shouldSkipCompletionRequest(state: Pick<RaceState, 'completionRequested' | 'isFinished' | 'isExpired'>) {
+export function shouldSkipCompletionRequest(
+  state: Pick<RaceState, 'completionRequested' | 'isFinished' | 'isExpired'>,
+) {
   return state.completionRequested || state.isFinished || state.isExpired;
 }
 
-export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string, transport: ExactCodeTypingEngineTransport = defaultTransport) {
+export function useExactCodeTypingEngine(
+  snippet: RaceSnippet,
+  startedAt: string,
+  transport: ExactCodeTypingEngineTransport = defaultTransport,
+) {
   const [state, dispatch] = useReducer(raceReducer, initialState);
   const queueRef = useRef<ProgressEvent[]>([]);
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,7 +68,15 @@ export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string
   }, [snippet, startedAt]);
 
   const flushQueue = useCallback(async () => {
-    if (shouldSkipFlush(mountedRef.current, inflightRef.current, queueRef.current.length, state.isExpired, state.isFinished)) {
+    if (
+      shouldSkipFlush(
+        mountedRef.current,
+        inflightRef.current,
+        queueRef.current.length,
+        state.isExpired,
+        state.isFinished,
+      )
+    ) {
       return;
     }
 
@@ -68,14 +86,23 @@ export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string
 
     try {
       const ack = await transport.sendProgressBatch({ events: batch });
-      dispatch({ type: 'ACKNOWLEDGE', version: ack.version, serverOffset: ack.serverOffset });
+      dispatch({
+        type: 'ACKNOWLEDGE',
+        version: ack.version,
+        serverOffset: ack.serverOffset,
+      });
       dispatch({ type: 'TRANSPORT_ONLINE' });
     } catch {
       queueRef.current = [...batch, ...queueRef.current];
       dispatch({ type: 'TRANSPORT_FAILURE', reason: 'progress_send_failed' });
     } finally {
       inflightRef.current = false;
-      if (mountedRef.current && queueRef.current.length > 0 && !state.isExpired && !state.isFinished) {
+      if (
+        mountedRef.current &&
+        queueRef.current.length > 0 &&
+        !state.isExpired &&
+        !state.isFinished
+      ) {
         /* v8 ignore next 3 */
         flushTimeoutRef.current = setTimeout(() => {
           void flushQueue();
@@ -98,7 +125,13 @@ export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string
     } catch {
       dispatch({ type: 'TRANSPORT_FAILURE', reason: 'completion_send_failed' });
     }
-  }, [state.ackedVersion, state.completionRequested, state.isExpired, state.isFinished, transport]);
+  }, [
+    state.ackedVersion,
+    state.completionRequested,
+    state.isExpired,
+    state.isFinished,
+    transport,
+  ]);
 
   useEffect(() => {
     const targetLength = Array.from(state.targetCode).length;
@@ -111,29 +144,40 @@ export function useExactCodeTypingEngine(snippet: RaceSnippet, startedAt: string
     ) {
       void requestCompletion();
     }
-  }, [requestCompletion, state.completionRequested, state.isExpired, state.isFinished, state.serverOffset, state.targetCode]);
+  }, [
+    requestCompletion,
+    state.completionRequested,
+    state.isExpired,
+    state.isFinished,
+    state.serverOffset,
+    state.targetCode,
+  ]);
 
-  const handleInput = useCallback((char: string) => {
-    if (state.isExpired || state.isFinished) return;
+  const handleInput = useCallback(
+    (char: string) => {
+      if (state.isExpired || state.isFinished) return;
 
-    /* v8 ignore next */
-    const remainingCode = state.targetCode.slice(state.acceptedPrefix.length);
-    const nextChar = Array.from(remainingCode)[0];
-    const willAdvance = char === nextChar && !state.hasError && state.currentInput.length === 0;
-
-    dispatch({ type: 'INPUT', char });
-
-    if (willAdvance) {
-      const version = state.pendingVersion + 1;
-      queueRef.current.push({ value: char, version });
-
-      if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
       /* v8 ignore next */
-      flushTimeoutRef.current = setTimeout(() => {
-        void flushQueue();
-      }, DEBOUNCE_MS);
-    }
-  }, [flushQueue, state]);
+      const remainingCode = state.targetCode.slice(state.acceptedPrefix.length);
+      const nextChar = Array.from(remainingCode)[0];
+      const willAdvance =
+        char === nextChar && !state.hasError && state.currentInput.length === 0;
+
+      dispatch({ type: 'INPUT', char });
+
+      if (willAdvance) {
+        const version = state.pendingVersion + 1;
+        queueRef.current.push({ value: char, version });
+
+        if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+        /* v8 ignore next */
+        flushTimeoutRef.current = setTimeout(() => {
+          void flushQueue();
+        }, DEBOUNCE_MS);
+      }
+    },
+    [flushQueue, state],
+  );
 
   const handleDelete = useCallback(() => {
     dispatch({ type: 'DELETE' });

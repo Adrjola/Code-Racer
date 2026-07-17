@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { SoloRace, processBeforeInputData } from '../../../features/solo-race/components/SoloRace';
+import { SoloRace } from '../../../features/solo-race/components/SoloRace';
+import { processBeforeInputData } from '../../../features/solo-race/utils/processBeforeInputData';
 import { useExactCodeTypingEngine } from '../../../features/solo-race/hooks/useExactCodeTypingEngine';
 import { useCountdown } from '../../../features/solo-race/hooks/useCountdown';
 import { soloRaceApi } from '../../../features/solo-race/api/soloRaceApi';
@@ -11,13 +12,13 @@ vi.mock('../../../features/solo-race/hooks/useExactCodeTypingEngine', () => ({
 }));
 
 vi.mock('../../../features/solo-race/hooks/useCountdown', () => ({
-  useCountdown: vi.fn(() => null)
+  useCountdown: vi.fn(() => null),
 }));
 
 vi.mock('../../../features/solo-race/api/soloRaceApi', async () => {
-  const actual = await vi.importActual<typeof import('../../../features/solo-race/api/soloRaceApi')>(
-    '../../../features/solo-race/api/soloRaceApi',
-  );
+  const actual = await vi.importActual<
+    typeof import('../../../features/solo-race/api/soloRaceApi')
+  >('../../../features/solo-race/api/soloRaceApi');
   return {
     ...actual,
     soloRaceApi: {
@@ -26,6 +27,16 @@ vi.mock('../../../features/solo-race/api/soloRaceApi', async () => {
     },
   };
 });
+
+type TypingEngine = ReturnType<typeof useExactCodeTypingEngine>;
+
+const mockCountdown = vi.mocked(useCountdown);
+const mockGetWorldBest = vi.mocked(soloRaceApi.getWorldBest);
+
+// The tests only need part of the engine's surface, so the partial state is cast
+// once here instead of at every call site.
+const mockEngine = (value: unknown) =>
+  vi.mocked(useExactCodeTypingEngine).mockReturnValue(value as TypingEngine);
 
 describe('SoloRace Component', () => {
   const mockSnippet = { id: '1', code: 'const x = 1;', type: 'javascript' };
@@ -38,15 +49,15 @@ describe('SoloRace Component', () => {
       currentInput: '',
       isFinished: false,
       hasError: false,
-      snippet: { type: 'javascript' }
+      snippet: { type: 'javascript' },
     },
     handleInput: vi.fn(),
     handleDelete: vi.fn(),
   };
 
   beforeEach(() => {
-    (useCountdown as any).mockReturnValue(null);
-    (soloRaceApi.getWorldBest as any).mockRejectedValue(new Error('request_failed_404'));
+    mockCountdown.mockReturnValue(null);
+    mockGetWorldBest.mockRejectedValue(new Error('request_failed_404'));
   });
 
   const finishStartCountdown = () => {
@@ -62,7 +73,7 @@ describe('SoloRace Component', () => {
   };
 
   it('renders solo race stats row', () => {
-    (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     expect(screen.getByLabelText('typing progress')).toBeDefined();
@@ -72,8 +83,14 @@ describe('SoloRace Component', () => {
   it('calls handleDelete on Backspace', () => {
     vi.useFakeTimers();
     const mockHandleDelete = vi.fn();
-    (useExactCodeTypingEngine as any).mockReturnValue({
-      state: { targetCode: 'abc', acceptedPrefix: '', currentInput: 'x', isFinished: false, snippet: { type: 'js' } },
+    mockEngine({
+      state: {
+        targetCode: 'abc',
+        acceptedPrefix: '',
+        currentInput: 'x',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
       handleInput: vi.fn(),
       handleDelete: mockHandleDelete,
     });
@@ -82,7 +99,7 @@ describe('SoloRace Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
     finishStartCountdown();
     const textarea = screen.getByRole('textbox', { hidden: true });
-    
+
     fireEvent.keyDown(textarea, { key: 'Backspace' });
     expect(mockHandleDelete).toHaveBeenCalled();
     vi.useRealTimers();
@@ -91,8 +108,14 @@ describe('SoloRace Component', () => {
   it('handles Tab like IDE indentation input', () => {
     vi.useFakeTimers();
     const mockHandleInput = vi.fn();
-    (useExactCodeTypingEngine as any).mockReturnValue({
-      state: { targetCode: '\tabc', acceptedPrefix: '', currentInput: '', isFinished: false, snippet: { type: 'js' } },
+    mockEngine({
+      state: {
+        targetCode: '\tabc',
+        acceptedPrefix: '',
+        currentInput: '',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
       handleInput: mockHandleInput,
       handleDelete: vi.fn(),
     });
@@ -113,10 +136,16 @@ describe('SoloRace Component', () => {
 
   it('restarts race on Ctrl+Enter shortcut after race begins', () => {
     vi.useFakeTimers();
-    (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
     const onRestartRace = vi.fn();
 
-    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} onRestartRace={onRestartRace} />);
+    render(
+      <SoloRace
+        snippet={mockSnippet}
+        startedAt={startedAt}
+        onRestartRace={onRestartRace}
+      />,
+    );
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
@@ -132,10 +161,16 @@ describe('SoloRace Component', () => {
 
   it('terminates race and returns to pre-start menu on Escape after race begins', () => {
     vi.useFakeTimers();
-    (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
     const onLobbyNavigate = vi.fn();
 
-    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} onLobbyNavigate={onLobbyNavigate} />);
+    render(
+      <SoloRace
+        snippet={mockSnippet}
+        startedAt={startedAt}
+        onLobbyNavigate={onLobbyNavigate}
+      />,
+    );
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.keyDown(textarea, { key: 'Escape' });
@@ -155,8 +190,14 @@ describe('SoloRace Component', () => {
   it('does nothing on non-tab/non-backspace key press', () => {
     const mockHandleInput = vi.fn();
     const mockHandleDelete = vi.fn();
-    (useExactCodeTypingEngine as any).mockReturnValue({
-      state: { targetCode: 'abc', acceptedPrefix: '', currentInput: '', isFinished: false, snippet: { type: 'js' } },
+    mockEngine({
+      state: {
+        targetCode: 'abc',
+        acceptedPrefix: '',
+        currentInput: '',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
       handleInput: mockHandleInput,
       handleDelete: mockHandleDelete,
     });
@@ -171,10 +212,10 @@ describe('SoloRace Component', () => {
   });
 
   it('prevents paste and drop', () => {
-     (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     const textarea = screen.getByRole('textbox', { hidden: true });
-    
+
     const pasteEvent = fireEvent.paste(textarea);
     expect(pasteEvent).toBe(false); // preventDefault returns false in fireEvent if handled
 
@@ -183,9 +224,12 @@ describe('SoloRace Component', () => {
   });
 
   it('shows centered 3-second countdown and locks input before start', () => {
-    (useCountdown as any).mockReturnValue(3);
+    mockCountdown.mockReturnValue(3);
     const handleDelete = vi.fn();
-    (useExactCodeTypingEngine as any).mockReturnValue({ ...baseHookState, handleDelete });
+    mockEngine({
+      ...baseHookState,
+      handleDelete,
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
@@ -198,7 +242,7 @@ describe('SoloRace Component', () => {
 
   it('blurs code hint text before race start', () => {
     vi.useFakeTimers();
-    (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
 
@@ -214,7 +258,7 @@ describe('SoloRace Component', () => {
   });
 
   it('renders incorrect input segment when currentInput exists', () => {
-    (useExactCodeTypingEngine as any).mockReturnValue({
+    mockEngine({
       ...baseHookState,
       state: {
         ...baseHookState.state,
@@ -227,9 +271,11 @@ describe('SoloRace Component', () => {
   });
 
   it('shows 0:00 before start as fallback elapsed time', () => {
-    (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
 
-    render(<SoloRace snippet={mockSnippet} startedAt={'1970-01-01T00:00:00.000Z'} />);
+    render(
+      <SoloRace snippet={mockSnippet} startedAt={'1970-01-01T00:00:00.000Z'} />,
+    );
 
     expect(screen.getByText('0:00')).toBeDefined();
   });
@@ -237,8 +283,14 @@ describe('SoloRace Component', () => {
   it('keeps input locked until start race is pressed', () => {
     vi.useFakeTimers();
     const mockHandleDelete = vi.fn();
-    (useExactCodeTypingEngine as any).mockReturnValue({
-      state: { targetCode: 'abc', acceptedPrefix: '', currentInput: '', isFinished: false, snippet: { type: 'js' } },
+    mockEngine({
+      state: {
+        targetCode: 'abc',
+        acceptedPrefix: '',
+        currentInput: '',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
       handleInput: vi.fn(),
       handleDelete: mockHandleDelete,
     });
@@ -260,7 +312,7 @@ describe('SoloRace Component', () => {
   });
 
   it('hides world best menu once race starts', () => {
-    (useExactCodeTypingEngine as any).mockReturnValue(baseHookState);
+    mockEngine(baseHookState);
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     expect(screen.getByText('WORLD BEST')).toBeDefined();
@@ -272,7 +324,7 @@ describe('SoloRace Component', () => {
   });
 
   it('progress bar uses accepted code only, not current mistyped chars', () => {
-    (useExactCodeTypingEngine as any).mockReturnValue({
+    mockEngine({
       ...baseHookState,
       state: {
         ...baseHookState.state,
@@ -312,9 +364,12 @@ describe('SoloRace Component', () => {
   });
 
   it('ignores backspace while locked', () => {
-    (useCountdown as any).mockReturnValue(1);
+    mockCountdown.mockReturnValue(1);
     const handleDelete = vi.fn();
-    (useExactCodeTypingEngine as any).mockReturnValue({ ...baseHookState, handleDelete });
+    mockEngine({
+      ...baseHookState,
+      handleDelete,
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     const textarea = screen.getByRole('textbox', { hidden: true });
@@ -323,7 +378,7 @@ describe('SoloRace Component', () => {
   });
 
   it('does not render finished state label when race is complete', () => {
-    (useExactCodeTypingEngine as any).mockReturnValue({
+    mockEngine({
       ...baseHookState,
       state: {
         ...baseHookState.state,

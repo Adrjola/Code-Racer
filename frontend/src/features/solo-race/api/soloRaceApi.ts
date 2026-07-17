@@ -43,7 +43,8 @@ export interface SoloWorldBestResponse {
   timeHolderName: string | null;
 }
 
-export type SubmitProgressResponse = ProgressAckResponse | SoloAttemptResultResponse;
+export type SubmitProgressResponse =
+  ProgressAckResponse | SoloAttemptResultResponse;
 
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -59,7 +60,10 @@ function getAuthHeaders(): HeadersInit {
   }
 
   try {
-    const parsed = JSON.parse(raw) as { accessToken?: string; tokenType?: string };
+    const parsed = JSON.parse(raw) as {
+      accessToken?: string;
+      tokenType?: string;
+    };
     if (!parsed.accessToken) {
       return {};
     }
@@ -98,14 +102,21 @@ export const soloRaceApi = {
     });
   },
 
-  submitProgress(attemptId: string, sequence: number, characters: string): Promise<SubmitProgressResponse> {
-    return getData<SubmitProgressResponse>(`/api/solo-attempts/${attemptId}/progress`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+  submitProgress(
+    attemptId: string,
+    sequence: number,
+    characters: string,
+  ): Promise<SubmitProgressResponse> {
+    return getData<SubmitProgressResponse>(
+      `/api/solo-attempts/${attemptId}/progress`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sequence, characters }),
       },
-      body: JSON.stringify({ sequence, characters }),
-    });
+    );
   },
 
   abandonAttempt(attemptId: string): Promise<void> {

@@ -6,7 +6,10 @@ import {
   shouldSkipFlush,
   useExactCodeTypingEngine,
 } from '../../../features/solo-race/hooks/useExactCodeTypingEngine.ts';
-import type { RaceSnippet, ExactCodeTypingEngineTransport } from '../../../features/solo-race/types/race.types';
+import type {
+  RaceSnippet,
+  ExactCodeTypingEngineTransport,
+} from '../../../features/solo-race/types/race.types';
 
 const snippet: RaceSnippet = {
   id: 's1',
@@ -25,7 +28,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
 
     expect(ack).toEqual({ version: 2, serverOffset: 2 });
 
-    await expect(defaultTransport.submitCompletion({ version: 2 })).resolves.toBeUndefined();
+    await expect(
+      defaultTransport.submitCompletion({ version: 2 }),
+    ).resolves.toBeUndefined();
   });
 
   it('evaluates skip guards deterministically', () => {
@@ -36,10 +41,34 @@ describe('useExactCodeTypingEngine logic engine', () => {
     expect(shouldSkipFlush(true, false, 1, false, true)).toBe(true);
     expect(shouldSkipFlush(true, false, 1, false, false)).toBe(false);
 
-    expect(shouldSkipCompletionRequest({ completionRequested: true, isFinished: false, isExpired: false })).toBe(true);
-    expect(shouldSkipCompletionRequest({ completionRequested: false, isFinished: true, isExpired: false })).toBe(true);
-    expect(shouldSkipCompletionRequest({ completionRequested: false, isFinished: false, isExpired: true })).toBe(true);
-    expect(shouldSkipCompletionRequest({ completionRequested: false, isFinished: false, isExpired: false })).toBe(false);
+    expect(
+      shouldSkipCompletionRequest({
+        completionRequested: true,
+        isFinished: false,
+        isExpired: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldSkipCompletionRequest({
+        completionRequested: false,
+        isFinished: true,
+        isExpired: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldSkipCompletionRequest({
+        completionRequested: false,
+        isFinished: false,
+        isExpired: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldSkipCompletionRequest({
+        completionRequested: false,
+        isFinished: false,
+        isExpired: false,
+      }),
+    ).toBe(false);
   });
 
   it('initializes race state from snippet/start time', () => {
@@ -52,7 +81,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
     };
 
     const startedAt = new Date().toISOString();
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, startedAt, transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, startedAt, transport),
+    );
 
     expect(result.current.state.targetCode).toBe('ab');
     expect(result.current.state.startedAt).toBe(startedAt);
@@ -69,7 +100,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
@@ -101,7 +134,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
@@ -130,7 +165,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
@@ -147,7 +184,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
     await waitFor(() => {
       expect(sendProgressBatch).toHaveBeenCalledTimes(1);
     });
-    expect(sendProgressBatch).toHaveBeenCalledWith({ events: [{ value: 'a', version: 1 }] });
+    expect(sendProgressBatch).toHaveBeenCalledWith({
+      events: [{ value: 'a', version: 1 }],
+    });
     unmount();
   });
 
@@ -161,7 +200,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
     });
@@ -190,7 +231,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await act(async () => {
       await Promise.resolve();
@@ -225,7 +268,13 @@ describe('useExactCodeTypingEngine logic engine', () => {
     };
 
     const longerSnippet: RaceSnippet = { ...snippet, code: 'abz' };
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(longerSnippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(
+        longerSnippet,
+        new Date().toISOString(),
+        transport,
+      ),
+    );
 
     await act(async () => {
       await Promise.resolve();
@@ -263,7 +312,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
@@ -293,7 +344,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion,
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
@@ -326,7 +379,9 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion,
     };
 
-    const { result, unmount } = renderHook(() => useExactCodeTypingEngine(snippet, new Date().toISOString(), transport));
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
 
     await waitFor(() => {
       expect(result.current.state.targetCode).toBe('ab');
@@ -358,7 +413,11 @@ describe('useExactCodeTypingEngine logic engine', () => {
 
     const oneCharSnippet: RaceSnippet = { ...snippet, code: 'ab' };
     const { result, unmount } = renderHook(() =>
-      useExactCodeTypingEngine(oneCharSnippet, new Date().toISOString(), transport),
+      useExactCodeTypingEngine(
+        oneCharSnippet,
+        new Date().toISOString(),
+        transport,
+      ),
     );
 
     await act(async () => {
@@ -386,5 +445,4 @@ describe('useExactCodeTypingEngine logic engine', () => {
     expect(sendProgressBatch.mock.calls.length).toBeLessThanOrEqual(1);
     unmount();
   });
-
 });

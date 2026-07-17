@@ -72,7 +72,10 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
     case 'ACKNOWLEDGE': {
       if (action.version <= state.ackedVersion) return state;
 
-      const boundedOffset = Math.max(0, Math.min(action.serverOffset, state.targetCode.length));
+      const boundedOffset = Math.max(
+        0,
+        Math.min(action.serverOffset, state.targetCode.length),
+      );
       const ackDelta = action.version - state.ackedVersion;
       return {
         ...state,
@@ -85,7 +88,10 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
     }
 
     case 'REJECT': {
-      const boundedOffset = Math.max(0, Math.min(action.serverOffset, state.targetCode.length));
+      const boundedOffset = Math.max(
+        0,
+        Math.min(action.serverOffset, state.targetCode.length),
+      );
       const resetPrefix = state.targetCode.slice(0, boundedOffset);
       return {
         ...state,

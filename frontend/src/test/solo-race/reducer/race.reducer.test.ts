@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { raceReducer, initialState } from '../../../features/solo-race/reducer/race.reducer';
-import type { RaceSnippet } from '../../../features/solo-race/types/race.types';
+import {
+  raceReducer,
+  initialState,
+} from '../../../features/solo-race/reducer/race.reducer';
+import type {
+  RaceAction,
+  RaceSnippet,
+} from '../../../features/solo-race/types/race.types';
 
 describe('raceReducer', () => {
   const mockSnippet: RaceSnippet = {
@@ -62,7 +68,7 @@ describe('raceReducer', () => {
 
     state = raceReducer(state, { type: 'INPUT', char: 'x' }); // wrong
     state = raceReducer(state, { type: 'INPUT', char: 'c' }); // right char, but blocked by error
-    
+
     expect(state.acceptedPrefix).toBe('');
     expect(state.currentInput).toBe('xc');
     expect(state.hasError).toBe(true);
@@ -77,7 +83,7 @@ describe('raceReducer', () => {
 
     state = raceReducer(state, { type: 'INPUT', char: 'x' });
     state = raceReducer(state, { type: 'DELETE' });
-    
+
     expect(state.currentInput).toBe('');
     expect(state.hasError).toBe(false);
 
@@ -124,7 +130,11 @@ describe('raceReducer', () => {
 
     state = raceReducer(state, { type: 'INPUT', char: 'c' });
     state = raceReducer(state, { type: 'INPUT', char: 'o' });
-    state = raceReducer(state, { type: 'REJECT', serverOffset: 1, reason: 'stale_version' });
+    state = raceReducer(state, {
+      type: 'REJECT',
+      serverOffset: 1,
+      reason: 'stale_version',
+    });
 
     expect(state.acceptedPrefix).toBe('c');
     expect(state.serverOffset).toBe(1);
@@ -142,8 +152,16 @@ describe('raceReducer', () => {
 
     state = raceReducer(state, { type: 'INPUT', char: 'c' });
     state = raceReducer(state, { type: 'INPUT', char: 'o' });
-    state = raceReducer(state, { type: 'ACKNOWLEDGE', version: 2, serverOffset: 2 });
-    const withStaleAck = raceReducer(state, { type: 'ACKNOWLEDGE', version: 1, serverOffset: 1 });
+    state = raceReducer(state, {
+      type: 'ACKNOWLEDGE',
+      version: 2,
+      serverOffset: 2,
+    });
+    const withStaleAck = raceReducer(state, {
+      type: 'ACKNOWLEDGE',
+      version: 1,
+      serverOffset: 1,
+    });
 
     expect(withStaleAck.ackedVersion).toBe(2);
     expect(withStaleAck.serverOffset).toBe(2);
@@ -161,7 +179,9 @@ describe('raceReducer', () => {
     expect(raceReducer(expired, { type: 'DELETE' })).toEqual(expired);
 
     const finished = raceReducer(base, { type: 'FINISH' });
-    expect(raceReducer(finished, { type: 'INPUT', char: 'c' })).toEqual(finished);
+    expect(raceReducer(finished, { type: 'INPUT', char: 'c' })).toEqual(
+      finished,
+    );
     expect(raceReducer(finished, { type: 'DELETE' })).toEqual(finished);
   });
 
@@ -174,7 +194,11 @@ describe('raceReducer', () => {
 
     state = raceReducer(state, { type: 'TRANSPORT_FAILURE', reason: 'x' });
     state = raceReducer(state, { type: 'INPUT', char: 'a' });
-    state = raceReducer(state, { type: 'ACKNOWLEDGE', version: 1, serverOffset: 50 });
+    state = raceReducer(state, {
+      type: 'ACKNOWLEDGE',
+      version: 1,
+      serverOffset: 50,
+    });
     expect(state.serverOffset).toBe(3);
     expect(state.isOffline).toBe(false);
     expect(state.transportError).toBeNull();
@@ -224,7 +248,9 @@ describe('raceReducer', () => {
       startedAt: new Date().toISOString(),
     });
 
-    const unchanged = raceReducer(state, { type: 'UNKNOWN_ACTION' } as any);
+    const unchanged = raceReducer(state, {
+      type: 'UNKNOWN_ACTION',
+    } as unknown as RaceAction);
     expect(unchanged).toEqual(state);
   });
 

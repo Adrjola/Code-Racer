@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 import javax.crypto.SecretKey;
 import org.coderacer.backend.category.repository.CategoryRepository;
+import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
@@ -34,20 +35,27 @@ class JwtExpiryIntegrationTest {
 
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private CategoryRepository categoryRepository;
+  @Autowired private CodeSnippetRepository codeSnippetRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private SecretKey jwtSecretKey;
 
   @BeforeEach
   void setUp() {
-    categoryRepository.deleteAll();
+    clearCatalog();
     userRepository.deleteAll();
   }
 
   @AfterEach
   void tearDown() {
-    categoryRepository.deleteAll();
+    clearCatalog();
     userRepository.deleteAll();
+  }
+
+  /** Seeded snippets reference categories, so they must be removed first. */
+  private void clearCatalog() {
+    codeSnippetRepository.deleteAll();
+    categoryRepository.deleteAll();
   }
 
   @Test

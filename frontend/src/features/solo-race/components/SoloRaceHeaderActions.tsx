@@ -5,7 +5,10 @@ interface SoloRaceHeaderActionsProps {
   onLobby: () => void;
 }
 
-export function SoloRaceHeaderActions({ onRestart, onLobby }: SoloRaceHeaderActionsProps) {
+export function SoloRaceHeaderActions({
+  onRestart,
+  onLobby,
+}: SoloRaceHeaderActionsProps) {
   return (
     <div className="flex items-center gap-6">
       <button
@@ -13,7 +16,12 @@ export function SoloRaceHeaderActions({ onRestart, onLobby }: SoloRaceHeaderActi
         onClick={onRestart}
         type="button"
       >
-        <img alt="" aria-hidden="true" className="mr-1 h-[14px] w-[14px]" src={restartArrow} />
+        <img
+          alt=""
+          aria-hidden="true"
+          className="mr-1 h-[14px] w-[14px]"
+          src={restartArrow}
+        />
         <span>Restart</span>
       </button>
       <button

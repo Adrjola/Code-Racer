@@ -6,16 +6,28 @@ interface SoloRaceStatsRowProps {
   progressPercent: number;
 }
 
-export function SoloRaceStatsRow({ cpm, elapsed, currentLine, totalLines, progressPercent }: SoloRaceStatsRowProps) {
+export function SoloRaceStatsRow({
+  cpm,
+  elapsed,
+  currentLine,
+  totalLines,
+  progressPercent,
+}: SoloRaceStatsRowProps) {
   return (
     <div className="mb-6 w-full max-w-[868.63px]">
       <div className="relative top-[15px] mb-[5px] flex h-[43.42px] items-start justify-between font-['JetBrains_Mono'] leading-none">
         <div className="flex items-start gap-8 text-[14px] font-normal text-[#6E6C78]">
           <span>
-            cpm <span className="ml-1 text-[16px] font-bold text-[#F9A8D4]">{cpm}</span>
+            cpm{' '}
+            <span className="ml-1 text-[16px] font-bold text-[#F9A8D4]">
+              {cpm}
+            </span>
           </span>
           <span>
-            time <span className="ml-1 text-[16px] font-bold text-[#E7E5EF]">{elapsed}</span>
+            time{' '}
+            <span className="ml-1 text-[16px] font-bold text-[#E7E5EF]">
+              {elapsed}
+            </span>
           </span>
         </div>
         <span className="text-right text-[12px] font-normal text-[#6E6C78]">

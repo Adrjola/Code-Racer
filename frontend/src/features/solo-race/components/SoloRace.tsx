@@ -1,7 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useExactCodeTypingEngine } from '../hooks/useExactCodeTypingEngine';
 import { useCountdown } from '../hooks/useCountdown';
-import type { ExactCodeTypingEngineTransport, RaceSnippet } from '../types/race.types';
+import { processBeforeInputData } from '../utils/processBeforeInputData';
+import type {
+  ExactCodeTypingEngineTransport,
+  RaceSnippet,
+} from '../types/race.types';
 import { SoloRaceHeader } from './SoloRaceHeader';
 import { SoloRaceStatsRow } from './SoloRaceStatsRow';
 import { SoloRaceWorldBest } from './SoloRaceWorldBest';
@@ -17,21 +21,6 @@ interface SoloRaceProps {
   errorMessage?: string | null;
 }
 
-export function processBeforeInputData(
-  isLocked: boolean,
-  data: string | null | undefined,
-  handleInput: (char: string) => void,
-  preventDefault: () => void,
-) {
-  if (isLocked) return;
-  if (!data) return;
-
-  preventDefault();
-  for (const char of data) {
-    handleInput(char);
-  }
-}
-
 export const SoloRace: React.FC<SoloRaceProps> = ({
   snippet,
   startedAt,
@@ -41,18 +30,27 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   onStartRace,
   errorMessage,
 }) => {
-  const { state, handleInput, handleDelete } = useExactCodeTypingEngine(snippet, startedAt, transport);
+  const { state, handleInput, handleDelete } = useExactCodeTypingEngine(
+    snippet,
+    startedAt,
+    transport,
+  );
   const countdown = useCountdown(startedAt);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isTabPressedRef = useRef(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [finishedElapsedSeconds, setFinishedElapsedSeconds] = useState<number | null>(null);
+  const [finishedElapsedSeconds, setFinishedElapsedSeconds] = useState<
+    number | null
+  >(null);
   const [hasRaceStarted, setHasRaceStarted] = useState(false);
   const [raceStartedAtMs, setRaceStartedAtMs] = useState<number | null>(null);
   const [startCountdown, setStartCountdown] = useState<number | null>(null);
   const [isBootstrappingRace, setIsBootstrappingRace] = useState(false);
 
-  const isLocked = !hasRaceStarted || startCountdown !== null || (countdown !== null && countdown > 0);
+  const isLocked =
+    !hasRaceStarted ||
+    startCountdown !== null ||
+    (countdown !== null && countdown > 0);
 
   const focusInput = () => {
     /* v8 ignore next */
@@ -86,16 +84,18 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       return;
     }
 
-    if (startCountdown <= 1) {
-      setStartCountdown(null);
-      const startTimestamp = Date.now();
-      setRaceStartedAtMs(startTimestamp);
-      setNowMs(startTimestamp);
-      focusInput();
-      return;
-    }
-
+    // Both the tick and the hand-off happen on the timer, so the effect never
+    // sets state during the render that scheduled it.
     const timer = window.setTimeout(() => {
+      if (startCountdown <= 1) {
+        setStartCountdown(null);
+        const startTimestamp = Date.now();
+        setRaceStartedAtMs(startTimestamp);
+        setNowMs(startTimestamp);
+        focusInput();
+        return;
+      }
+
       setStartCountdown(startCountdown - 1);
     }, 1000);
 
@@ -104,13 +104,19 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     };
   }, [startCountdown]);
 
-  useEffect(() => {
+  // Loading a different snippet returns the screen to its pre-race state. This
+  // is React's documented "adjust state when a prop changes" pattern: it runs
+  // during render rather than in an effect, so there is no extra render pass.
+  const [renderedSnippetId, setRenderedSnippetId] = useState(snippet.id);
+  if (renderedSnippetId !== snippet.id) {
+    setRenderedSnippetId(snippet.id);
     setHasRaceStarted(false);
     setRaceStartedAtMs(null);
-    setNowMs(Date.now());
     setFinishedElapsedSeconds(null);
     setStartCountdown(null);
-  }, [snippet.id]);
+    // nowMs is deliberately left alone: with raceStartedAtMs null the elapsed
+    // time reads 0 anyway, and Date.now() cannot be called during render.
+  }
 
   const terminateRaceToMenu = () => {
     setHasRaceStarted(false);
@@ -198,28 +204,40 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
 
   const typedLength = Array.from(state.acceptedPrefix).length;
   const totalLength = Math.max(Array.from(state.targetCode).length, 1);
-  const progressPercent = Math.max(0, Math.min(100, (typedLength / totalLength) * 100));
-  const elapsedMs = raceStartedAtMs !== null ? Math.max(0, nowMs - raceStartedAtMs) : 0;
-  const activeElapsedSeconds = hasRaceStarted ? Math.floor(elapsedMs / 1000) : 0;
+  const progressPercent = Math.max(
+    0,
+    Math.min(100, (typedLength / totalLength) * 100),
+  );
+  const elapsedMs =
+    raceStartedAtMs !== null ? Math.max(0, nowMs - raceStartedAtMs) : 0;
+  const activeElapsedSeconds = hasRaceStarted
+    ? Math.floor(elapsedMs / 1000)
+    : 0;
 
-  useEffect(() => {
-    if (hasRaceStarted && state.isFinished && finishedElapsedSeconds === null) {
-      setFinishedElapsedSeconds(activeElapsedSeconds);
-      return;
-    }
-
-    if ((!state.isFinished || !hasRaceStarted) && finishedElapsedSeconds !== null) {
-      setFinishedElapsedSeconds(null);
-    }
-  }, [activeElapsedSeconds, finishedElapsedSeconds, hasRaceStarted, state.isFinished]);
+  // Freeze the clock at the moment the race finishes, and release it when a new
+  // race begins. Adjusted during render for the same reason as the snippet
+  // reset above: an effect would only re-render a second time to do the same.
+  const isRaceFinished = hasRaceStarted && state.isFinished;
+  if (isRaceFinished && finishedElapsedSeconds === null) {
+    setFinishedElapsedSeconds(activeElapsedSeconds);
+  }
+  if (!isRaceFinished && finishedElapsedSeconds !== null) {
+    setFinishedElapsedSeconds(null);
+  }
 
   const elapsedSeconds = finishedElapsedSeconds ?? activeElapsedSeconds;
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
   const elapsed = `${minutes}:${String(seconds).padStart(2, '0')}`;
   const acceptedChars = Array.from(state.acceptedPrefix).length;
-  const cpm = elapsedSeconds > 0 ? Math.round(((acceptedChars / 5) / elapsedSeconds) * 60) : 0;
-  const line = Math.min(state.acceptedPrefix.split('\n').length, snippet.code.split('\n').length);
+  const cpm =
+    elapsedSeconds > 0
+      ? Math.round((acceptedChars / 5 / elapsedSeconds) * 60)
+      : 0;
+  const line = Math.min(
+    state.acceptedPrefix.split('\n').length,
+    snippet.code.split('\n').length,
+  );
   const totalLines = snippet.code.split('\n').length;
 
   const startRace = async () => {
@@ -249,10 +267,10 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     const { targetCode, acceptedPrefix, currentInput } = state;
     const remaining = targetCode.slice(acceptedPrefix.length);
     const incorrectPart = currentInput;
-    
+
     // We need to be careful with rest calculation if currentInput has multi-byte chars
     const incorrectCharCount = Array.from(incorrectPart).length;
-    
+
     // Slice target remaining by the number of characters in incorrectPart
     const targetArray = Array.from(remaining);
     const rest = targetArray.slice(incorrectCharCount).join('');
@@ -271,7 +289,7 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
         )}
         <span className="relative text-slate-200/40">
           {!incorrectPart && !isLocked && (
-             <span className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-emerald-400 animate-pulse" />
+            <span className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-emerald-400 animate-pulse" />
           )}
           {rest}
         </span>
@@ -283,16 +301,27 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     <div className="w-full min-h-screen bg-[#08051A] text-slate-50">
       <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
-      <div className="mx-auto mt-10 w-full max-w-[1920px] px-6" onClick={focusInput}>
+      <div
+        className="mx-auto mt-10 w-full max-w-[1920px] px-6"
+        onClick={focusInput}
+      >
         <div className="relative min-h-[980px]">
           <div className="absolute left-1/2 top-[37px] w-[868.63px] -translate-x-1/2">
-            <SoloRaceStatsRow cpm={cpm} currentLine={line} elapsed={elapsed} progressPercent={progressPercent} totalLines={totalLines} />
+            <SoloRaceStatsRow
+              cpm={cpm}
+              currentLine={line}
+              elapsed={elapsed}
+              progressPercent={progressPercent}
+              totalLines={totalLines}
+            />
           </div>
 
           <div className="absolute left-1/2 top-[125px] w-[611px] -translate-x-1/2">
             <div
               className="relative h-[667px] rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-8"
-              style={{ boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)' }}
+              style={{
+                boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)',
+              }}
             >
               {renderCode()}
 
@@ -317,8 +346,15 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleKeyUp}
                 /* v8 ignore next */
-                onBeforeInput={(e: React.CompositionEvent<HTMLTextAreaElement> | any) =>
-                  processBeforeInputData(isLocked, e.data, handleInput, () => e.preventDefault())
+                onBeforeInput={(e: React.FormEvent<HTMLTextAreaElement>) =>
+                  processBeforeInputData(
+                    isLocked,
+                    // React types onBeforeInput as a FormEvent; the typed character
+                    // only exists on the underlying native InputEvent.
+                    (e.nativeEvent as InputEvent).data,
+                    handleInput,
+                    () => e.preventDefault(),
+                  )
                 }
                 onPaste={preventDefault}
                 onDrop={preventDefault}

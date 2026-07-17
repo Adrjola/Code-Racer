@@ -7,7 +7,7 @@ export function useCountdown(targetDate: string | null) {
     if (!targetDate) return;
 
     const target = new Date(targetDate).getTime();
-    
+
     const update = () => {
       const now = Date.now();
       const diff = Math.max(0, Math.ceil((target - now) / 1000));

@@ -15,12 +15,19 @@ function formatHolder(holder: string | null | undefined): string {
   return holder.startsWith('@') ? holder : `@${holder}`;
 }
 
-export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRaceWorldBestProps) {
-  const [records, setRecords] = useState<SoloWorldBestResponse | null>(recordsProp ?? null);
+export function SoloRaceWorldBest({
+  onStartRace,
+  records: recordsProp,
+}: SoloRaceWorldBestProps) {
+  const [fetchedRecords, setFetchedRecords] =
+    useState<SoloWorldBestResponse | null>(null);
+
+  // Supplied records win; they are read straight from the prop rather than
+  // copied into state, so there is only ever one source of truth.
+  const records = recordsProp ?? fetchedRecords;
 
   useEffect(() => {
     if (recordsProp) {
-      setRecords(recordsProp);
       return;
     }
 
@@ -29,12 +36,12 @@ export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRac
       .getWorldBest()
       .then((response) => {
         if (active) {
-          setRecords(response);
+          setFetchedRecords(response);
         }
       })
       .catch(() => {
         if (active) {
-          setRecords(null);
+          setFetchedRecords(null);
         }
       });
 
@@ -57,22 +64,43 @@ export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRac
 
       <div
         className="mb-4 h-[185px] w-[487px] rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
-        style={{ background: 'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)' }}
+        style={{
+          background:
+            'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)',
+        }}
       >
-        <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">world record - cpm</p>
-        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">
-          {cpmValue} <span className="font-['JetBrains_Mono'] text-[20px] font-normal leading-none text-[#F9A8D4]">CPM</span>
+        <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">
+          world record - cpm
         </p>
-        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">held by <span className="text-[#F9A8D4]">{cpmHolder}</span> - fastest ever</p>
+        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">
+          {cpmValue}{' '}
+          <span className="font-['JetBrains_Mono'] text-[20px] font-normal leading-none text-[#F9A8D4]">
+            CPM
+          </span>
+        </p>
+        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">
+          held by <span className="text-[#F9A8D4]">{cpmHolder}</span> - fastest
+          ever
+        </p>
       </div>
 
       <div
         className="h-[185px] w-[487px] rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
-        style={{ background: 'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)' }}
+        style={{
+          background:
+            'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)',
+        }}
       >
-        <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">world record - time</p>
-        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">{timeValue}</p>
-        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">held by <span className="text-[#F9A8D4]">{timeHolder}</span> - fastest ever</p>
+        <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">
+          world record - time
+        </p>
+        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">
+          {timeValue}
+        </p>
+        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">
+          held by <span className="text-[#F9A8D4]">{timeHolder}</span> - fastest
+          ever
+        </p>
       </div>
 
       <button
@@ -80,7 +108,12 @@ export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRac
         onClick={onStartRace}
         type="button"
       >
-        <img alt="" aria-hidden="true" className="mr-3 h-6 w-6" src={playIcon} />
+        <img
+          alt=""
+          aria-hidden="true"
+          className="mr-3 h-6 w-6"
+          src={playIcon}
+        />
         <span>START RACE</span>
       </button>
     </aside>
