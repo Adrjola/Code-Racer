@@ -6,11 +6,13 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.coderacer.backend.common.text.IdentifierNormalizer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
@@ -34,6 +36,9 @@ public class User {
   @Column(nullable = false, unique = true, length = 20)
   private String username;
 
+  @Column(name = "username_normalized", nullable = false, unique = true, length = 20)
+  private String usernameNormalized;
+
   @Column(name = "password_hash", nullable = false, length = 255)
   private String passwordHash;
 
@@ -53,12 +58,30 @@ public class User {
   @Column(name = "token_valid_from", nullable = false)
   private Instant tokenValidFrom = Instant.EPOCH;
 
+  @Column(name = "verification_email_resent_at")
+  private Instant verificationEmailResentAt;
+
   public boolean canAuthenticate() {
     return emailVerified && enabled && !deleted;
   }
 
   public boolean canVerifyEmail() {
     return !emailVerified && enabled && !deleted;
+  }
+
+  public boolean canResendVerificationEmail(Instant now, Duration cooldown) {
+    return cooldown.isZero()
+        || verificationEmailResentAt == null
+        || !verificationEmailResentAt.plus(cooldown).isAfter(now);
+  }
+
+  public void markVerificationEmailResent(Instant resentAt) {
+    this.verificationEmailResentAt = resentAt;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+    this.usernameNormalized = IdentifierNormalizer.normalize(username);
   }
 
   @CreationTimestamp

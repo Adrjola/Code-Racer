@@ -1,65 +1,44 @@
-import { useState } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
 import TextField from '@/components/TextField';
 import { LockIcon, MailIcon, UserIcon } from '@/components/icons';
 import type { RegistrationValues } from '@/features/auth/auth';
 import { readableAuthError } from '@/features/auth/auth';
-import { emailError } from '@/features/auth/validation';
+import { useAuthForm } from '@/features/auth/useAuthForm';
+import {
+  hasFormErrors,
+  validateRegistration,
+} from '@/features/auth/validation';
 
 type RegisterPageProps = {
   onRegister: (values: RegistrationValues) => Promise<void>;
   onSignIn: () => void;
 };
 
-type RegisterErrors = Partial<RegistrationValues>;
-
-function validate(values: RegistrationValues): RegisterErrors {
-  const errors: RegisterErrors = {};
-
-  errors.email = emailError(values.email);
-
-  if (!values.username.trim()) {
-    errors.username = 'Username is required';
-  }
-
-  if (!values.password) {
-    errors.password = 'Password is required';
-  }
-
-  if (!values.confirmPassword) {
-    errors.confirmPassword = 'Please confirm your password';
-  } else if (values.password && values.confirmPassword !== values.password) {
-    errors.confirmPassword = 'Passwords do not match';
-  }
-
-  return errors;
-}
-
 export default function RegisterPage({
   onRegister,
   onSignIn,
 }: RegisterPageProps) {
-  const [values, setValues] = useState<RegistrationValues>({
+  const {
+    errors,
+    formMessage,
+    isSubmitting,
+    setErrors,
+    setFormMessage,
+    setIsSubmitting,
+    setValue,
+    values,
+  } = useAuthForm<RegistrationValues>({
     confirmPassword: '',
     email: '',
     password: '',
     username: '',
   });
-  const [errors, setErrors] = useState<RegisterErrors>({});
-  const [formMessage, setFormMessage] = useState<string | undefined>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const setValue = (field: keyof RegistrationValues) => (value: string) => {
-    setValues((current) => ({ ...current, [field]: value }));
-    setErrors((current) => ({ ...current, [field]: undefined }));
-    setFormMessage(undefined);
-  };
 
   const handleSubmit = async () => {
-    const nextErrors = validate(values);
+    const nextErrors = validateRegistration(values);
     setErrors(nextErrors);
-    if (Object.values(nextErrors).some(Boolean)) {
+    if (hasFormErrors(nextErrors)) {
       return;
     }
 
@@ -88,7 +67,7 @@ export default function RegisterPage({
           </button>
         </>
       }
-      formClassName="auth-form--register"
+      formClassName="lg:min-h-[667px]"
       onSubmit={handleSubmit}
       subtitle="Start racing in just a few minutes!"
       subtitleSize="sm"
@@ -126,7 +105,7 @@ export default function RegisterPage({
         icon={<LockIcon />}
         id="register-password"
         label="Password"
-        maxLength={72}
+        maxLength={16}
         onChange={setValue('password')}
         placeholder="**********"
         type="password"
@@ -139,18 +118,24 @@ export default function RegisterPage({
         icon={<LockIcon />}
         id="register-confirm-password"
         label="Confirm password"
-        maxLength={72}
+        maxLength={16}
         onChange={setValue('confirmPassword')}
         placeholder="**********"
         type="password"
         value={values.confirmPassword}
       />
       {formMessage && (
-        <p className="form-message" role="status">
+        <p
+          className="mt-4 rounded-[10px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-[13px] leading-[1.45] text-text-secondary"
+          role="status"
+        >
           {formMessage}
         </p>
       )}
-      <GradientButton className="auth-submit" disabled={isSubmitting}>
+      <GradientButton
+        className="mt-[clamp(1.5rem,5dvh,3.5rem)] lg:mt-[53px]"
+        disabled={isSubmitting}
+      >
         {isSubmitting ? 'Creating account...' : 'Create account'}
       </GradientButton>
     </AuthLayout>

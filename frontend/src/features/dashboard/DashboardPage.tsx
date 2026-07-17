@@ -21,11 +21,14 @@ export default function DashboardPage({
   const isAdmin = session.user.role === 'ADMIN';
 
   return (
-    <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div className="dashboard-header-inner">
+    <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
+      <header className="border-b border-pink-400/15 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(0.875rem,1.9dvh,1.5rem)]">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
           <Logo />
-          <nav aria-label="Primary navigation" className="dashboard-nav">
+          <nav
+            aria-label="Primary navigation"
+            className="flex flex-wrap items-center justify-start gap-3 md:justify-end"
+          >
             <button
               className="text-sm font-semibold text-text-secondary hover:text-text-primary"
               onClick={onGoDashboard}
@@ -53,7 +56,7 @@ export default function DashboardPage({
         </div>
       </header>
 
-      <main className="dashboard-main">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(2rem,5dvh,3.5rem)]">
         {notice && (
           <p
             className="rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-4 py-3 text-sm text-text-secondary"

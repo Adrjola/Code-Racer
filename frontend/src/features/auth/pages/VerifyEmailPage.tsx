@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
+import type { CurrentUser } from '@/features/auth/auth';
 import { confirmEmail, readableAuthError } from '@/features/auth/auth';
+import ResendVerificationForm from '@/features/auth/components/ResendVerificationForm';
 
 type VerifyEmailPageProps = {
   onBackToLogin: (notice?: string) => void;
@@ -12,6 +14,21 @@ type VerificationState =
   | { message: string; status: 'error' }
   | { email: string; status: 'success' }
   | { status: 'verifying' };
+
+const pendingConfirmations = new Map<string, Promise<CurrentUser>>();
+
+function confirmEmailOnce(token: string): Promise<CurrentUser> {
+  const existingConfirmation = pendingConfirmations.get(token);
+  if (existingConfirmation) {
+    return existingConfirmation;
+  }
+
+  const confirmation = confirmEmail(token).finally(() => {
+    pendingConfirmations.delete(token);
+  });
+  pendingConfirmations.set(token, confirmation);
+  return confirmation;
+}
 
 export default function VerifyEmailPage({
   onBackToLogin,
@@ -32,7 +49,7 @@ export default function VerifyEmailPage({
     }
 
     let isMounted = true;
-    confirmEmail(token)
+    confirmEmailOnce(token)
       .then((user) => {
         if (isMounted) {
           setState({ email: user.email, status: 'success' });
@@ -62,7 +79,10 @@ export default function VerifyEmailPage({
       subtitleSize="sm"
       title={isSuccess ? 'Email verified' : 'Verify your email'}
     >
-      <div className="auth-status-card" role="status">
+      <div
+        className="rounded-[10px] border border-pink-400/25 bg-pink-400/10 px-4 py-[clamp(0.875rem,2dvh,1rem)] text-center text-[13px] leading-[1.45] text-text-secondary"
+        role="status"
+      >
         {state.status === 'verifying' && 'Verifying your email...'}
         {state.status === 'success' && (
           <>
@@ -74,8 +94,9 @@ export default function VerifyEmailPage({
         )}
         {state.status === 'error' && state.message}
       </div>
+      {state.status === 'error' && <ResendVerificationForm />}
       <GradientButton
-        className="auth-submit auth-submit--compact"
+        className="mt-[clamp(1.25rem,3.8dvh,2.25rem)] lg:mt-[36px]"
         onClick={() =>
           onBackToLogin(
             isSuccess ? 'Email verified. You can now log in.' : undefined,

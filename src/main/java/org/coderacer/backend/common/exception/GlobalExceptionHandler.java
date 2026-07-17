@@ -6,6 +6,7 @@ import org.coderacer.backend.common.error.ApiError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -14,6 +15,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -32,6 +34,26 @@ public class GlobalExceptionHandler {
       BindException ex, HttpServletRequest request) {
     return buildResponse(
         HttpStatus.BAD_REQUEST, validationMessage(ex.getBindingResult()), "INVALID_INPUT", request);
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiError> handleTypeMismatch(
+      MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+    return buildResponse(
+        HttpStatus.BAD_REQUEST,
+        "Validation failed: " + ex.getName() + " has an invalid value",
+        "INVALID_INPUT",
+        request);
+  }
+
+  @ExceptionHandler(PropertyReferenceException.class)
+  public ResponseEntity<ApiError> handleUnknownProperty(
+      PropertyReferenceException ex, HttpServletRequest request) {
+    return buildResponse(
+        HttpStatus.BAD_REQUEST,
+        "Validation failed: " + ex.getPropertyName() + " is not a sortable or filterable property",
+        "INVALID_INPUT",
+        request);
   }
 
   @ExceptionHandler(OptimisticLockingFailureException.class)

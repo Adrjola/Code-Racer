@@ -1,7 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { StrictMode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import {
   saveSession,
@@ -100,6 +101,51 @@ describe('App', () => {
     expect(screen.getByText(/player@example.com/i)).toBeInTheDocument();
   });
 
+  it('resends verification emails from the pending state', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(`${API_URL}/api/auth/register`, () =>
+        HttpResponse.json(
+          { data: userResponse({ emailVerified: false }) },
+          { status: 201 },
+        ),
+      ),
+      http.post(
+        `${API_URL}/api/auth/email-verification/resend`,
+        async ({ request }) => {
+          await expect(request.json()).resolves.toMatchObject({
+            email: 'player@example.com',
+          });
+
+          return HttpResponse.json(
+            {
+              data: {
+                message:
+                  'If an unverified account exists, a verification email will be sent.',
+              },
+            },
+            { status: 202 },
+          );
+        },
+      ),
+    );
+
+    render(<App />);
+    await submitValidRegistration(user);
+    await user.click(
+      await screen.findByRole('button', {
+        name: /resend verification email/i,
+      }),
+    );
+
+    expect(
+      await screen.findByText(/verification email will be sent/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /try again in 2:00/i }),
+    ).toBeDisabled();
+  });
+
   it('confirms email verification links and returns to login', async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, '', '/verify-email?token=valid-token');
@@ -134,7 +180,32 @@ describe('App', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/email verified/i);
   });
 
+  it('confirms email verification links once when StrictMode re-runs effects', async () => {
+    let confirmRequests = 0;
+    window.history.replaceState(null, '', '/verify-email?token=strict-token');
+    server.use(
+      http.post(`${API_URL}/api/auth/email-verification/confirm`, () => {
+        confirmRequests += 1;
+        return HttpResponse.json({
+          data: userResponse({ emailVerified: true }),
+        });
+      }),
+    );
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: /email verified/i }),
+    ).toBeInTheDocument();
+    expect(confirmRequests).toBe(1);
+  });
+
   it('shows a safe message for invalid verification links', async () => {
+    const user = userEvent.setup();
     window.history.replaceState(null, '', '/verify-email?token=expired-token');
     server.use(
       http.post(`${API_URL}/api/auth/email-verification/confirm`, () =>
@@ -148,12 +219,37 @@ describe('App', () => {
           { status: 400 },
         ),
       ),
+      http.post(
+        `${API_URL}/api/auth/email-verification/resend`,
+        async ({ request }) => {
+          await expect(request.json()).resolves.toMatchObject({
+            email: 'player@example.com',
+          });
+
+          return HttpResponse.json(
+            {
+              data: {
+                message:
+                  'If an unverified account exists, a verification email will be sent.',
+              },
+            },
+            { status: 202 },
+          );
+        },
+      ),
     );
 
     render(<App />);
 
     expect(
       await screen.findByText(/verification link is invalid or expired/i),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.click(
+      screen.getByRole('button', { name: /resend verification email/i }),
+    );
+    expect(
+      await screen.findByText(/verification email will be sent/i),
     ).toBeInTheDocument();
   });
 
@@ -323,6 +419,37 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders a not-found page for unknown paths', () => {
+    window.history.replaceState(null, '', '/anything-typo');
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: /page not found/i }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/not-found');
+    expect(
+      screen.queryByRole('heading', { name: /create your account/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('updates the login notice when a protected route redirects to login again', async () => {
+    const user = userEvent.setup();
+    saveSession(session());
+    window.history.replaceState(null, '', '/dashboard');
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /log out/i }));
+    expect(screen.getByRole('status')).toHaveTextContent(/logged out/i);
+
+    window.history.back();
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/please log in/i),
+    );
+  });
+
   it('restores valid admin sessions and allows admin navigation', async () => {
     const user = userEvent.setup();
     saveSession(
@@ -353,6 +480,29 @@ describe('App', () => {
       screen.getByRole('heading', { name: /welcome back/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/please log in/i);
+  });
+
+  it('logs out when the active session expires', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-17T12:00:00Z'));
+    saveSession(session({ expiresAt: Date.now() + 1_000 }));
+    window.history.replaceState(null, '', '/dashboard');
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: /welcome, player/i }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /welcome back/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/session expired/i);
+    expect(window.sessionStorage.getItem('code-racer.auth-session')).toBeNull();
   });
 
   it('redirects non-admin users away from the admin route', async () => {

@@ -50,7 +50,9 @@ export default function ForgotPasswordPage({
         type="email"
         value={email}
       />
-      <GradientButton className="auth-submit">Send reset link</GradientButton>
+      <GradientButton className="mt-[clamp(1.5rem,5dvh,3.5rem)] lg:mt-[56px]">
+        Send reset link
+      </GradientButton>
     </AuthLayout>
   );
 }

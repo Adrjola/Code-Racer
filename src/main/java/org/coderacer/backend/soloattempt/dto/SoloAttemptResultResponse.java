@@ -7,8 +7,10 @@ import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 
 public record SoloAttemptResultResponse(
     UUID attemptId,
+    SoloAttemptSnippetSummary snippet,
+    Difficulty difficulty,
     SoloAttemptState state,
-    Integer cpm,
     Long durationMs,
-    Instant finishedAt,
-    Difficulty difficulty) {}
+    Integer cpm,
+    Instant startedAt,
+    Instant finishedAt) {}
