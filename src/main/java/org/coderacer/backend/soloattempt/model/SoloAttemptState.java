@@ -1,5 +1,8 @@
 package org.coderacer.backend.soloattempt.model;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 public enum SoloAttemptState {
   COUNTDOWN,
   ACTIVE,
@@ -7,6 +10,13 @@ public enum SoloAttemptState {
   ABANDONED,
   EXPIRED,
   INVALIDATED;
+
+  private static final Set<SoloAttemptState> TERMINAL_STATES =
+      EnumSet.of(COMPLETED, ABANDONED, EXPIRED, INVALIDATED);
+
+  public static Set<SoloAttemptState> terminalStates() {
+    return TERMINAL_STATES;
+  }
 
   public boolean canTransitionTo(SoloAttemptState target) {
     return switch (this) {

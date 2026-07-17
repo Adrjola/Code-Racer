@@ -47,7 +47,7 @@ class UserRegistrationServiceTest {
         new UserRegistrationRequest(
             " Player@Example.COM ", " Speed_Racer ", "StrongerPass123", "StrongerPass123");
     when(repository.existsByEmail("player@example.com")).thenReturn(false);
-    when(repository.existsByUsername("speed_racer")).thenReturn(false);
+    when(repository.existsByUsernameNormalized("speed_racer")).thenReturn(false);
     when(passwordEncoder.encode("StrongerPass123")).thenReturn("hashed-password");
     when(repository.saveAndFlush(any(User.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -59,7 +59,8 @@ class UserRegistrationServiceTest {
     User savedUser = userCaptor.getValue();
     verify(emailVerificationService).sendInitialVerificationEmail(savedUser);
     assertThat(savedUser.getEmail()).isEqualTo("player@example.com");
-    assertThat(savedUser.getUsername()).isEqualTo("speed_racer");
+    assertThat(savedUser.getUsername()).isEqualTo("Speed_Racer");
+    assertThat(savedUser.getUsernameNormalized()).isEqualTo("speed_racer");
     assertThat(savedUser.getPasswordHash()).isEqualTo("hashed-password");
     assertThat(savedUser.getPasswordHash()).isNotEqualTo("StrongerPass123");
     assertThat(savedUser.getRole()).isEqualTo(UserRole.USER);
@@ -100,7 +101,7 @@ class UserRegistrationServiceTest {
   void register_rejectsValuesAboveConfiguredLengthLimits() {
     String longEmail = "a".repeat(110) + "@example.com";
     String longUsername = "u".repeat(21);
-    String longPassword = "P".repeat(73);
+    String longPassword = "P".repeat(17);
     UserRegistrationRequest request =
         new UserRegistrationRequest(longEmail, longUsername, longPassword, longPassword);
 
@@ -108,6 +109,17 @@ class UserRegistrationServiceTest {
         .isInstanceOfSatisfying(
             ValidationException.class,
             ex -> assertThat(ex.getMessage()).contains("email", "username", "password"));
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void register_rejectsPasswordBelowConfiguredMinimumLength() {
+    UserRegistrationRequest request =
+        new UserRegistrationRequest("player@example.com", "speed_racer", "Short1", "Short1");
+
+    assertThatThrownBy(() -> service.register(request))
+        .isInstanceOfSatisfying(
+            ValidationException.class, ex -> assertThat(ex.getMessage()).contains("password"));
     verify(repository, never()).saveAndFlush(any());
   }
 
@@ -131,7 +143,7 @@ class UserRegistrationServiceTest {
         new UserRegistrationRequest(
             "player@example.com", "speed_racer", "StrongerPass123", "StrongerPass123");
     when(repository.existsByEmail("player@example.com")).thenReturn(false);
-    when(repository.existsByUsername("speed_racer")).thenReturn(false);
+    when(repository.existsByUsernameNormalized("speed_racer")).thenReturn(false);
     when(passwordEncoder.encode("StrongerPass123")).thenReturn("hashed-password");
     when(repository.saveAndFlush(any(User.class)))
         .thenThrow(new DataIntegrityViolationException("duplicate"));
@@ -148,7 +160,7 @@ class UserRegistrationServiceTest {
         new UserRegistrationRequest(
             "player@example.com", "speed_racer", "StrongerPass123", "StrongerPass123");
     when(repository.existsByEmail("player@example.com")).thenReturn(false);
-    when(repository.existsByUsername("speed_racer")).thenReturn(false);
+    when(repository.existsByUsernameNormalized("speed_racer")).thenReturn(false);
     when(passwordEncoder.encode("StrongerPass123")).thenReturn("hashed-password");
     when(repository.saveAndFlush(any(User.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -166,7 +178,7 @@ class UserRegistrationServiceTest {
         new UserRegistrationRequest(
             "admin@example.com", "root_admin", "StrongerPass123", "StrongerPass123");
     when(repository.existsByEmail("admin@example.com")).thenReturn(false);
-    when(repository.existsByUsername("root_admin")).thenReturn(false);
+    when(repository.existsByUsernameNormalized("root_admin")).thenReturn(false);
     when(passwordEncoder.encode("StrongerPass123")).thenReturn("hashed-admin-password");
     when(repository.saveAndFlush(any(User.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));

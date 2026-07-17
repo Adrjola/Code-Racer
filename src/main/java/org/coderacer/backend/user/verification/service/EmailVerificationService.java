@@ -62,9 +62,9 @@ public class EmailVerificationService {
   public EmailVerificationResendResponse resend(EmailVerificationResendRequest request) {
     Instant now = clock.instant();
     userRepository
-        .findByEmail(normalize(request.email()))
+        .findByEmailForUpdate(normalize(request.email()))
         .filter(User::canVerifyEmail)
-        .filter(user -> resendCooldownElapsed(user, now))
+        .filter(user -> user.canResendVerificationEmail(now, properties.resendCooldown()))
         .ifPresent(user -> replaceAndPublishToken(user, now));
 
     return EmailVerificationResendResponse.accepted();
@@ -84,6 +84,7 @@ public class EmailVerificationService {
 
   private void replaceAndPublishToken(User user, Instant now) {
     tokenRepository.revokeActiveTokensForUser(user, now);
+    user.markVerificationEmailResent(now);
     createAndPublishToken(user, now);
   }
 
@@ -102,18 +103,6 @@ public class EmailVerificationService {
             user.getUsername(),
             verificationLink(rawToken),
             token.getExpiresAt()));
-  }
-
-  private boolean resendCooldownElapsed(User user, Instant now) {
-    if (properties.resendCooldown().isZero()) {
-      return true;
-    }
-
-    return tokenRepository
-        .findFirstByUserOrderByCreatedAtDesc(user)
-        .map(EmailVerificationToken::getCreatedAt)
-        .map(createdAt -> !createdAt.plus(properties.resendCooldown()).isAfter(now))
-        .orElse(true);
   }
 
   private String verificationLink(String rawToken) {
