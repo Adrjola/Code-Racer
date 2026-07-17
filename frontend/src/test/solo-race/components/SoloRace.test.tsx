@@ -322,7 +322,7 @@ describe('SoloRace Component', () => {
     expect(handleDelete).not.toHaveBeenCalled();
   });
 
-  it('renders finished state label when race is complete', () => {
+  it('does not render finished state label when race is complete', () => {
     (useExactCodeTypingEngine as any).mockReturnValue({
       ...baseHookState,
       state: {
@@ -332,6 +332,6 @@ describe('SoloRace Component', () => {
     });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
-    expect(screen.getByText('Race Finished!')).toBeDefined();
+    expect(screen.queryByText('Race Finished!')).toBeNull();
   });
 });

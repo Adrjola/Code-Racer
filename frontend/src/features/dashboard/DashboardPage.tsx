@@ -5,6 +5,7 @@ type DashboardPageProps = {
   notice?: string;
   onGoAdmin: () => void;
   onGoDashboard: () => void;
+  onGoLobby: () => void;
   onLogout: () => void;
   session: AuthSession;
   view: 'admin' | 'dashboard';
@@ -14,6 +15,7 @@ export default function DashboardPage({
   notice,
   onGoAdmin,
   onGoDashboard,
+  onGoLobby,
   onLogout,
   session,
   view,
@@ -45,6 +47,13 @@ export default function DashboardPage({
                 Admin
               </button>
             )}
+            <button
+              className="text-sm font-semibold text-text-secondary hover:text-text-primary"
+              onClick={onGoLobby}
+              type="button"
+            >
+              Lobby
+            </button>
             <button
               className="rounded-[8px] border border-pink-400/30 px-3 py-2 text-sm font-semibold text-pink-300"
               onClick={onLogout}

@@ -284,11 +284,6 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
       <div className="mx-auto mt-10 w-full max-w-[1920px] px-6" onClick={focusInput}>
-
-        {state.isFinished && (
-          <p className="mb-3 text-lg font-semibold text-emerald-400">Race Finished!</p>
-        )}
-
         <div className="relative min-h-[980px]">
           <div className="absolute left-1/2 top-[37px] w-[868.63px] -translate-x-1/2">
             <SoloRaceStatsRow cpm={cpm} currentLine={line} elapsed={elapsed} progressPercent={progressPercent} totalLines={totalLines} />

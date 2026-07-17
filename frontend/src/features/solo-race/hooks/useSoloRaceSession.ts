@@ -13,6 +13,8 @@ interface SoloRacePreview {
   snippet: RaceSnippet;
 }
 
+const MAX_SNIPPET_RETRY_ATTEMPTS = 5;
+
 export function useSoloRaceSession() {
   const [session, setSession] = useState<SoloRaceSession | null>(null);
   const [preview, setPreview] = useState<SoloRacePreview | null>(null);
@@ -31,13 +33,31 @@ export function useSoloRaceSession() {
     return mapSnippet(snippet);
   };
 
+  const loadSnippetForRace = async (currentSnippetId?: string) => {
+    let latestSnippet = await soloRaceApi.getRandomSnippet();
+
+    if (!currentSnippetId) {
+      return latestSnippet;
+    }
+
+    for (let attempt = 1; attempt < MAX_SNIPPET_RETRY_ATTEMPTS; attempt += 1) {
+      if (latestSnippet.id !== currentSnippetId) {
+        break;
+      }
+
+      latestSnippet = await soloRaceApi.getRandomSnippet();
+    }
+
+    return latestSnippet;
+  };
+
   const startNewRace = async () => {
     const actionId = ++actionIdRef.current;
     setIsLoading(true);
     setError(null);
 
     try {
-      const snippet = await soloRaceApi.getRandomSnippet();
+      const snippet = await loadSnippetForRace(session?.snippet.id ?? preview?.snippet.id);
       const attempt = await soloRaceApi.startAttempt(snippet.id);
       if (actionId !== actionIdRef.current) return;
 

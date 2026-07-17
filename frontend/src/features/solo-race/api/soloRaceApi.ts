@@ -3,6 +3,11 @@ export interface ApiEnvelope<T> {
   correlationId?: string;
 }
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
+  'http://localhost:8080';
+const SESSION_KEY = 'code-racer.auth-session';
+
 export interface SnippetResponse {
   id: string;
   source: string;
@@ -47,8 +52,34 @@ async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
+function getAuthHeaders(): HeadersInit {
+  const raw = window.sessionStorage.getItem(SESSION_KEY);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { accessToken?: string; tokenType?: string };
+    if (!parsed.accessToken) {
+      return {};
+    }
+    const tokenType = parsed.tokenType || 'Bearer';
+    return { Authorization: `${tokenType} ${parsed.accessToken}` };
+  } catch {
+    return {};
+  }
+}
+
 async function getData<T>(url: string, init?: RequestInit): Promise<T> {
-  const envelope = await parseJson<ApiEnvelope<T>>(await fetch(url, init));
+  const envelope = await parseJson<ApiEnvelope<T>>(
+    await fetch(`${API_BASE_URL}${url}`, {
+      ...init,
+      headers: {
+        ...getAuthHeaders(),
+        ...(init?.headers || {}),
+      },
+    }),
+  );
   return envelope.data;
 }
 

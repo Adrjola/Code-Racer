@@ -59,6 +59,59 @@ describe('useSoloRaceSession', () => {
     expect(result.current.session?.startedAt).toBe('2026-07-17T00:00:00.000Z');
   });
 
+  it('retries snippet fetch on restart when random API returns the same snippet id', async () => {
+    (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 'preview-1', source: 'const preview = 1;', difficulty: 'easy' })
+      .mockResolvedValueOnce({ id: 'preview-1', source: 'const preview = 1;', difficulty: 'easy' })
+      .mockResolvedValueOnce({ id: 'snippet-race-2', source: 'const race = 2;', difficulty: 'medium' });
+    (soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      attemptId: 'attempt-2',
+      codeSnippetId: 'snippet-race-2',
+      difficulty: 'medium',
+      startedAt: '2026-07-17T00:00:00.000Z',
+    });
+
+    const { result } = renderHook(() => useSoloRaceSession());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.startNewRace();
+    });
+
+    expect(soloRaceApi.getRandomSnippet).toHaveBeenCalledTimes(3);
+    expect(soloRaceApi.startAttempt).toHaveBeenCalledWith('snippet-race-2');
+    expect(result.current.session?.snippet.id).toBe('snippet-race-2');
+  });
+
+  it('clears prior snippet-load error when a race starts successfully', async () => {
+    (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('request_failed'))
+      .mockResolvedValueOnce({ id: 'snippet-race', source: 'const race = 1;', difficulty: 'medium' });
+    (soloRaceApi.startAttempt as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      attemptId: 'attempt-1',
+      codeSnippetId: 'snippet-race',
+      difficulty: 'medium',
+      startedAt: '2026-07-17T00:00:00.000Z',
+    });
+
+    const { result } = renderHook(() => useSoloRaceSession());
+
+    await waitFor(() => {
+      expect(result.current.error).toBe('failed_to_start_solo_race');
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.startNewRace();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.session?.snippet.id).toBe('snippet-race');
+  });
+
   it('resets to menu state without starting an attempt', async () => {
     (soloRaceApi.getRandomSnippet as unknown as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ id: 'preview', source: 'preview', difficulty: 'easy' })
