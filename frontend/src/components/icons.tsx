@@ -6,7 +6,7 @@ import userHead from '../assets/icons/user-head.svg';
 
 export function UserIcon() {
   return (
-    <span className="field-icon field-icon--square" aria-hidden="true">
+    <span className="relative block h-4 w-4 shrink-0" aria-hidden="true">
       <span className="absolute inset-[62.5%_20.83%_12.5%_20.83%]">
         <img
           alt=""
@@ -27,7 +27,7 @@ export function UserIcon() {
 
 export function LockIcon() {
   return (
-    <span className="field-icon field-icon--square" aria-hidden="true">
+    <span className="relative block h-4 w-4 shrink-0" aria-hidden="true">
       <span className="absolute inset-[45.83%_12.5%_8.33%_12.5%]">
         <img
           alt=""
@@ -48,7 +48,10 @@ export function LockIcon() {
 
 export function MailIcon() {
   return (
-    <span className="field-icon field-icon--mail" aria-hidden="true">
+    <span
+      className="relative block h-[0.6875rem] w-[0.9375rem] shrink-0"
+      aria-hidden="true"
+    >
       <span className="absolute inset-[-4.55%_-3.33%]">
         <img alt="" className="block max-w-none size-full" src={mail} />
       </span>

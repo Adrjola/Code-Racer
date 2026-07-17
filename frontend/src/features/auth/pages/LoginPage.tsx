@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
 import TextField from '@/components/TextField';
 import { LockIcon, UserIcon } from '@/components/icons';
 import type { LoginCredentials } from '@/features/auth/auth';
 import { readableAuthError } from '@/features/auth/auth';
+import { useAuthForm } from '@/features/auth/useAuthForm';
+import { hasFormErrors, validateLogin } from '@/features/auth/validation';
 
 type LoginPageProps = {
   notice?: string;
@@ -13,46 +15,34 @@ type LoginPageProps = {
   onLogin: (values: LoginCredentials) => Promise<void>;
 };
 
-type LoginErrors = Partial<LoginCredentials>;
-
-function validate(values: LoginCredentials): LoginErrors {
-  const errors: LoginErrors = {};
-
-  if (!values.identifier.trim()) {
-    errors.identifier = 'Email or username is required';
-  }
-
-  if (!values.password) {
-    errors.password = 'Password is required';
-  }
-
-  return errors;
-}
-
 export default function LoginPage({
   notice,
   onCreateAccount,
   onForgotPassword,
   onLogin,
 }: LoginPageProps) {
-  const [values, setValues] = useState<LoginCredentials>({
+  const {
+    errors,
+    formMessage,
+    isSubmitting,
+    setErrors,
+    setFormMessage,
+    setIsSubmitting,
+    setValue,
+    values,
+  } = useAuthForm<LoginCredentials>({
     identifier: '',
     password: '',
   });
-  const [errors, setErrors] = useState<LoginErrors>({});
-  const [formMessage, setFormMessage] = useState<string | undefined>(notice);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const setValue = (field: keyof LoginCredentials) => (value: string) => {
-    setValues((current) => ({ ...current, [field]: value }));
-    setErrors((current) => ({ ...current, [field]: undefined }));
-    setFormMessage(undefined);
-  };
+  useEffect(() => {
+    setFormMessage(notice);
+  }, [notice, setFormMessage]);
 
   const handleSubmit = async () => {
-    const nextErrors = validate(values);
+    const nextErrors = validateLogin(values);
     setErrors(nextErrors);
-    if (Object.values(nextErrors).some(Boolean)) {
+    if (hasFormErrors(nextErrors)) {
       return;
     }
 
@@ -111,7 +101,7 @@ export default function LoginPage({
         type="password"
         value={values.password}
       />
-      <p className="forgot-link-row">
+      <p className="mt-2.5 text-right text-[10px] leading-[1.2]">
         <button
           className="text-pink-400"
           onClick={onForgotPassword}
@@ -121,12 +111,15 @@ export default function LoginPage({
         </button>
       </p>
       {formMessage && (
-        <p className="form-message" role="status">
+        <p
+          className="mt-4 rounded-[10px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-[13px] leading-[1.45] text-text-secondary"
+          role="status"
+        >
           {formMessage}
         </p>
       )}
       <GradientButton
-        className="auth-submit auth-submit--compact"
+        className="mt-[clamp(1.25rem,3.8dvh,2.25rem)] lg:mt-[22px]"
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Logging in...' : 'Log in'}

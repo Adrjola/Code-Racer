@@ -323,6 +323,23 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('updates the login notice when a protected route redirects to login again', async () => {
+    const user = userEvent.setup();
+    saveSession(session());
+    window.history.replaceState(null, '', '/dashboard');
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /log out/i }));
+    expect(screen.getByRole('status')).toHaveTextContent(/logged out/i);
+
+    window.history.back();
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/please log in/i),
+    );
+  });
+
   it('restores valid admin sessions and allows admin navigation', async () => {
     const user = userEvent.setup();
     saveSession(
