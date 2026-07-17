@@ -17,6 +17,7 @@ html {
   --auth-login-center-x: 960px;
   --auth-login-scale: 1;
   --auth-scale: 1;
+  --page-scale: 1;
 
   background: #0e0c16;
 }
