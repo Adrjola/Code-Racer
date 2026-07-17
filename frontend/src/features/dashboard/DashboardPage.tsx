@@ -1,5 +1,5 @@
 import Logo from '@/components/Logo';
-import type { AuthSession } from '@/features/auth/auth';
+import type { AuthSession } from '@/features/auth/session';
 
 type DashboardPageProps = {
   notice?: string;

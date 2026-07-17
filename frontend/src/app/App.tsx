@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  clearSession,
-  isSessionExpired,
-  loadSession,
   loginUser,
   registerUser,
-  type AuthSession,
   type LoginCredentials,
   type RegistrationValues,
 } from '@/features/auth/auth';
+import {
+  clearSession,
+  isSessionExpired,
+  loadSession,
+  type AuthSession,
+} from '@/features/auth/session';
 import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import NotFoundPage from '@/features/auth/pages/NotFoundPage';

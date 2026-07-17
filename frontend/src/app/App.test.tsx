@@ -8,7 +8,7 @@ import {
   saveSession,
   type AuthSession,
   type CurrentUser,
-} from '@/features/auth/auth';
+} from '@/features/auth/session';
 import { server } from '@/test/server';
 
 const API_URL = 'http://localhost:8080';

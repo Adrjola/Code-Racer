@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
-import type { CurrentUser } from '@/features/auth/auth';
 import { confirmEmail, readableAuthError } from '@/features/auth/auth';
 import ResendVerificationForm from '@/features/auth/components/ResendVerificationForm';
+import type { CurrentUser } from '@/features/auth/session';
 
 type VerifyEmailPageProps = {
   onBackToLogin: (notice?: string) => void;
