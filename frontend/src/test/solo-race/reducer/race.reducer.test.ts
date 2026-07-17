@@ -224,7 +224,8 @@ describe('raceReducer', () => {
       startedAt: new Date().toISOString(),
     });
 
-    const unchanged = raceReducer(state, { type: 'UNKNOWN_ACTION' } as any);
+    // @ts-expect-error testing unknown action type
+    const unchanged = raceReducer(state, { type: 'UNKNOWN_ACTION' });
     expect(unchanged).toEqual(state);
   });
 
