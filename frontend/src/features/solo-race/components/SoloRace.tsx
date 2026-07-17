@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { processBeforeInputData } from './processBeforeInputData';
 import { useExactCodeTypingEngine } from '../hooks/useExactCodeTypingEngine';
 import { useCountdown } from '../hooks/useCountdown';
 import type { ExactCodeTypingEngineTransport, RaceSnippet } from '../types/race.types';
@@ -15,21 +16,6 @@ interface SoloRaceProps {
   onRestartRace?: () => void | Promise<void>;
   onStartRace?: () => void | Promise<void>;
   errorMessage?: string | null;
-}
-
-export function processBeforeInputData(
-  isLocked: boolean,
-  data: string | null | undefined,
-  handleInput: (char: string) => void,
-  preventDefault: () => void,
-) {
-  if (isLocked) return;
-  if (!data) return;
-
-  preventDefault();
-  for (const char of data) {
-    handleInput(char);
-  }
 }
 
 export const SoloRace: React.FC<SoloRaceProps> = ({
@@ -54,18 +40,18 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
 
   const isLocked = !hasRaceStarted || startCountdown !== null || (countdown !== null && countdown > 0);
 
-  const focusInput = () => {
+  const focusInput = useCallback(() => {
     /* v8 ignore next */
     if (!isLocked) {
       inputRef.current?.focus();
     }
-  };
+  }, [isLocked]);
 
   useEffect(() => {
     if (!isLocked) {
       focusInput();
     }
-  }, [isLocked]);
+  }, [isLocked, focusInput]);
 
   useEffect(() => {
     if (state.isFinished || !hasRaceStarted || raceStartedAtMs === null) {
@@ -87,12 +73,16 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     }
 
     if (startCountdown <= 1) {
-      setStartCountdown(null);
-      const startTimestamp = Date.now();
-      setRaceStartedAtMs(startTimestamp);
-      setNowMs(startTimestamp);
-      focusInput();
-      return;
+      const timer = window.setTimeout(() => {
+        setStartCountdown(null);
+        const startTimestamp = Date.now();
+        setRaceStartedAtMs(startTimestamp);
+        setNowMs(startTimestamp);
+        focusInput();
+      }, 0);
+      return () => {
+        window.clearTimeout(timer);
+      };
     }
 
     const timer = window.setTimeout(() => {
@@ -102,14 +92,17 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [startCountdown]);
+  }, [startCountdown, focusInput]);
 
   useEffect(() => {
-    setHasRaceStarted(false);
-    setRaceStartedAtMs(null);
-    setNowMs(Date.now());
-    setFinishedElapsedSeconds(null);
-    setStartCountdown(null);
+    const reset = setTimeout(() => {
+      setHasRaceStarted(false);
+      setRaceStartedAtMs(null);
+      setNowMs(Date.now());
+      setFinishedElapsedSeconds(null);
+      setStartCountdown(null);
+    }, 0);
+    return () => clearTimeout(reset);
   }, [snippet.id]);
 
   const terminateRaceToMenu = () => {
@@ -204,12 +197,13 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
 
   useEffect(() => {
     if (hasRaceStarted && state.isFinished && finishedElapsedSeconds === null) {
-      setFinishedElapsedSeconds(activeElapsedSeconds);
-      return;
+      const t = setTimeout(() => setFinishedElapsedSeconds(activeElapsedSeconds), 0);
+      return () => clearTimeout(t);
     }
 
     if ((!state.isFinished || !hasRaceStarted) && finishedElapsedSeconds !== null) {
-      setFinishedElapsedSeconds(null);
+      const t = setTimeout(() => setFinishedElapsedSeconds(null), 0);
+      return () => clearTimeout(t);
     }
   }, [activeElapsedSeconds, finishedElapsedSeconds, hasRaceStarted, state.isFinished]);
 
@@ -319,8 +313,8 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
                   onKeyDown={handleKeyDown}
                   onKeyUp={handleKeyUp}
                   /* v8 ignore next */
-                  onBeforeInput={(e: React.CompositionEvent<HTMLTextAreaElement> | any) =>
-                    processBeforeInputData(isLocked, e.data, handleInput, () => e.preventDefault())
+                  onBeforeInput={(e: React.FormEvent<HTMLTextAreaElement>) =>
+                    processBeforeInputData(isLocked, (e.nativeEvent as InputEvent).data, handleInput, () => e.preventDefault())
                   }
                   onPaste={preventDefault}
                   onDrop={preventDefault}
