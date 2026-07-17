@@ -444,13 +444,35 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders solo race page for /play/solo route', async () => {
+  it('sends an unauthenticated visitor from /play/solo to login', () => {
     window.history.replaceState(null, '', '/play/solo');
 
     render(<App />);
 
     expect(
-      await screen.findByRole('button', { name: /start race/i }),
+      screen.getByRole('heading', { name: /welcome back/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/please log in/i);
+  });
+
+  it('falls back to snippet selection when /play/solo has no started attempt', async () => {
+    server.use(
+      http.get(`${API_URL}/api/categories`, () =>
+        HttpResponse.json({
+          data: {
+            content: [],
+            page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
+          },
+        }),
+      ),
+    );
+    saveSession(session());
+    window.history.replaceState(null, '', '/play/solo');
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole('heading', { name: /^category$/i }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: /page not found/i }),

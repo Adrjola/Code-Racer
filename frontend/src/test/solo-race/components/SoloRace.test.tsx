@@ -240,11 +240,14 @@ describe('SoloRace Component', () => {
     expect(handleDelete).not.toHaveBeenCalled();
   });
 
-  it('blurs code hint text before race start', () => {
-    vi.useFakeTimers();
+  it('blurs the code until the server countdown elapses', () => {
     mockEngine(baseHookState);
+    // Three seconds still to wait on the server's clock.
+    mockCountdown.mockReturnValue(3);
 
-    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    const { rerender } = render(
+      <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
+    );
 
     const codePreview = screen.getByText('const x = 1;').closest('pre');
     expect(codePreview?.className).toContain('blur-[2px]');
@@ -252,9 +255,9 @@ describe('SoloRace Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
     expect(codePreview?.className).toContain('blur-[2px]');
 
-    finishStartCountdown();
+    mockCountdown.mockReturnValue(0);
+    rerender(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     expect(codePreview?.className).not.toContain('blur-[2px]');
-    vi.useRealTimers();
   });
 
   it('renders incorrect input segment when currentInput exists', () => {
@@ -280,8 +283,7 @@ describe('SoloRace Component', () => {
     expect(screen.getByText('0:00')).toBeDefined();
   });
 
-  it('keeps input locked until start race is pressed', () => {
-    vi.useFakeTimers();
+  it('keeps input locked until the server countdown elapses', () => {
     const mockHandleDelete = vi.fn();
     mockEngine({
       state: {
@@ -295,20 +297,24 @@ describe('SoloRace Component', () => {
       handleDelete: mockHandleDelete,
     });
 
-    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    mockCountdown.mockReturnValue(3);
+    const { rerender } = render(
+      <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
+    );
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.keyDown(textarea, { key: 'Backspace' });
     expect(mockHandleDelete).not.toHaveBeenCalled();
 
+    // Started, but the server's start time has not arrived yet.
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
     fireEvent.keyDown(textarea, { key: 'Backspace' });
     expect(mockHandleDelete).not.toHaveBeenCalled();
 
-    finishStartCountdown();
+    mockCountdown.mockReturnValue(0);
+    rerender(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     fireEvent.keyDown(textarea, { key: 'Backspace' });
     expect(mockHandleDelete).toHaveBeenCalledTimes(1);
-    vi.useRealTimers();
   });
 
   it('hides world best menu once race starts', () => {

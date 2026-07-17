@@ -43,14 +43,17 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     number | null
   >(null);
   const [hasRaceStarted, setHasRaceStarted] = useState(false);
-  const [raceStartedAtMs, setRaceStartedAtMs] = useState<number | null>(null);
-  const [startCountdown, setStartCountdown] = useState<number | null>(null);
   const [isBootstrappingRace, setIsBootstrappingRace] = useState(false);
 
+  // The server's startedAt is the only start time. Deriving it means the clock
+  // and the lock can never disagree with the countdown the player sees.
+  const raceStartedAtMs =
+    hasRaceStarted && startedAt ? Date.parse(startedAt) : null;
+
+  // Without a server startedAt there is no attempt to record progress against,
+  // so typing stays locked even if a start was requested.
   const isLocked =
-    !hasRaceStarted ||
-    startCountdown !== null ||
-    (countdown !== null && countdown > 0);
+    !hasRaceStarted || !startedAt || (countdown !== null && countdown > 0);
 
   const focusInput = () => {
     /* v8 ignore next */
@@ -79,31 +82,6 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     };
   }, [hasRaceStarted, raceStartedAtMs, state.isFinished]);
 
-  useEffect(() => {
-    if (startCountdown === null) {
-      return;
-    }
-
-    // Both the tick and the hand-off happen on the timer, so the effect never
-    // sets state during the render that scheduled it.
-    const timer = window.setTimeout(() => {
-      if (startCountdown <= 1) {
-        setStartCountdown(null);
-        const startTimestamp = Date.now();
-        setRaceStartedAtMs(startTimestamp);
-        setNowMs(startTimestamp);
-        focusInput();
-        return;
-      }
-
-      setStartCountdown(startCountdown - 1);
-    }, 1000);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [startCountdown]);
-
   // Loading a different snippet returns the screen to its pre-race state. This
   // is React's documented "adjust state when a prop changes" pattern: it runs
   // during render rather than in an effect, so there is no extra render pass.
@@ -111,17 +89,13 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   if (renderedSnippetId !== snippet.id) {
     setRenderedSnippetId(snippet.id);
     setHasRaceStarted(false);
-    setRaceStartedAtMs(null);
     setFinishedElapsedSeconds(null);
-    setStartCountdown(null);
-    // nowMs is deliberately left alone: with raceStartedAtMs null the elapsed
+    // nowMs is deliberately left alone: with the race not started the elapsed
     // time reads 0 anyway, and Date.now() cannot be called during render.
   }
 
   const terminateRaceToMenu = () => {
     setHasRaceStarted(false);
-    setStartCountdown(null);
-    setRaceStartedAtMs(null);
     setFinishedElapsedSeconds(null);
     setNowMs(Date.now());
   };
@@ -188,10 +162,8 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       try {
         await onRestartRace();
         setHasRaceStarted(true);
-        setStartCountdown(3);
       } catch {
         setHasRaceStarted(false);
-        setStartCountdown(null);
       } finally {
         setIsBootstrappingRace(false);
       }
@@ -199,7 +171,6 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     }
 
     setHasRaceStarted(true);
-    setStartCountdown(3);
   };
 
   const typedLength = Array.from(state.acceptedPrefix).length;
@@ -248,10 +219,8 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       try {
         await onStartRace();
         setHasRaceStarted(true);
-        setStartCountdown(3);
       } catch {
         setHasRaceStarted(false);
-        setStartCountdown(null);
       } finally {
         setIsBootstrappingRace(false);
       }
@@ -259,7 +228,6 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     }
 
     setHasRaceStarted(true);
-    setStartCountdown(3);
   };
 
   // Rendering characters
@@ -331,10 +299,10 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
                 </div>
               ) : null}
 
-              {startCountdown !== null && (
+              {hasRaceStarted && countdown !== null && countdown > 0 && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <span className="font-mono text-8xl font-extrabold leading-none text-[#FDE68A] drop-shadow-[0_0_24px_rgba(244,114,182,0.55)]">
-                    {startCountdown}
+                    {countdown}
                   </span>
                 </div>
               )}
@@ -346,16 +314,18 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleKeyUp}
                 /* v8 ignore next */
-                onBeforeInput={(e: React.FormEvent<HTMLTextAreaElement>) =>
-                  processBeforeInputData(
-                    isLocked,
-                    // React types onBeforeInput as a FormEvent; the typed character
-                    // only exists on the underlying native InputEvent.
-                    (e.nativeEvent as InputEvent).data,
-                    handleInput,
-                    () => e.preventDefault(),
-                  )
-                }
+                onBeforeInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
+                  // Read the character from React's synthetic event, not from
+                  // e.nativeEvent. React normalises it here for every input
+                  // path, and the spacebar in particular is synthesised from a
+                  // keypress whose native KeyboardEvent carries no data at all.
+                  const { data } = e as React.FormEvent<HTMLTextAreaElement> & {
+                    data?: string | null;
+                  };
+                  processBeforeInputData(isLocked, data, handleInput, () =>
+                    e.preventDefault(),
+                  );
+                }}
                 onPaste={preventDefault}
                 onDrop={preventDefault}
                 autoCapitalize="off"

@@ -30,6 +30,9 @@ export type StartPhase =
   | { phase: 'starting' };
 
 export type UseSoloSetupOptions = {
+  /** Selection carried over from the setup screen. */
+  initialCategoryId?: string;
+  initialDifficulty?: Difficulty;
   onSessionExpired?: () => void;
 };
 
@@ -50,10 +53,10 @@ export function useSoloSetup(
   options: UseSoloSetupOptions = {},
 ): UseSoloSetupResult {
   const [categoryId, setCategoryIdState] = useState<string | undefined>(
-    undefined,
+    options.initialCategoryId,
   );
   const [difficulty, setDifficultyState] = useState<Difficulty | undefined>(
-    undefined,
+    options.initialDifficulty,
   );
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);

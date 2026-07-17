@@ -19,9 +19,6 @@ import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPa
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
 import LobbyPage from '@/features/lobby/components/LobbyPage';
-import { SoloRace } from '@/features/solo-race/components/SoloRace';
-import { useSoloRaceSession } from '@/features/solo-race/hooks/useSoloRaceSession';
-import type { RaceSnippet } from '@/features/solo-race/types/race.types';
 import type { SoloSelection } from '@/features/solo/soloApi';
 import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
 import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
@@ -115,45 +112,11 @@ function pathFromRoute(route: Route): string {
   }
 }
 
-const FALLBACK_SNIPPET: RaceSnippet = {
-  id: 'fallback-snippet',
-  code: '',
-  type: 'EASY',
-};
-
-function SoloRacePage({ onGoLobby }: { onGoLobby: () => void }) {
-  const { session, preview, isLoading, error, startNewRace, resetToMenuState } =
-    useSoloRaceSession();
-
-  const activeSnippet =
-    session?.snippet ?? preview?.snippet ?? FALLBACK_SNIPPET;
-  const startedAt = session?.startedAt ?? new Date().toISOString();
-  const shouldShowSnippetError =
-    !session && !preview && !isLoading && error === 'failed_to_start_solo_race';
-  const errorMessage = shouldShowSnippetError
-    ? 'Unable to load solo race snippet.'
-    : null;
-
-  return (
-    <SoloRace
-      errorMessage={errorMessage}
-      onLobbyNavigate={async () => {
-        await resetToMenuState();
-        onGoLobby();
-      }}
-      onRestartRace={startNewRace}
-      onStartRace={startNewRace}
-      snippet={activeSnippet}
-      startedAt={startedAt}
-      transport={session?.transport}
-    />
-  );
-}
-
 function isProtected(route: Route) {
   return (
     route === 'admin' ||
     route === 'dashboard' ||
+    route === 'playSolo' ||
     route === 'soloPreview' ||
     route === 'soloSetup'
   );
@@ -175,6 +138,11 @@ function defaultAuthenticatedRoute(session: AuthSession): Route {
 function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
   if (!session && isProtected(route)) {
     return { loginNotice: LOGIN_REQUIRED_MESSAGE, route: 'login' };
+  }
+
+  // The race lives on the run screen now, so the old standalone path leads there.
+  if (session && route === 'playSolo') {
+    return { route: 'soloPreview' };
   }
 
   if (session && isAuthRoute(route)) {
@@ -357,8 +325,8 @@ export default function App() {
     }
     return (
       <SoloPreviewPage
-        onBack={() => navigate('soloSetup')}
-        onLogout={handleLogout}
+        onExitRace={() => navigate('dashboard')}
+        onSessionExpired={handleSessionExpired}
         selection={soloSelection}
       />
     );
@@ -399,10 +367,6 @@ export default function App() {
         token={new URLSearchParams(window.location.search).get('token')}
       />
     );
-  }
-
-  if (route === 'playSolo') {
-    return <SoloRacePage onGoLobby={() => navigate('lobby')} />;
   }
 
   if (route === 'notFound') {
