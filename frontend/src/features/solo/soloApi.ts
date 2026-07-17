@@ -38,6 +38,12 @@ export type FetchRandomSnippetParams = {
   excludeId?: string;
 };
 
+export type SoloSelection = {
+  categoryId: string;
+  categoryName: string;
+  difficulty: Difficulty;
+};
+
 type BaseResponse<T> = {
   data: T;
 };

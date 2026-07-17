@@ -1,5 +1,6 @@
 import lockBody from '../assets/icons/lock-body.svg';
 import lockShackle from '../assets/icons/lock-shackle.svg';
+import logoChevronRight from '../assets/icons/logo-chevron-right.svg';
 import mail from '../assets/icons/mail.svg';
 import userBody from '../assets/icons/user-body.svg';
 import userHead from '../assets/icons/user-head.svg';
@@ -59,11 +60,29 @@ export function MailIcon() {
   );
 }
 
-export function PersonIcon() {
+export function ChevronRightIcon({
+  className = 'h-3.5 w-2',
+}: { className?: string } = {}) {
+  return (
+    <span className={`relative block shrink-0 ${className}`} aria-hidden="true">
+      <img
+        alt=""
+        className="absolute inset-0 block h-full w-full max-w-none"
+        src={logoChevronRight}
+      />
+    </span>
+  );
+}
+
+type ModeIconProps = {
+  className?: string;
+};
+
+export function PersonIcon({ className = 'size-6' }: ModeIconProps = {}) {
   return (
     <svg
       aria-hidden="true"
-      className="size-6 text-white"
+      className={`${className} text-white`}
       fill="none"
       viewBox="0 0 24 24"
     >
@@ -78,11 +97,11 @@ export function PersonIcon() {
   );
 }
 
-export function PeopleIcon() {
+export function PeopleIcon({ className = 'size-6' }: ModeIconProps = {}) {
   return (
     <svg
       aria-hidden="true"
-      className="size-6 text-white"
+      className={`${className} text-white`}
       fill="none"
       viewBox="0 0 24 24"
     >

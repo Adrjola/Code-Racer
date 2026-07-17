@@ -20,7 +20,11 @@ export type SnippetPhase =
   | { phase: 'ready'; snippet: SnippetPreview };
 
 export type StartPhase =
-  | { attempt: StartSoloAttemptResponse; phase: 'started'; snippet: SnippetPreview }
+  | {
+      attempt: StartSoloAttemptResponse;
+      phase: 'started';
+      snippet: SnippetPreview;
+    }
   | { phase: 'error'; message: string }
   | { phase: 'idle' }
   | { phase: 'starting' };

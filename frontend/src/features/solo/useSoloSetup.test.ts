@@ -47,7 +47,10 @@ function mockEmptyCategories() {
   server.use(
     http.get(`${API_URL}/api/categories`, () =>
       HttpResponse.json({
-        data: { content: [], page: { number: 0, size: 100, totalElements: 0, totalPages: 0 } },
+        data: {
+          content: [],
+          page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
+        },
       }),
     ),
   );
@@ -208,7 +211,9 @@ describe('useSoloSetup', () => {
       result.current.start();
     });
 
-    await waitFor(() => expect(result.current.startPhase.phase).toBe('started'));
+    await waitFor(() =>
+      expect(result.current.startPhase.phase).toBe('started'),
+    );
     expect(startCalls).toBe(1);
     expect(
       result.current.startPhase.phase === 'started' &&

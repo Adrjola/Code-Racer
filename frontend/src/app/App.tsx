@@ -16,6 +16,9 @@ import RegisterPage from '@/features/auth/pages/RegisterPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
+import type { SoloSelection } from '@/features/solo/soloApi';
+import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
+import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
 
 type Route =
   | 'admin'
@@ -25,6 +28,8 @@ type Route =
   | 'notFound'
   | 'pending'
   | 'register'
+  | 'soloPreview'
+  | 'soloSetup'
   | 'verify';
 
 type AppState = {
@@ -33,6 +38,7 @@ type AppState = {
   pendingEmail?: string;
   route: Route;
   session: AuthSession | null;
+  soloSelection?: SoloSelection;
 };
 
 type RouteResult = Pick<AppState, 'dashboardNotice' | 'loginNotice' | 'route'>;
@@ -55,6 +61,10 @@ function routeFromPath(pathname: string): Route {
       return 'login';
     case '/not-found':
       return 'notFound';
+    case '/solo':
+      return 'soloSetup';
+    case '/solo/preview':
+      return 'soloPreview';
     case '/verify-email-pending':
       return 'pending';
     case '/verify-email':
@@ -80,13 +90,22 @@ function pathFromRoute(route: Route): string {
       return '/verify-email-pending';
     case 'register':
       return '/';
+    case 'soloPreview':
+      return '/solo/preview';
+    case 'soloSetup':
+      return '/solo';
     case 'verify':
       return '/verify-email';
   }
 }
 
 function isProtected(route: Route) {
-  return route === 'admin' || route === 'dashboard';
+  return (
+    route === 'admin' ||
+    route === 'dashboard' ||
+    route === 'soloPreview' ||
+    route === 'soloSetup'
+  );
 }
 
 function isAuthRoute(route: Route) {
@@ -138,7 +157,14 @@ function createInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(createInitialState);
-  const { dashboardNotice, loginNotice, pendingEmail, route, session } = state;
+  const {
+    dashboardNotice,
+    loginNotice,
+    pendingEmail,
+    route,
+    session,
+    soloSelection,
+  } = state;
 
   const commitRoute = useCallback(
     (
@@ -229,6 +255,18 @@ export default function App() {
     commitRoute('login', null, false, { loginNotice: notice });
   };
 
+  const handleSessionExpired = () => {
+    clearSession();
+    commitRoute('login', null, true, {
+      loginNotice: SESSION_EXPIRED_MESSAGE,
+    });
+  };
+
+  const handleSelectSolo = (selection: SoloSelection) => {
+    setState((current) => ({ ...current, soloSelection: selection }));
+    commitRoute('soloPreview', session);
+  };
+
   if (session && (route === 'admin' || route === 'dashboard')) {
     return (
       <DashboardPage
@@ -236,8 +274,40 @@ export default function App() {
         onGoAdmin={() => navigate('admin')}
         onGoDashboard={() => navigate('dashboard')}
         onLogout={handleLogout}
+        onPlaySolo={() => navigate('soloSetup')}
         session={session}
         view={route === 'admin' ? 'admin' : 'dashboard'}
+      />
+    );
+  }
+
+  if (session && route === 'soloSetup') {
+    return (
+      <SoloSetupPage
+        onGoDashboard={() => navigate('dashboard')}
+        onLogout={handleLogout}
+        onSelect={handleSelectSolo}
+        onSessionExpired={handleSessionExpired}
+      />
+    );
+  }
+
+  if (session && route === 'soloPreview') {
+    if (!soloSelection) {
+      return (
+        <SoloSetupPage
+          onGoDashboard={() => navigate('dashboard')}
+          onLogout={handleLogout}
+          onSelect={handleSelectSolo}
+          onSessionExpired={handleSessionExpired}
+        />
+      );
+    }
+    return (
+      <SoloPreviewPage
+        onBack={() => navigate('soloSetup')}
+        onLogout={handleLogout}
+        selection={soloSelection}
       />
     );
   }
