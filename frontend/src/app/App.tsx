@@ -19,7 +19,6 @@ import DashboardPage from '@/features/dashboard/DashboardPage';
 import LobbyPage from '@/features/lobby/components/LobbyPage';
 import { SoloRace } from '@/features/solo-race/components/SoloRace';
 import { useSoloRaceSession } from '@/features/solo-race/hooks/useSoloRaceSession';
-import { routes } from '@/routes';
 import type { RaceSnippet } from '@/features/solo-race/types/race.types';
 
 type Route =
