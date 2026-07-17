@@ -1,5 +1,5 @@
 import Logo from '@/components/Logo';
-import CategoriesPage from '@/features/admin/pages/CategoriesPage';
+import AdminCatalogPage from '@/features/admin/pages/AdminCatalogPage';
 import type { AuthSession } from '@/features/auth/session';
 
 type DashboardPageProps = {
@@ -74,7 +74,7 @@ export default function DashboardPage({
               </p>
               <h1 className="mt-2 text-3xl font-extrabold">Admin console</h1>
             </section>
-            <CategoriesPage />
+            <AdminCatalogPage />
           </>
         ) : (
           <section>

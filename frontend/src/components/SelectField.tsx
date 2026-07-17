@@ -18,8 +18,9 @@ type SelectFieldProps = {
 const labelClassName =
   'block text-sm font-semibold text-text-secondary lg:text-[14px]';
 
+// truncate keeps a long option name from running under the dropdown arrow.
 const selectClassName =
-  'mt-[0.45rem] h-11 w-full rounded-[0.625rem] border border-[rgb(244_114_182_/_0.22)] bg-white/[0.02] px-3 font-mono text-sm text-text-primary outline-none disabled:cursor-not-allowed disabled:opacity-60';
+  'mt-[0.45rem] h-11 w-full truncate rounded-[0.625rem] border border-[rgb(244_114_182_/_0.22)] bg-white/[0.02] px-3 font-mono text-sm text-text-primary outline-none disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function SelectField({
   className = '',
