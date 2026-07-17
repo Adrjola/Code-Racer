@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { soloRaceApi, type SoloWorldBestResponse } from '../api/soloRaceApi';
 import playIcon from '../../../assets/play.svg';
 import starIcon from '../../../assets/star.svg';
@@ -16,32 +16,33 @@ function formatHolder(holder: string | null | undefined): string {
 }
 
 export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRaceWorldBestProps) {
-  const [records, setRecords] = useState<SoloWorldBestResponse | null>(recordsProp ?? null);
+  const [fetchedRecords, setFetchedRecords] = useState<SoloWorldBestResponse | null>(null);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (recordsProp) {
-      setRecords(recordsProp);
+    if (recordsProp || hasFetchedRef.current) {
       return;
     }
+    hasFetchedRef.current = true;
 
     let active = true;
     void soloRaceApi
       .getWorldBest()
       .then((response) => {
         if (active) {
-          setRecords(response);
+          setFetchedRecords(response);
         }
       })
       .catch(() => {
-        if (active) {
-          setRecords(null);
-        }
+        /* ignore – records stay null (N/A) */
       });
 
     return () => {
       active = false;
     };
   }, [recordsProp]);
+
+  const records = recordsProp ?? fetchedRecords;
 
   const cpmValue = records?.cpm ?? 'N/A';
   const cpmHolder = formatHolder(records?.cpmHolderName);

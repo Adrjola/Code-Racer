@@ -22,7 +22,7 @@ describe('SoloRaceWorldBest', () => {
   });
 
   it('renders N/A values when world best data is not available', async () => {
-    (soloRaceApi.getWorldBest as any).mockRejectedValue(new Error('request_failed_404'));
+    vi.mocked(soloRaceApi.getWorldBest).mockRejectedValue(new Error('request_failed_404'));
 
     render(<SoloRaceWorldBest />);
 
@@ -33,7 +33,7 @@ describe('SoloRaceWorldBest', () => {
   });
 
   it('renders values from backend world best response', async () => {
-    (soloRaceApi.getWorldBest as any).mockResolvedValue({
+    vi.mocked(soloRaceApi.getWorldBest).mockResolvedValue({
       cpm: 142,
       cpmHolderName: 'girlypop',
       time: '0:50',
