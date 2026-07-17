@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.coderacer.backend.common.exception.ValidationException;
 import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.soloattempt.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.soloattempt.mapper.SoloAttemptMapper;
@@ -39,6 +40,11 @@ public class SoloAttemptHistoryService {
       Instant startedFrom,
       Instant startedTo,
       Pageable pageable) {
+    if (state != null && !SoloAttemptState.terminalStates().contains(state)) {
+      throw new ValidationException(
+          "Validation failed: state must be one of " + SoloAttemptState.terminalStates());
+    }
+
     Specification<SoloAttempt> specification =
         ownHistory(userId, state, categoryId, difficulty, startedFrom, startedTo);
     return repository.findAll(specification, deterministic(pageable)).map(mapper::toResultResponse);

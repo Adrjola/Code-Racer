@@ -12,11 +12,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.common.exception.GlobalExceptionHandler;
+import org.coderacer.backend.common.exception.ValidationException;
 import org.coderacer.backend.snippet.model.CodeSnippet;
 import org.coderacer.backend.snippet.model.Difficulty;
+import org.coderacer.backend.soloattempt.dto.SoloAttemptResultResponse;
+import org.coderacer.backend.soloattempt.dto.SoloAttemptSnippetSummary;
 import org.coderacer.backend.soloattempt.exception.OneActiveAttemptConflictException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.soloattempt.exception.SoloAttemptNotFoundException;
@@ -24,12 +28,15 @@ import org.coderacer.backend.soloattempt.exception.SoloAttemptOwnershipException
 import org.coderacer.backend.soloattempt.identity.CurrentUserProvider;
 import org.coderacer.backend.soloattempt.mapper.SoloAttemptMapper;
 import org.coderacer.backend.soloattempt.model.SoloAttempt;
+import org.coderacer.backend.soloattempt.model.SoloAttemptState;
 import org.coderacer.backend.soloattempt.service.ProgressResult;
 import org.coderacer.backend.soloattempt.service.SoloAttemptHistoryService;
 import org.coderacer.backend.soloattempt.service.SoloAttemptService;
 import org.coderacer.backend.user.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -243,6 +250,95 @@ class SoloAttemptControllerTest {
         .perform(post("/api/solo-attempts/" + attemptId + "/abandon"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.state").value("ABANDONED"));
+  }
+
+  @Test
+  void history_returns200AndBindsFiltersAndPageable() throws Exception {
+    UUID userId = UUID.randomUUID();
+    UUID categoryId = UUID.randomUUID();
+    UUID attemptId = UUID.randomUUID();
+    SoloAttemptResultResponse result =
+        new SoloAttemptResultResponse(
+            attemptId,
+            new SoloAttemptSnippetSummary(
+                UUID.randomUUID(), UUID.randomUUID(), 1, "FizzBuzz", categoryId),
+            Difficulty.EASY,
+            SoloAttemptState.COMPLETED,
+            45_000L,
+            400,
+            Instant.parse("2026-01-01T00:00:00Z"),
+            Instant.parse("2026-01-01T00:00:45Z"));
+    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(historyService.findHistory(
+            eq(userId),
+            eq(SoloAttemptState.COMPLETED),
+            eq(categoryId),
+            eq(Difficulty.EASY),
+            eq(Instant.parse("2026-01-01T00:00:00Z")),
+            eq(Instant.parse("2026-01-02T00:00:00Z")),
+            any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(result)));
+
+    mockMvc
+        .perform(
+            get("/api/solo-attempts")
+                .param("state", "COMPLETED")
+                .param("categoryId", categoryId.toString())
+                .param("difficulty", "EASY")
+                .param("startedFrom", "2026-01-01T00:00:00Z")
+                .param("startedTo", "2026-01-02T00:00:00Z")
+                .param("page", "0")
+                .param("size", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content[0].attemptId").value(attemptId.toString()))
+        .andExpect(jsonPath("$.data.content[0].state").value("COMPLETED"))
+        .andExpect(jsonPath("$.data.content[0].cpm").value(400))
+        .andExpect(jsonPath("$.data.content[0].snippet.title").value("FizzBuzz"))
+        .andExpect(jsonPath("$.data.page.totalElements").value(1));
+  }
+
+  @Test
+  void history_returns200WithNoFilters() throws Exception {
+    UUID userId = UUID.randomUUID();
+    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(historyService.findHistory(
+            eq(userId), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of()));
+
+    mockMvc
+        .perform(get("/api/solo-attempts"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content").isEmpty());
+  }
+
+  @Test
+  void history_returns400ForUnknownStateValue() throws Exception {
+    when(currentUserProvider.resolve(any())).thenReturn(UUID.randomUUID());
+
+    mockMvc
+        .perform(get("/api/solo-attempts").param("state", "NOT_A_STATE"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+  }
+
+  @Test
+  void history_returns400ForNonTerminalStateFilter() throws Exception {
+    UUID userId = UUID.randomUUID();
+    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(historyService.findHistory(
+            eq(userId),
+            eq(SoloAttemptState.ACTIVE),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            any(Pageable.class)))
+        .thenThrow(new ValidationException("Validation failed: state must be a finished attempt"));
+
+    mockMvc
+        .perform(get("/api/solo-attempts").param("state", "ACTIVE"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
   }
 
   @Test

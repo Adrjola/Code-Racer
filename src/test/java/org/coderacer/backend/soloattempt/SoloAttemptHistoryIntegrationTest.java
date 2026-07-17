@@ -1,6 +1,7 @@
 package org.coderacer.backend.soloattempt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import org.coderacer.backend.AbstractPostgresIntegrationTest;
 import org.coderacer.backend.category.model.Category;
 import org.coderacer.backend.category.repository.CategoryRepository;
+import org.coderacer.backend.common.exception.ValidationException;
 import org.coderacer.backend.snippet.model.CodeSnippet;
 import org.coderacer.backend.snippet.model.Difficulty;
 import org.coderacer.backend.snippet.repository.CodeSnippetRepository;
@@ -64,6 +66,17 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
 
     assertThat(historyService.findHistory(alice.getId(), null, null, null, null, null, firstPage))
         .isEmpty();
+  }
+
+  @Test
+  void filteringByANonTerminalStateIsRejected() {
+    User alice = newUser("alice");
+
+    assertThatThrownBy(
+            () ->
+                historyService.findHistory(
+                    alice.getId(), SoloAttemptState.ACTIVE, null, null, null, null, firstPage))
+        .isInstanceOf(ValidationException.class);
   }
 
   @Test
