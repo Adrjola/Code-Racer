@@ -16,6 +16,10 @@ import RegisterPage from '@/features/auth/pages/RegisterPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
+import LobbyPage from '@/features/lobby/components/LobbyPage';
+import { SoloRace } from '@/features/solo-race/components/SoloRace';
+import { useSoloRaceSession } from '@/features/solo-race/hooks/useSoloRaceSession';
+import type { RaceSnippet } from '@/features/solo-race/types/race.types';
 import type { SoloSelection } from '@/features/solo/soloApi';
 import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
 import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
@@ -24,9 +28,11 @@ type Route =
   | 'admin'
   | 'dashboard'
   | 'forgot'
+  | 'lobby'
   | 'login'
   | 'notFound'
   | 'pending'
+  | 'playSolo'
   | 'register'
   | 'soloPreview'
   | 'soloSetup'
@@ -57,6 +63,8 @@ function routeFromPath(pathname: string): Route {
       return 'dashboard';
     case '/forgot-password':
       return 'forgot';
+    case '/lobby':
+      return 'lobby';
     case '/login':
       return 'login';
     case '/not-found':
@@ -69,6 +77,8 @@ function routeFromPath(pathname: string): Route {
       return 'pending';
     case '/verify-email':
       return 'verify';
+    case '/play/solo':
+      return 'playSolo';
     default:
       return 'notFound';
   }
@@ -82,12 +92,16 @@ function pathFromRoute(route: Route): string {
       return '/dashboard';
     case 'forgot':
       return '/forgot-password';
+    case 'lobby':
+      return '/lobby';
     case 'login':
       return '/login';
     case 'notFound':
       return '/not-found';
     case 'pending':
       return '/verify-email-pending';
+    case 'playSolo':
+      return '/play/solo';
     case 'register':
       return '/';
     case 'soloPreview':
@@ -97,6 +111,40 @@ function pathFromRoute(route: Route): string {
     case 'verify':
       return '/verify-email';
   }
+}
+
+const FALLBACK_SNIPPET: RaceSnippet = {
+  id: 'fallback-snippet',
+  code: '',
+  type: 'EASY',
+};
+
+function SoloRacePage({ onGoLobby }: { onGoLobby: () => void }) {
+  const { session, preview, isLoading, error, startNewRace, resetToMenuState } =
+    useSoloRaceSession();
+
+  const activeSnippet = session?.snippet ?? preview?.snippet ?? FALLBACK_SNIPPET;
+  const startedAt = session?.startedAt ?? new Date().toISOString();
+  const shouldShowSnippetError =
+    !session && !preview && !isLoading && error === 'failed_to_start_solo_race';
+  const errorMessage = shouldShowSnippetError
+    ? 'Unable to load solo race snippet.'
+    : null;
+
+  return (
+    <SoloRace
+      errorMessage={errorMessage}
+      onLobbyNavigate={async () => {
+        await resetToMenuState();
+        onGoLobby();
+      }}
+      onRestartRace={startNewRace}
+      onStartRace={startNewRace}
+      snippet={activeSnippet}
+      startedAt={startedAt}
+      transport={session?.transport}
+    />
+  );
 }
 
 function isProtected(route: Route) {
@@ -273,6 +321,7 @@ export default function App() {
         notice={dashboardNotice}
         onGoAdmin={() => navigate('admin')}
         onGoDashboard={() => navigate('dashboard')}
+        onGoLobby={() => navigate('lobby')}
         onLogout={handleLogout}
         onPlaySolo={() => navigate('soloSetup')}
         session={session}
@@ -316,6 +365,10 @@ export default function App() {
     return <ForgotPasswordPage onBackToLogin={() => navigate('login')} />;
   }
 
+  if (route === 'lobby') {
+    return <LobbyPage onOpenSolo={() => navigate('playSolo')} />;
+  }
+
   if (route === 'login') {
     return (
       <LoginPage
@@ -343,6 +396,10 @@ export default function App() {
         token={new URLSearchParams(window.location.search).get('token')}
       />
     );
+  }
+
+  if (route === 'playSolo') {
+    return <SoloRacePage onGoLobby={() => navigate('lobby')} />;
   }
 
   if (route === 'notFound') {

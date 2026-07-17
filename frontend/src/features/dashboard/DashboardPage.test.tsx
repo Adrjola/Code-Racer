@@ -28,14 +28,20 @@ function session(overrides: Partial<AuthSession> = {}): AuthSession {
   };
 }
 
-function renderDashboard(overrides: Partial<AuthSession> = {}) {
+function renderDashboard(
+  overrides: Partial<{
+    onPlaySolo: () => void;
+    session: AuthSession;
+  }> = {},
+) {
   return render(
     <DashboardPage
       onGoAdmin={vi.fn()}
       onGoDashboard={vi.fn()}
+      onGoLobby={vi.fn()}
       onLogout={vi.fn()}
-      onPlaySolo={vi.fn()}
-      session={session(overrides)}
+      onPlaySolo={overrides.onPlaySolo ?? vi.fn()}
+      session={overrides.session ?? session()}
       view="dashboard"
     />,
   );
@@ -56,16 +62,7 @@ describe('DashboardPage', () => {
   it('starts solo setup when the solo card is activated', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
-    render(
-      <DashboardPage
-        onGoAdmin={vi.fn()}
-        onGoDashboard={vi.fn()}
-        onLogout={vi.fn()}
-        onPlaySolo={onPlaySolo}
-        session={session()}
-        view="dashboard"
-      />,
-    );
+    renderDashboard({ onPlaySolo });
 
     await user.click(
       screen.getByRole('button', { name: /\.\/solo_race.*run/is }),
@@ -77,17 +74,9 @@ describe('DashboardPage', () => {
   it('activates the solo card from the keyboard', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
-    render(
-      <DashboardPage
-        onGoAdmin={vi.fn()}
-        onGoDashboard={vi.fn()}
-        onLogout={vi.fn()}
-        onPlaySolo={onPlaySolo}
-        session={session()}
-        view="dashboard"
-      />,
-    );
+    renderDashboard({ onPlaySolo });
 
+    await user.tab();
     await user.tab();
     await user.tab();
     await user.tab();
@@ -103,16 +92,7 @@ describe('DashboardPage', () => {
   it('does not affect solo when the multiplayer card is clicked', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
-    render(
-      <DashboardPage
-        onGoAdmin={vi.fn()}
-        onGoDashboard={vi.fn()}
-        onLogout={vi.fn()}
-        onPlaySolo={onPlaySolo}
-        session={session()}
-        view="dashboard"
-      />,
-    );
+    renderDashboard({ onPlaySolo });
 
     await user.click(
       screen.getByRole('button', { name: /\.\/multiplayer.*run/is }),
