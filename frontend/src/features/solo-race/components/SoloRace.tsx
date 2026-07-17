@@ -280,66 +280,69 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#08051A] text-slate-50">
-      <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
+    <div className="min-h-[100dvh] overflow-x-hidden bg-[#08051A] font-sans text-slate-50 lg:h-[100dvh] lg:min-h-0 lg:w-screen lg:overflow-hidden">
+      <div className="min-h-[100dvh] lg:fixed lg:left-0 lg:top-0 lg:h-[1080px] lg:min-h-0 lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--page-scale))]">
+        <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
-      <div className="mx-auto mt-10 w-full max-w-[1920px] px-6" onClick={focusInput}>
-        <div className="relative min-h-[980px]">
-          <div className="absolute left-1/2 top-[37px] w-[868.63px] -translate-x-1/2">
-            <SoloRaceStatsRow cpm={cpm} currentLine={line} elapsed={elapsed} progressPercent={progressPercent} totalLines={totalLines} />
-          </div>
+        <main
+          className="mx-auto mt-[110px] w-full px-10"
+          onClick={focusInput}
+        >
+          <div className="grid grid-cols-[minmax(0,1fr)_487px] items-start gap-10">
+            <div className="mx-auto flex w-full max-w-[868.63px] flex-col">
+              <SoloRaceStatsRow cpm={cpm} currentLine={line} elapsed={elapsed} progressPercent={progressPercent} totalLines={totalLines} />
 
-          <div className="absolute left-1/2 top-[125px] w-[611px] -translate-x-1/2">
-            <div
-              className="relative h-[667px] rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-8"
-              style={{ boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)' }}
-            >
-              {renderCode()}
+              <div
+                className="relative h-[667px] w-full rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-8"
+                style={{ boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)' }}
+              >
+                {renderCode()}
 
-              {errorMessage ? (
-                <div className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100">
-                  {errorMessage}
-                </div>
-              ) : null}
+                {errorMessage ? (
+                  <div className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100">
+                    {errorMessage}
+                  </div>
+                ) : null}
 
-              {startCountdown !== null && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <span className="font-mono text-8xl font-extrabold leading-none text-[#FDE68A] drop-shadow-[0_0_24px_rgba(244,114,182,0.55)]">
-                    {startCountdown}
-                  </span>
-                </div>
-              )}
+                {startCountdown !== null && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="font-mono text-8xl font-extrabold leading-none text-[#FDE68A] drop-shadow-[0_0_24px_rgba(244,114,182,0.55)]">
+                      {startCountdown}
+                    </span>
+                  </div>
+                )}
 
-              <textarea
-                ref={inputRef}
-                readOnly={isLocked}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-default resize-none"
-                onKeyDown={handleKeyDown}
-                onKeyUp={handleKeyUp}
-                /* v8 ignore next */
-                onBeforeInput={(e: React.CompositionEvent<HTMLTextAreaElement> | any) =>
-                  processBeforeInputData(isLocked, e.data, handleInput, () => e.preventDefault())
-                }
-                onPaste={preventDefault}
-                onDrop={preventDefault}
-                autoCapitalize="off"
-                autoCorrect="off"
-                autoComplete="off"
-                spellCheck="false"
-              />
+                <textarea
+                  ref={inputRef}
+                  readOnly={isLocked}
+                  className="absolute inset-0 h-full w-full resize-none cursor-default opacity-0"
+                  onKeyDown={handleKeyDown}
+                  onKeyUp={handleKeyUp}
+                  /* v8 ignore next */
+                  onBeforeInput={(e: React.CompositionEvent<HTMLTextAreaElement> | any) =>
+                    processBeforeInputData(isLocked, e.data, handleInput, () => e.preventDefault())
+                  }
+                  onPaste={preventDefault}
+                  onDrop={preventDefault}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck="false"
+                />
+              </div>
+
+              <div className="mt-[10px]">
+                <SoloRaceKeyboardHints />
+              </div>
             </div>
-          </div>
 
-          {!hasRaceStarted && (
-            <div className="absolute right-[38px] top-[120px]">
-              <SoloRaceWorldBest onStartRace={startRace} />
-            </div>
-          )}
-
-          <div className="absolute left-1/2 top-[802px] -translate-x-1/2">
-            <SoloRaceKeyboardHints />
+            {!hasRaceStarted && (
+              <div className="mx-0 w-[487px]">
+                <SoloRaceWorldBest onStartRace={startRace} />
+              </div>
+            )}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

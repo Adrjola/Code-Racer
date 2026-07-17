@@ -49,14 +49,14 @@ export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRac
   const timeHolder = formatHolder(records?.timeHolderName);
 
   return (
-    <aside className="w-full max-w-[487px] text-[#E7E5EF]">
+    <aside className="w-[487px] text-[#E7E5EF]">
       <h2 className="mb-[13px] inline-flex items-start gap-2 font-['JetBrains_Mono'] text-[15px] font-bold leading-none text-[#FDE68A]">
         <img alt="" aria-hidden="true" className="h-6 w-6" src={starIcon} />
         <span className="pt-[2px]">WORLD BEST</span>
       </h2>
 
       <div
-        className="mb-4 h-[185px] w-[487px] rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
+        className="mb-4 h-[185px] w-full rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
         style={{ background: 'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)' }}
       >
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">world record - cpm</p>
@@ -67,7 +67,7 @@ export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRac
       </div>
 
       <div
-        className="h-[185px] w-[487px] rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
+        className="h-[185px] w-full rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
         style={{ background: 'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)' }}
       >
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">world record - time</p>
