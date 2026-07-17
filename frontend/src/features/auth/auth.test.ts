@@ -1,5 +1,8 @@
+import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
+import { server } from '@/test/server';
 import {
+  apiRequest,
   ApiRequestError,
   clearSession,
   loadSession,
@@ -91,5 +94,29 @@ describe('auth utilities', () => {
       'Server error',
     );
     expect(readableAuthError(new Error('offline'))).toMatch(/cannot reach/i);
+  });
+
+  it('attaches an Authorization header for authenticated requests', async () => {
+    let receivedAuth: string | null = null;
+    server.use(
+      http.get('http://localhost:8080/api/secure', ({ request }) => {
+        receivedAuth = request.headers.get('Authorization');
+        return HttpResponse.json({ data: 'ok' });
+      }),
+    );
+    saveSession(session());
+
+    await apiRequest('/api/secure', { authenticated: true });
+
+    expect(receivedAuth).toBe('Bearer jwt-token');
+  });
+
+  it('rejects authenticated requests locally when there is no session', async () => {
+    await expect(
+      apiRequest('/api/secure', { authenticated: true }),
+    ).rejects.toMatchObject({
+      code: 'AUTHENTICATION_REQUIRED',
+      status: 401,
+    });
   });
 });

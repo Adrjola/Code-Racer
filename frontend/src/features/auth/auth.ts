@@ -167,19 +167,33 @@ export function readableAuthError(error: unknown): string {
   }
 }
 
-async function apiRequest<T>(
+export type ApiRequestOptions = RequestInit & { authenticated?: boolean };
+
+export async function apiRequest<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
+  const { authenticated, ...init } = options;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init.headers as Record<string, string> | undefined),
+  };
+
+  if (authenticated) {
+    const session = loadSession();
+    if (!session) {
+      throw new ApiRequestError(
+        'Your session has expired. Log in again to continue.',
+        'AUTHENTICATION_REQUIRED',
+        401,
+      );
+    }
+    headers.Authorization = `Bearer ${session.accessToken}`;
+  }
+
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+    response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   } catch {
     throw new ApiRequestError('Network request failed');
   }

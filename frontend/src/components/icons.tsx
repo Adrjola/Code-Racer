@@ -55,3 +55,49 @@ export function MailIcon() {
     </span>
   );
 }
+
+export function PersonIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-6 text-white"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="8" fill="currentColor" r="3.5" />
+      <path
+        d="M4.5 20c0-4.142 3.358-7 7.5-7s7.5 2.858 7.5 7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+export function PeopleIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-6 text-white"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="9" cy="8" fill="currentColor" r="3" />
+      <circle cx="16" cy="9" fill="currentColor" opacity="0.85" r="2.5" />
+      <path
+        d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      <path
+        d="M14.5 14.2c2.6.3 4.5 2.3 4.5 5.3"
+        opacity="0.85"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
