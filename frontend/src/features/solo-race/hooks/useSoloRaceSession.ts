@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RaceSnippet } from '../types/race.types';
 import { soloRaceApi } from '../api/soloRaceApi';
 import { createSoloRaceTransport } from '../api/soloRaceTransport';
@@ -18,6 +18,7 @@ export function useSoloRaceSession() {
   const [preview, setPreview] = useState<SoloRacePreview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const actionIdRef = useRef(0);
 
   const mapSnippet = (snippet: Awaited<ReturnType<typeof soloRaceApi.getRandomSnippet>>): RaceSnippet => ({
     id: snippet.id,
@@ -27,18 +28,18 @@ export function useSoloRaceSession() {
 
   const loadPreviewSnippet = async () => {
     const snippet = await soloRaceApi.getRandomSnippet();
-    setPreview({
-      snippet: mapSnippet(snippet),
-    });
+    return mapSnippet(snippet);
   };
 
   const startNewRace = async () => {
+    const actionId = ++actionIdRef.current;
     setIsLoading(true);
     setError(null);
 
     try {
       const snippet = await soloRaceApi.getRandomSnippet();
       const attempt = await soloRaceApi.startAttempt(snippet.id);
+      if (actionId !== actionIdRef.current) return;
 
       const raceSnippet = mapSnippet(snippet);
       setPreview({ snippet: raceSnippet });
@@ -48,45 +49,53 @@ export function useSoloRaceSession() {
         transport: createSoloRaceTransport(attempt.attemptId),
       });
     } catch {
+      if (actionId !== actionIdRef.current) return;
       setError('failed_to_start_solo_race');
     } finally {
+      if (actionId !== actionIdRef.current) return;
       setIsLoading(false);
     }
   };
 
   const resetToMenuState = async () => {
+    const actionId = ++actionIdRef.current;
     setSession(null);
     setIsLoading(true);
     setError(null);
     try {
-      await loadPreviewSnippet();
+      const snippet = await loadPreviewSnippet();
+      if (actionId !== actionIdRef.current) return;
+      setPreview({ snippet });
     } catch {
+      if (actionId !== actionIdRef.current) return;
       setError('failed_to_start_solo_race');
     } finally {
+      if (actionId !== actionIdRef.current) return;
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
     let active = true;
+    const actionId = ++actionIdRef.current;
 
     const load = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const snippet = await soloRaceApi.getRandomSnippet();
-        if (!active) return;
+        const snippet = await loadPreviewSnippet();
+        if (!active || actionId !== actionIdRef.current) return;
 
         setPreview({
-          snippet: mapSnippet(snippet),
+          snippet,
         });
       } catch {
-        if (!active) return;
+        if (!active || actionId !== actionIdRef.current) return;
         setSession(null);
         setPreview(null);
         setError('failed_to_start_solo_race');
       } finally {
-        if (!active) return;
+        if (!active || actionId !== actionIdRef.current) return;
         setIsLoading(false);
       }
     };
@@ -98,7 +107,7 @@ export function useSoloRaceSession() {
     };
   }, []);
 
-    return useMemo(
+  return useMemo(
     () => ({
       session,
       preview,

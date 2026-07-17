@@ -31,6 +31,13 @@ export interface SoloAttemptResultResponse {
   difficulty: string;
 }
 
+export interface SoloWorldBestResponse {
+  cpm: number | null;
+  cpmHolderName: string | null;
+  time: string | null;
+  timeHolderName: string | null;
+}
+
 export type SubmitProgressResponse = ProgressAckResponse | SoloAttemptResultResponse;
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -74,5 +81,9 @@ export const soloRaceApi = {
     return getData(`/api/solo-attempts/${attemptId}/abandon`, {
       method: 'POST',
     }).then(() => undefined);
+  },
+
+  getWorldBest(): Promise<SoloWorldBestResponse> {
+    return getData<SoloWorldBestResponse>('/api/solo-attempts/world-best');
   },
 };

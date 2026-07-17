@@ -1,11 +1,53 @@
+import { useEffect, useState } from 'react';
+import { soloRaceApi, type SoloWorldBestResponse } from '../api/soloRaceApi';
 import playIcon from '../../../assets/play.svg';
 import starIcon from '../../../assets/star.svg';
 
 interface SoloRaceWorldBestProps {
   onStartRace?: () => void;
+  records?: SoloWorldBestResponse;
 }
 
-export function SoloRaceWorldBest({ onStartRace }: SoloRaceWorldBestProps) {
+function formatHolder(holder: string | null | undefined): string {
+  if (!holder) {
+    return 'N/A';
+  }
+  return holder.startsWith('@') ? holder : `@${holder}`;
+}
+
+export function SoloRaceWorldBest({ onStartRace, records: recordsProp }: SoloRaceWorldBestProps) {
+  const [records, setRecords] = useState<SoloWorldBestResponse | null>(recordsProp ?? null);
+
+  useEffect(() => {
+    if (recordsProp) {
+      setRecords(recordsProp);
+      return;
+    }
+
+    let active = true;
+    void soloRaceApi
+      .getWorldBest()
+      .then((response) => {
+        if (active) {
+          setRecords(response);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRecords(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [recordsProp]);
+
+  const cpmValue = records?.cpm ?? 'N/A';
+  const cpmHolder = formatHolder(records?.cpmHolderName);
+  const timeValue = records?.time ?? 'N/A';
+  const timeHolder = formatHolder(records?.timeHolderName);
+
   return (
     <aside className="w-full max-w-[487px] text-[#E7E5EF]">
       <h2 className="mb-[13px] inline-flex items-start gap-2 font-['JetBrains_Mono'] text-[15px] font-bold leading-none text-[#FDE68A]">
@@ -19,9 +61,9 @@ export function SoloRaceWorldBest({ onStartRace }: SoloRaceWorldBestProps) {
       >
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">world record - cpm</p>
         <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">
-          142 <span className="font-['JetBrains_Mono'] text-[20px] font-normal leading-none text-[#F9A8D4]">CPM</span>
+          {cpmValue} <span className="font-['JetBrains_Mono'] text-[20px] font-normal leading-none text-[#F9A8D4]">CPM</span>
         </p>
-        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">held by <span className="text-[#F9A8D4]">@girlypop</span> - fastest ever</p>
+        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">held by <span className="text-[#F9A8D4]">{cpmHolder}</span> - fastest ever</p>
       </div>
 
       <div
@@ -29,8 +71,8 @@ export function SoloRaceWorldBest({ onStartRace }: SoloRaceWorldBestProps) {
         style={{ background: 'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)' }}
       >
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">world record - time</p>
-        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">0:50</p>
-        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">held by <span className="text-[#F9A8D4]">@girlypop2</span> - fastest ever</p>
+        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">{timeValue}</p>
+        <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">held by <span className="text-[#F9A8D4]">{timeHolder}</span> - fastest ever</p>
       </div>
 
       <button
