@@ -102,20 +102,25 @@ describe('SoloPreviewPage', () => {
     expect(urls[0]).toContain('difficulty=EASY');
   });
 
-  it('excludes the shown snippet when refreshing', async () => {
-    const urls: string[] = [];
+  it('returns to the pre-start screen on restart without fetching a new snippet', async () => {
+    let fetches = 0;
     server.use(
-      http.get(RANDOM_URL, ({ request }) => {
-        urls.push(request.url);
+      http.get(RANDOM_URL, () => {
+        fetches += 1;
         return HttpResponse.json({ data: snippet });
       }),
     );
     renderPage();
 
     await screen.findByRole('button', { name: /start race/i });
+    const fetchesBefore = fetches;
     await userEvent.click(screen.getByRole('button', { name: /restart/i }));
 
-    await waitFor(() => expect(urls.at(-1)).toContain('excludeId=s1'));
+    // Still on the pre-start screen, same snippet, no extra request.
+    expect(
+      await screen.findByRole('button', { name: /start race/i }),
+    ).toBeInTheDocument();
+    expect(fetches).toBe(fetchesBefore);
   });
 
   it('shows an empty state when no snippet matches', async () => {
@@ -172,6 +177,61 @@ describe('SoloPreviewPage', () => {
     await waitFor(() => expect(startCalls).toBe(1));
     // The overlay shows the server's remaining seconds, not a local 3-2-1.
     expect(await screen.findByText('3')).toBeInTheDocument();
+  });
+
+  it('abandons a running attempt when the page unmounts', async () => {
+    let abandoned = false;
+    server.use(
+      http.get(RANDOM_URL, () => HttpResponse.json({ data: snippet })),
+      http.post(START_URL, () =>
+        HttpResponse.json(
+          {
+            data: {
+              attemptId: 'a1',
+              codeSnippetId: 's1',
+              difficulty: 'EASY',
+              startedAt: new Date(Date.now() + 3_000).toISOString(),
+            },
+          },
+          { status: 201 },
+        ),
+      ),
+      http.post(`${API_URL}/api/solo-attempts/a1/abandon`, () => {
+        abandoned = true;
+        return HttpResponse.json({
+          data: { attemptId: 'a1', state: 'ABANDONED' },
+        });
+      }),
+    );
+    const { unmount } = render(<SoloPreviewPage {...baseProps()} />);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /start race/i }),
+    );
+    await screen.findByText('3');
+
+    unmount();
+
+    await waitFor(() => expect(abandoned).toBe(true));
+  });
+
+  it('does not abandon on unmount when no attempt was started', async () => {
+    let abandonCalls = 0;
+    server.use(
+      http.get(RANDOM_URL, () => HttpResponse.json({ data: snippet })),
+      http.post(`${API_URL}/api/solo-attempts/:id/abandon`, () => {
+        abandonCalls += 1;
+        return HttpResponse.json({
+          data: { attemptId: 'x', state: 'ABANDONED' },
+        });
+      }),
+    );
+    const { unmount } = render(<SoloPreviewPage {...baseProps()} />);
+
+    await screen.findByRole('button', { name: /start race/i });
+    unmount();
+
+    expect(abandonCalls).toBe(0);
   });
 
   it('hands off to the race once the server start time passes', async () => {

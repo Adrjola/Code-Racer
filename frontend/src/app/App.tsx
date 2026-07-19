@@ -18,7 +18,6 @@ import RegisterPage from '@/features/auth/pages/RegisterPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
-import LobbyPage from '@/features/lobby/components/LobbyPage';
 import type { SoloSelection } from '@/features/solo/soloApi';
 import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
 import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
@@ -27,7 +26,6 @@ type Route =
   | 'admin'
   | 'dashboard'
   | 'forgot'
-  | 'lobby'
   | 'login'
   | 'notFound'
   | 'pending'
@@ -62,8 +60,6 @@ function routeFromPath(pathname: string): Route {
       return 'dashboard';
     case '/forgot-password':
       return 'forgot';
-    case '/lobby':
-      return 'lobby';
     case '/login':
       return 'login';
     case '/not-found':
@@ -91,8 +87,6 @@ function pathFromRoute(route: Route): string {
       return '/dashboard';
     case 'forgot':
       return '/forgot-password';
-    case 'lobby':
-      return '/lobby';
     case 'login':
       return '/login';
     case 'notFound':
@@ -292,7 +286,6 @@ export default function App() {
         notice={dashboardNotice}
         onGoAdmin={() => navigate('admin')}
         onGoDashboard={() => navigate('dashboard')}
-        onGoLobby={() => navigate('lobby')}
         onLogout={handleLogout}
         onPlaySolo={() => navigate('soloSetup')}
         session={session}
@@ -334,10 +327,6 @@ export default function App() {
 
   if (route === 'forgot') {
     return <ForgotPasswordPage onBackToLogin={() => navigate('login')} />;
-  }
-
-  if (route === 'lobby') {
-    return <LobbyPage onOpenSolo={() => navigate('playSolo')} />;
   }
 
   if (route === 'login') {

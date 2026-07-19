@@ -42,6 +42,7 @@ export type UseSoloSetupResult = {
   categoryId: string | undefined;
   difficulty: Difficulty | undefined;
   refresh: () => void;
+  resetStart: () => void;
   setCategoryId: (categoryId: string | undefined) => void;
   setDifficulty: (difficulty: Difficulty | undefined) => void;
   snippetPhase: SnippetPhase;
@@ -147,6 +148,12 @@ export function useSoloSetup(
     );
   }, [loadSnippet, snippetPhase]);
 
+  // Clears a finished/abandoned attempt so the screen falls back to its
+  // pre-start state on the same snippet, ready to start a fresh attempt.
+  const resetStart = useCallback(() => {
+    setStartPhase({ phase: 'idle' });
+  }, []);
+
   const start = useCallback(() => {
     if (startInFlightRef.current || snippetPhase.phase !== 'ready') {
       return;
@@ -207,6 +214,7 @@ export function useSoloSetup(
     categoryId,
     difficulty,
     refresh,
+    resetStart,
     setCategoryId,
     setDifficulty,
     snippetPhase,

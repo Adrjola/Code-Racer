@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   soloRaceApi,
   type SoloAttemptResultResponse,
 } from '@/features/solo-race/api/soloRaceApi';
+import type { StartSoloAttemptResponse } from '@/features/solo/soloApi';
 import { createSoloRaceTransport } from '@/features/solo-race/api/soloRaceTransport';
 import { SoloRace } from '@/features/solo-race/components/SoloRace';
 import { SoloRaceResult } from '@/features/solo-race/components/SoloRaceResult';
@@ -30,7 +31,7 @@ export default function SoloPreviewPage({
   onSessionExpired,
   selection,
 }: SoloPreviewPageProps) {
-  const { refresh, snippetPhase, start, startPhase } = useSoloSetup({
+  const { resetStart, snippetPhase, start, startPhase } = useSoloSetup({
     initialCategoryId: selection.categoryId,
     initialDifficulty: selection.difficulty,
     onSessionExpired,
@@ -68,10 +69,33 @@ export default function SoloPreviewPage({
     await soloRaceApi.abandonAttempt(attempt.attemptId).catch(() => undefined);
   };
 
+  // Every way of leaving the race - dashboard, browser back, logout, session
+  // expiry - unmounts this page. Refs hold the latest attempt/result so the
+  // unmount cleanup can abandon a still-running attempt on the way out, which
+  // the explicit leave handlers alone would miss.
+  const attemptRef = useRef<StartSoloAttemptResponse | null>(null);
+  const resultRef = useRef<SoloAttemptResultResponse | null>(null);
+  useEffect(() => {
+    attemptRef.current = attempt;
+    resultRef.current = result;
+  }, [attempt, result]);
+
+  useEffect(
+    () => () => {
+      const pending = attemptRef.current;
+      if (pending && !resultRef.current) {
+        void soloRaceApi
+          .abandonAttempt(pending.attemptId)
+          .catch(() => undefined);
+      }
+    },
+    [],
+  );
+
   const raceAgain = async () => {
     await endAttempt();
     setResult(null);
-    refresh();
+    resetStart();
   };
 
   if (result) {

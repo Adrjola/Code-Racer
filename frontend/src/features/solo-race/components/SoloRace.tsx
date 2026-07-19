@@ -154,6 +154,9 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     terminateRaceToMenu();
   };
 
+  // Restart drops back to the pre-start screen (the snippet preview with the
+  // Start button) rather than immediately racing again, so the flow matches
+  // "start race" from a standstill every time.
   const restartRace = async () => {
     if (isBootstrappingRace) return;
 
@@ -161,16 +164,12 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       setIsBootstrappingRace(true);
       try {
         await onRestartRace();
-        setHasRaceStarted(true);
-      } catch {
-        setHasRaceStarted(false);
       } finally {
         setIsBootstrappingRace(false);
       }
-      return;
     }
 
-    setHasRaceStarted(true);
+    terminateRaceToMenu();
   };
 
   const typedLength = Array.from(state.acceptedPrefix).length;
@@ -255,9 +254,9 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
             {incorrectPart}
           </span>
         )}
-        <span className="relative text-slate-200/40">
+        <span className="text-slate-200/40">
           {!incorrectPart && !isLocked && (
-            <span className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-emerald-400 animate-pulse" />
+            <span className="inline-block h-[1.15em] w-[2px] translate-y-[0.2em] bg-emerald-400 animate-pulse" />
           )}
           {rest}
         </span>
