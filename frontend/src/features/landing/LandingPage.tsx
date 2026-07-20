@@ -75,7 +75,7 @@ export default function LandingPage({ onPlay }: LandingPageProps) {
   return (
     <div className="relative min-h-[100dvh] overflow-x-hidden bg-surface font-sans text-text-primary lg:h-[100dvh] lg:min-h-0 lg:w-screen lg:overflow-hidden">
       {/* From the lg breakpoint up this becomes the 1920x1080 frame
-      */}
+       */}
       <div className="lg:absolute lg:left-0 lg:top-0 lg:h-[1080px] lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--auth-login-scale))]">
         <AnimatedBackground />
 

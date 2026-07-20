@@ -143,14 +143,12 @@ function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
     return { loginNotice: LOGIN_REQUIRED_MESSAGE, route: 'login' };
   }
 
-    if (session && route === 'playSolo') {
-      // The race lives on the run screen now, so the old standalone path leads there.
-      return { route: 'soloPreview' };
-    }
+  if (session && route === 'playSolo') {
+    // The race lives on the run screen now, so the old standalone path leads there.
+    return { route: 'soloPreview' };
+  }
 
-    if (session && (route === 'landing' || isAuthRoute(route))) {
-      return { route: defaultAuthenticatedRoute(session) };
-    }
+  if (session && (route === 'landing' || isAuthRoute(route))) {
     return { route: defaultAuthenticatedRoute(session) };
   }
 
