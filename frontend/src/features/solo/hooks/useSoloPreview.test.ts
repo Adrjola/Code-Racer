@@ -3,8 +3,8 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { saveSession, type AuthSession } from '@/features/auth/session';
 import { server } from '@/test/server';
-import type { SnippetPreview } from './soloApi';
-import { useSoloSetup } from './useSoloSetup';
+import type { SnippetPreview } from '../api/soloApi';
+import { useSoloPreview } from './useSoloPreview';
 
 const API_URL = 'http://localhost:8080';
 
@@ -43,19 +43,6 @@ function snippet(overrides: Partial<SnippetPreview> = {}): SnippetPreview {
   };
 }
 
-function mockEmptyCategories() {
-  server.use(
-    http.get(`${API_URL}/api/categories`, () =>
-      HttpResponse.json({
-        data: {
-          content: [],
-          page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
-        },
-      }),
-    ),
-  );
-}
-
 function apiError(status: number, code: string, message = 'error') {
   return HttpResponse.json(
     { code, instance: '/x', message, status },
@@ -65,50 +52,33 @@ function apiError(status: number, code: string, message = 'error') {
 
 beforeEach(() => {
   saveSession(session());
-  mockEmptyCategories();
 });
 
-describe('useSoloSetup', () => {
-  it('loads a snippet on mount without creating an attempt', async () => {
+describe('useSoloPreview', () => {
+  it('loads a filtered snippet on mount without creating an attempt', async () => {
     let startCalls = 0;
-    server.use(
-      http.get(`${API_URL}/api/snippets/random`, () =>
-        HttpResponse.json({ data: snippet() }),
-      ),
-      http.post(`${API_URL}/api/solo-attempts`, () => {
-        startCalls += 1;
-        return HttpResponse.json({ data: {} }, { status: 201 });
-      }),
-    );
-
-    const { result } = renderHook(() => useSoloSetup());
-
-    await waitFor(() =>
-      expect(result.current.snippetPhase.phase).toBe('ready'),
-    );
-    expect(startCalls).toBe(0);
-  });
-
-  it('refetches the snippet when filters change, without starting an attempt', async () => {
     const urls: string[] = [];
     server.use(
       http.get(`${API_URL}/api/snippets/random`, ({ request }) => {
         urls.push(request.url);
         return HttpResponse.json({ data: snippet() });
       }),
+      http.post(`${API_URL}/api/solo-attempts`, () => {
+        startCalls += 1;
+        return HttpResponse.json({ data: {} }, { status: 201 });
+      }),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() =>
+      useSoloPreview({ categoryId: 'cat-1', difficulty: 'EASY' }),
+    );
+
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('ready'),
     );
-
-    act(() => {
-      result.current.setDifficulty('HARD');
-    });
-
-    await waitFor(() => expect(urls.length).toBe(2));
-    expect(new URL(urls[1]).searchParams.get('difficulty')).toBe('HARD');
+    expect(new URL(urls[0]).searchParams.get('categoryId')).toBe('cat-1');
+    expect(new URL(urls[0]).searchParams.get('difficulty')).toBe('EASY');
+    expect(startCalls).toBe(0);
   });
 
   it('excludes the currently shown snippet id when refreshing', async () => {
@@ -124,7 +94,7 @@ describe('useSoloSetup', () => {
       }),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() => useSoloPreview());
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('ready'),
     );
@@ -144,7 +114,7 @@ describe('useSoloSetup', () => {
       ),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() => useSoloPreview());
 
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('empty'),
@@ -156,26 +126,10 @@ describe('useSoloSetup', () => {
       http.get(`${API_URL}/api/snippets/random`, () => HttpResponse.error()),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() => useSoloPreview());
 
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('error'),
-    );
-  });
-
-  it('surfaces a categories load error separately from the snippet flow', async () => {
-    server.use(
-      http.get(`${API_URL}/api/categories`, () => HttpResponse.error()),
-      http.get(`${API_URL}/api/snippets/random`, () =>
-        HttpResponse.json({ data: snippet() }),
-      ),
-    );
-
-    const { result } = renderHook(() => useSoloSetup());
-
-    await waitFor(() => expect(result.current.categoriesError).toBeTruthy());
-    await waitFor(() =>
-      expect(result.current.snippetPhase.phase).toBe('ready'),
     );
   });
 
@@ -201,7 +155,7 @@ describe('useSoloSetup', () => {
       }),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() => useSoloPreview());
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('ready'),
     );
@@ -233,7 +187,7 @@ describe('useSoloSetup', () => {
       ),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() => useSoloPreview());
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('ready'),
     );
@@ -259,7 +213,7 @@ describe('useSoloSetup', () => {
       ),
     );
 
-    const { result } = renderHook(() => useSoloSetup());
+    const { result } = renderHook(() => useSoloPreview());
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('ready'),
     );
@@ -284,7 +238,7 @@ describe('useSoloSetup', () => {
     );
     const onSessionExpired = vi.fn();
 
-    const { result } = renderHook(() => useSoloSetup({ onSessionExpired }));
+    const { result } = renderHook(() => useSoloPreview({ onSessionExpired }));
 
     await waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
     expect(result.current.snippetPhase.phase).toBe('loading');

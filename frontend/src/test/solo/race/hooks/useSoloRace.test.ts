@@ -5,11 +5,11 @@ import {
   shouldSkipCompletionRequest,
   shouldSkipFlush,
   useExactCodeTypingEngine,
-} from '../../../features/solo-race/hooks/useExactCodeTypingEngine.ts';
+} from '../../../../features/solo/race/hooks/useExactCodeTypingEngine.ts';
 import type {
   RaceSnippet,
   ExactCodeTypingEngineTransport,
-} from '../../../features/solo-race/types/race.types';
+} from '../../../../features/solo/race/types/race.types';
 
 const snippet: RaceSnippet = {
   id: 's1',

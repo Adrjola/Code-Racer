@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSoloRaceTransport } from '../../../features/solo-race/api/soloRaceTransport';
-import type { SoloAttemptResultResponse } from '../../../features/solo-race/api/soloRaceApi';
+import { createSoloRaceTransport } from '../../../../features/solo/race/api/soloRaceTransport';
+import type { SoloAttemptResultResponse } from '../../../../features/solo/race/api/soloRaceApi';
 import { saveSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 

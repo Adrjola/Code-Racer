@@ -1,4 +1,4 @@
-import restartArrow from '../../../assets/restart-arrow.svg';
+import restartArrow from '@/assets/restart-arrow.svg';
 
 interface SoloRaceHeaderActionsProps {
   onRestart: () => void;

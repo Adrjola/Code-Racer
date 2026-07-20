@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCountdown } from '../../../features/solo-race/hooks/useCountdown';
+import { useCountdown } from '../../../../features/solo/race/hooks/useCountdown';
 
 describe('useCountdown', () => {
   beforeEach(() => {

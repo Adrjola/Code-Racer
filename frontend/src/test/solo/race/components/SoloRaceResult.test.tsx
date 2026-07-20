@@ -2,9 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SoloRaceResult } from '../../../features/solo-race/components/SoloRaceResult';
-import type { SoloAttemptResultResponse } from '../../../features/solo-race/api/soloRaceApi';
-import { formatDuration } from '../../../features/solo-race/utils/formatDuration';
+import { SoloRaceResult } from '../../../../features/solo/race/components/SoloRaceResult';
+import type { SoloAttemptResultResponse } from '../../../../features/solo/race/api/soloRaceApi';
+import { formatDuration } from '../../../../features/solo/race/utils/formatDuration';
 import { saveSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 

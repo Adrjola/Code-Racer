@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   soloRaceApi,
   type SoloAttemptResultResponse,
-} from '@/features/solo-race/api/soloRaceApi';
-import type { StartSoloAttemptResponse } from '@/features/solo/soloApi';
-import { createSoloRaceTransport } from '@/features/solo-race/api/soloRaceTransport';
-import { SoloRace } from '@/features/solo-race/components/SoloRace';
-import { SoloRaceResult } from '@/features/solo-race/components/SoloRaceResult';
-import type { RaceSnippet } from '@/features/solo-race/types/race.types';
-import type { SoloSelection } from '@/features/solo/soloApi';
-import { useSoloSetup } from '@/features/solo/useSoloSetup';
+} from '@/features/solo/race/api/soloRaceApi';
+import type { StartSoloAttemptResponse } from '@/features/solo/api/soloApi';
+import { createSoloRaceTransport } from '@/features/solo/race/api/soloRaceTransport';
+import { SoloRace } from '@/features/solo/race/components/SoloRace';
+import { SoloRaceResult } from '@/features/solo/race/components/SoloRaceResult';
+import type { RaceSnippet } from '@/features/solo/race/types/race.types';
+import type { SoloSelection } from '@/features/solo/api/soloApi';
+import { useSoloPreview } from '@/features/solo/hooks/useSoloPreview';
 
 type SoloPreviewPageProps = {
   /** Leaves the race for the dashboard, which is the real mode-select screen. */
@@ -31,9 +31,9 @@ export default function SoloPreviewPage({
   onSessionExpired,
   selection,
 }: SoloPreviewPageProps) {
-  const { resetStart, snippetPhase, start, startPhase } = useSoloSetup({
-    initialCategoryId: selection.categoryId,
-    initialDifficulty: selection.difficulty,
+  const { resetStart, snippetPhase, start, startPhase } = useSoloPreview({
+    categoryId: selection.categoryId,
+    difficulty: selection.difficulty,
     onSessionExpired,
   });
   const [result, setResult] = useState<SoloAttemptResultResponse | null>(null);

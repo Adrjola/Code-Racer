@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { saveSession, type AuthSession } from '@/features/auth/session';
-import type { Category } from '@/features/solo/soloApi';
+import type { Category } from '@/features/solo/api/soloApi';
 import { server } from '@/test/server';
 import SoloSetupPage from './SoloSetupPage';
 

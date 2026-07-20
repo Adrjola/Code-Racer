@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { soloRaceApi, type SoloWorldBestResponse } from '../api/soloRaceApi';
-import playIcon from '../../../assets/play.svg';
-import starIcon from '../../../assets/star.svg';
+import playIcon from '@/assets/play.svg';
+import starIcon from '@/assets/star.svg';
 
 interface SoloRaceWorldBestProps {
   onStartRace?: () => void;

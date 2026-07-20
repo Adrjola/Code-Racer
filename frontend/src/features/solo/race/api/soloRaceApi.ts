@@ -1,18 +1,5 @@
 import { apiRequest, type BaseResponse } from '@/lib/apiClient';
 
-export interface SnippetResponse {
-  id: string;
-  source: string;
-  difficulty: string;
-}
-
-export interface StartSoloAttemptResponse {
-  attemptId: string;
-  codeSnippetId: string;
-  difficulty: string;
-  startedAt: string;
-}
-
 export interface ProgressAckResponse {
   attemptId: string;
   state: string;
@@ -78,18 +65,6 @@ function post<T>(path: string, body?: unknown): Promise<BaseResponse<T>> {
 }
 
 export const soloRaceApi = {
-  async getRandomSnippet(): Promise<SnippetResponse> {
-    return (await get<SnippetResponse>('/api/snippets/random')).data;
-  },
-
-  async startAttempt(codeSnippetId: string): Promise<StartSoloAttemptResponse> {
-    return (
-      await post<StartSoloAttemptResponse>('/api/solo-attempts', {
-        codeSnippetId,
-      })
-    ).data;
-  },
-
   async submitProgress(
     attemptId: string,
     sequence: number,

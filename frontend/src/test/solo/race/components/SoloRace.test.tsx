@@ -1,24 +1,27 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { SoloRace } from '../../../features/solo-race/components/SoloRace';
-import { processBeforeInputData } from '../../../features/solo-race/utils/processBeforeInputData';
-import { useExactCodeTypingEngine } from '../../../features/solo-race/hooks/useExactCodeTypingEngine';
-import { useCountdown } from '../../../features/solo-race/hooks/useCountdown';
-import { soloRaceApi } from '../../../features/solo-race/api/soloRaceApi';
+import { SoloRace } from '../../../../features/solo/race/components/SoloRace';
+import { processBeforeInputData } from '../../../../features/solo/race/utils/processBeforeInputData';
+import { useExactCodeTypingEngine } from '../../../../features/solo/race/hooks/useExactCodeTypingEngine';
+import { useCountdown } from '../../../../features/solo/race/hooks/useCountdown';
+import { soloRaceApi } from '../../../../features/solo/race/api/soloRaceApi';
 
 // Mock the hooks
-vi.mock('../../../features/solo-race/hooks/useExactCodeTypingEngine', () => ({
-  useExactCodeTypingEngine: vi.fn(),
-}));
+vi.mock(
+  '../../../../features/solo/race/hooks/useExactCodeTypingEngine',
+  () => ({
+    useExactCodeTypingEngine: vi.fn(),
+  }),
+);
 
-vi.mock('../../../features/solo-race/hooks/useCountdown', () => ({
+vi.mock('../../../../features/solo/race/hooks/useCountdown', () => ({
   useCountdown: vi.fn(() => null),
 }));
 
-vi.mock('../../../features/solo-race/api/soloRaceApi', async () => {
+vi.mock('../../../../features/solo/race/api/soloRaceApi', async () => {
   const actual = await vi.importActual<
-    typeof import('../../../features/solo-race/api/soloRaceApi')
-  >('../../../features/solo-race/api/soloRaceApi');
+    typeof import('../../../../features/solo/race/api/soloRaceApi')
+  >('../../../../features/solo/race/api/soloRaceApi');
   return {
     ...actual,
     soloRaceApi: {

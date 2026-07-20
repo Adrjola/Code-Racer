@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SoloRaceWorldBest } from '../../../features/solo-race/components/SoloRaceWorldBest';
-import { soloRaceApi } from '../../../features/solo-race/api/soloRaceApi';
+import { SoloRaceWorldBest } from '../../../../features/solo/race/components/SoloRaceWorldBest';
+import { soloRaceApi } from '../../../../features/solo/race/api/soloRaceApi';
 
-vi.mock('../../../features/solo-race/api/soloRaceApi', async () => {
+vi.mock('../../../../features/solo/race/api/soloRaceApi', async () => {
   const actual = await vi.importActual<
-    typeof import('../../../features/solo-race/api/soloRaceApi')
-  >('../../../features/solo-race/api/soloRaceApi');
+    typeof import('../../../../features/solo/race/api/soloRaceApi')
+  >('../../../../features/solo/race/api/soloRaceApi');
   return {
     ...actual,
     soloRaceApi: {

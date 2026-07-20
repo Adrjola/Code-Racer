@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   raceReducer,
   initialState,
-} from '../../../features/solo-race/reducer/race.reducer';
-import type { RaceSnippet } from '../../../features/solo-race/types/race.types';
+} from '../../../../features/solo/race/reducer/race.reducer';
+import type { RaceSnippet } from '../../../../features/solo/race/types/race.types';
 
 describe('raceReducer', () => {
   const mockSnippet: RaceSnippet = {
