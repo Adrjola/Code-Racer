@@ -10,5 +10,4 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "app.password-reset")
 public record PasswordResetProperties(
-    @NotNull @DurationMin(seconds = 1) Duration tokenTtl,
-    @NotBlank String resetUrl) {}
+    @NotNull @DurationMin(seconds = 1) Duration tokenTtl, @NotBlank String resetUrl) {}
