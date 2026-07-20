@@ -49,7 +49,6 @@ class AuthenticationControllerTest {
                     "player",
                     UserRole.USER,
                     true,
-                    true,
                     Instant.now(),
                     Instant.now())));
 

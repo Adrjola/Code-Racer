@@ -92,7 +92,6 @@ class JwtExpiryIntegrationTest {
     user.setPasswordHash(passwordEncoder.encode("StrongerPass123"));
     user.setRole(UserRole.ADMIN);
     user.setEmailVerified(true);
-    user.setEnabled(true);
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     User savedUser = userRepository.saveAndFlush(user);
