@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Manrope:wght@400;600;700;800&display=swap');
 @import 'tailwindcss';
 
 @theme {
@@ -16,6 +17,7 @@ html {
   --auth-login-center-x: 960px;
   --auth-login-scale: 1;
   --auth-scale: 1;
+  --page-scale: 1;
 
   background: #0e0c16;
 }

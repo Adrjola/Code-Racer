@@ -1,6 +1,7 @@
 package org.coderacer.backend.config;
 
 import java.util.List;
+import org.coderacer.backend.config.properties.CorsProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;

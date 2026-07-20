@@ -18,6 +18,9 @@ import RegisterPage from '@/features/auth/pages/RegisterPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
+import type { SoloSelection } from '@/features/solo/api/soloApi';
+import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
+import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
 
 // Loaded lazily so three.js — the 3D mascot's dependency — ships as its own
 // chunk and only gets downloaded when someone actually visits the landing page.
@@ -31,7 +34,10 @@ type Route =
   | 'login'
   | 'notFound'
   | 'pending'
+  | 'playSolo'
   | 'register'
+  | 'soloPreview'
+  | 'soloSetup'
   | 'verify';
 
 type AppState = {
@@ -40,6 +46,7 @@ type AppState = {
   pendingEmail?: string;
   route: Route;
   session: AuthSession | null;
+  soloSelection?: SoloSelection;
 };
 
 type RouteResult = Pick<AppState, 'dashboardNotice' | 'loginNotice' | 'route'>;
@@ -64,10 +71,16 @@ function routeFromPath(pathname: string): Route {
       return 'login';
     case '/not-found':
       return 'notFound';
+    case '/solo':
+      return 'soloSetup';
+    case '/solo/preview':
+      return 'soloPreview';
     case '/verify-email-pending':
       return 'pending';
     case '/verify-email':
       return 'verify';
+    case '/play/solo':
+      return 'playSolo';
     default:
       return 'notFound';
   }
@@ -89,15 +102,27 @@ function pathFromRoute(route: Route): string {
       return '/not-found';
     case 'pending':
       return '/verify-email-pending';
+    case 'playSolo':
+      return '/play/solo';
     case 'register':
       return '/register';
+    case 'soloPreview':
+      return '/solo/preview';
+    case 'soloSetup':
+      return '/solo';
     case 'verify':
       return '/verify-email';
   }
 }
 
 function isProtected(route: Route) {
-  return route === 'admin' || route === 'dashboard';
+  return (
+    route === 'admin' ||
+    route === 'dashboard' ||
+    route === 'playSolo' ||
+    route === 'soloPreview' ||
+    route === 'soloSetup'
+  );
 }
 
 function isAuthRoute(route: Route) {
@@ -118,7 +143,14 @@ function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
     return { loginNotice: LOGIN_REQUIRED_MESSAGE, route: 'login' };
   }
 
-  if (session && (route === 'landing' || isAuthRoute(route))) {
+    if (session && route === 'playSolo') {
+      // The race lives on the run screen now, so the old standalone path leads there.
+      return { route: 'soloPreview' };
+    }
+
+    if (session && (route === 'landing' || isAuthRoute(route))) {
+      return { route: defaultAuthenticatedRoute(session) };
+    }
     return { route: defaultAuthenticatedRoute(session) };
   }
 
@@ -149,7 +181,14 @@ function createInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(createInitialState);
-  const { dashboardNotice, loginNotice, pendingEmail, route, session } = state;
+  const {
+    dashboardNotice,
+    loginNotice,
+    pendingEmail,
+    route,
+    session,
+    soloSelection,
+  } = state;
 
   const commitRoute = useCallback(
     (
@@ -240,6 +279,18 @@ export default function App() {
     commitRoute('login', null, false, { loginNotice: notice });
   };
 
+  const handleSessionExpired = () => {
+    clearSession();
+    commitRoute('login', null, true, {
+      loginNotice: SESSION_EXPIRED_MESSAGE,
+    });
+  };
+
+  const handleSelectSolo = (selection: SoloSelection) => {
+    setState((current) => ({ ...current, soloSelection: selection }));
+    commitRoute('soloPreview', session);
+  };
+
   if (session && (route === 'admin' || route === 'dashboard')) {
     return (
       <DashboardPage
@@ -247,8 +298,40 @@ export default function App() {
         onGoAdmin={() => navigate('admin')}
         onGoDashboard={() => navigate('dashboard')}
         onLogout={handleLogout}
+        onPlaySolo={() => navigate('soloSetup')}
         session={session}
         view={route === 'admin' ? 'admin' : 'dashboard'}
+      />
+    );
+  }
+
+  if (session && route === 'soloSetup') {
+    return (
+      <SoloSetupPage
+        onGoDashboard={() => navigate('dashboard')}
+        onLogout={handleLogout}
+        onSelect={handleSelectSolo}
+        onSessionExpired={handleSessionExpired}
+      />
+    );
+  }
+
+  if (session && route === 'soloPreview') {
+    if (!soloSelection) {
+      return (
+        <SoloSetupPage
+          onGoDashboard={() => navigate('dashboard')}
+          onLogout={handleLogout}
+          onSelect={handleSelectSolo}
+          onSessionExpired={handleSessionExpired}
+        />
+      );
+    }
+    return (
+      <SoloPreviewPage
+        onExitRace={() => navigate('dashboard')}
+        onSessionExpired={handleSessionExpired}
+        selection={soloSelection}
       />
     );
   }
