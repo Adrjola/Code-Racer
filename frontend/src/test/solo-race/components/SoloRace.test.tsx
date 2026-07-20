@@ -1,15 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { SoloRace } from '../../../features/solo-race/components/SoloRace';
-import { processBeforeInputData } from '../../../features/solo-race/components/processBeforeInputData';
-import { useCountdown } from '../../../features/solo-race/hooks/useCountdown';
+import { processBeforeInputData } from '../../../features/solo-race/utils/processBeforeInputData';
 import { useExactCodeTypingEngine } from '../../../features/solo-race/hooks/useExactCodeTypingEngine';
+import { useCountdown } from '../../../features/solo-race/hooks/useCountdown';
 import { soloRaceApi } from '../../../features/solo-race/api/soloRaceApi';
-import type {
-  RaceSnippet,
-  RaceState,
-} from '../../../features/solo-race/types/race.types';
 
+// Mock the hooks
 vi.mock('../../../features/solo-race/hooks/useExactCodeTypingEngine', () => ({
   useExactCodeTypingEngine: vi.fn(),
 }));
@@ -31,114 +28,122 @@ vi.mock('../../../features/solo-race/api/soloRaceApi', async () => {
   };
 });
 
+type TypingEngine = ReturnType<typeof useExactCodeTypingEngine>;
+
+const mockCountdown = vi.mocked(useCountdown);
+const mockGetWorldBest = vi.mocked(soloRaceApi.getWorldBest);
+
+// The tests only need part of the engine's surface, so the partial state is cast
+// once here instead of at every call site.
+const mockEngine = (value: unknown) =>
+  vi.mocked(useExactCodeTypingEngine).mockReturnValue(value as TypingEngine);
+
 describe('SoloRace Component', () => {
-  const mockSnippet: RaceSnippet = {
-    id: 'snippet-1',
-    code: 'const x = 1;',
-    type: 'javascript',
-  };
+  const mockSnippet = { id: '1', code: 'const x = 1;', type: 'javascript' };
   const startedAt = new Date().toISOString();
 
-  function createRaceState(overrides: Partial<RaceState> = {}): RaceState {
-    return {
-      snippet: mockSnippet,
-      targetCode: mockSnippet.code,
-      serverOffset: 0,
+  const baseHookState = {
+    state: {
+      targetCode: 'const x = 1;',
       acceptedPrefix: '',
       currentInput: '',
-      pendingVersion: 0,
-      ackedVersion: 0,
-      unackedCount: 0,
       isFinished: false,
-      isExpired: false,
-      isOffline: false,
-      transportError: null,
-      completionRequested: false,
       hasError: false,
-      startedAt,
-      result: null,
-      ...overrides,
-    };
-  }
-
-  function mockTypingEngine(
-    stateOverrides: Partial<RaceState> = {},
-    handlers: Partial<ReturnType<typeof useExactCodeTypingEngine>> = {},
-  ) {
-    vi.mocked(useExactCodeTypingEngine).mockReturnValue({
-      state: createRaceState(stateOverrides),
-      handleInput: vi.fn(),
-      handleDelete: vi.fn(),
-      markExpired: vi.fn(),
-      flushNow: vi.fn(async () => undefined),
-      ...handlers,
-    });
-  }
+      snippet: { type: 'javascript' },
+    },
+    handleInput: vi.fn(),
+    handleDelete: vi.fn(),
+  };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(useCountdown).mockReturnValue(null);
-    vi.mocked(soloRaceApi.getWorldBest).mockRejectedValue(
-      new Error('request_failed_404'),
-    );
+    mockCountdown.mockReturnValue(null);
+    mockGetWorldBest.mockRejectedValue(new Error('request_failed_404'));
   });
 
-  it('renders solo race stats row and header actions', () => {
-    mockTypingEngine();
+  const finishStartCountdown = () => {
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+  };
+
+  it('renders solo race stats row', () => {
+    mockEngine(baseHookState);
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
-
     expect(screen.getByLabelText('typing progress')).toBeDefined();
     expect(screen.getByText('restart race')).toBeDefined();
   });
 
-  it('locks input until the user starts the race', () => {
-    const handleDelete = vi.fn();
-    mockTypingEngine({ currentInput: 'x' }, { handleDelete });
+  it('calls handleDelete on Backspace', () => {
+    vi.useFakeTimers();
+    const mockHandleDelete = vi.fn();
+    mockEngine({
+      state: {
+        targetCode: 'abc',
+        acceptedPrefix: '',
+        currentInput: 'x',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
+      handleInput: vi.fn(),
+      handleDelete: mockHandleDelete,
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    finishStartCountdown();
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.keyDown(textarea, { key: 'Backspace' });
-    expect(handleDelete).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    fireEvent.keyDown(textarea, { key: 'Backspace' });
-
-    expect(handleDelete).toHaveBeenCalledTimes(1);
+    expect(mockHandleDelete).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
-  it('handles Tab like IDE indentation input after start', () => {
-    const handleInput = vi.fn();
-    mockTypingEngine(
-      {
-        targetCode: '   abc',
+  it('handles Tab like IDE indentation input', () => {
+    vi.useFakeTimers();
+    const mockHandleInput = vi.fn();
+    mockEngine({
+      state: {
+        targetCode: '\tabc',
+        acceptedPrefix: '',
+        currentInput: '',
+        isFinished: false,
+        snippet: { type: 'js' },
       },
-      { handleInput },
-    );
+      handleInput: mockHandleInput,
+      handleDelete: vi.fn(),
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    finishStartCountdown();
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     const tabEvent = fireEvent.keyDown(textarea, { key: 'Tab' });
-
     expect(tabEvent).toBe(false);
-    expect(handleInput).toHaveBeenCalledTimes(3);
-    expect(handleInput).toHaveBeenNthCalledWith(1, ' ');
-    expect(handleInput).toHaveBeenNthCalledWith(2, ' ');
-    expect(handleInput).toHaveBeenNthCalledWith(3, ' ');
+    expect(mockHandleInput).toHaveBeenCalledTimes(3);
+    expect(mockHandleInput).toHaveBeenNthCalledWith(1, ' ');
+    expect(mockHandleInput).toHaveBeenNthCalledWith(2, ' ');
+    expect(mockHandleInput).toHaveBeenNthCalledWith(3, ' ');
+    vi.useRealTimers();
   });
 
-  it('restarts race on Ctrl+Enter only after the race begins', () => {
+  it('restarts race on Ctrl+Enter shortcut after race begins', () => {
+    vi.useFakeTimers();
+    mockEngine(baseHookState);
     const onRestartRace = vi.fn();
-    mockTypingEngine();
 
     render(
       <SoloRace
-        onRestartRace={onRestartRace}
         snippet={mockSnippet}
         startedAt={startedAt}
+        onRestartRace={onRestartRace}
       />,
     );
     const textarea = screen.getByRole('textbox', { hidden: true });
@@ -147,87 +152,177 @@ describe('SoloRace Component', () => {
     expect(onRestartRace).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    finishStartCountdown();
     fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
 
     expect(onRestartRace).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
-  it('returns to the pre-start menu on Escape after the race begins', () => {
-    mockTypingEngine();
+  it('leaves the active race on Escape after race begins', async () => {
+    vi.useFakeTimers();
+    mockEngine(baseHookState);
+    const onLobbyNavigate = vi.fn();
 
-    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    render(
+      <SoloRace
+        snippet={mockSnippet}
+        startedAt={startedAt}
+        onLobbyNavigate={onLobbyNavigate}
+      />,
+    );
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.keyDown(textarea, { key: 'Escape' });
-    expect(screen.getByRole('button', { name: /start race/i })).toBeDefined();
+    expect(onLobbyNavigate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    finishStartCountdown();
     expect(screen.queryByRole('button', { name: /start race/i })).toBeNull();
 
-    fireEvent.keyDown(textarea, { key: 'Escape' });
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: 'Escape' });
+    });
+
+    expect(onLobbyNavigate).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /start race/i })).toBeDefined();
+    vi.useRealTimers();
+  });
+
+  it('does nothing on non-tab/non-backspace key press', () => {
+    const mockHandleInput = vi.fn();
+    const mockHandleDelete = vi.fn();
+    mockEngine({
+      state: {
+        targetCode: 'abc',
+        acceptedPrefix: '',
+        currentInput: '',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
+      handleInput: mockHandleInput,
+      handleDelete: mockHandleDelete,
+    });
+
+    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    const textarea = screen.getByRole('textbox', { hidden: true });
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+
+    expect(mockHandleInput).not.toHaveBeenCalled();
+    expect(mockHandleDelete).not.toHaveBeenCalled();
   });
 
   it('prevents paste and drop', () => {
-    mockTypingEngine();
-
+    mockEngine(baseHookState);
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     const textarea = screen.getByRole('textbox', { hidden: true });
 
-    expect(fireEvent.paste(textarea)).toBe(false);
-    expect(fireEvent.drop(textarea)).toBe(false);
+    const pasteEvent = fireEvent.paste(textarea);
+    expect(pasteEvent).toBe(false); // preventDefault returns false in fireEvent if handled
+
+    const dropEvent = fireEvent.drop(textarea);
+    expect(dropEvent).toBe(false);
   });
 
-  it('shows server-countdown value and keeps input locked while countdown is active', () => {
+  it('shows centered 3-second countdown and locks input before start', () => {
+    mockCountdown.mockReturnValue(3);
     const handleDelete = vi.fn();
-    vi.mocked(useCountdown).mockReturnValue(3);
-    mockTypingEngine({}, { handleDelete });
+    mockEngine({
+      ...baseHookState,
+      handleDelete,
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-
     expect(screen.getByText(/^3$/)).toBeDefined();
-    fireEvent.keyDown(screen.getByRole('textbox', { hidden: true }), {
-      key: 'Backspace',
-    });
+
+    const textarea = screen.getByRole('textbox', { hidden: true });
+    fireEvent.keyDown(textarea, { key: 'Backspace' });
     expect(handleDelete).not.toHaveBeenCalled();
   });
 
-  it('blurs code hint text before race start and clears it after start', () => {
-    mockTypingEngine();
+  it('blurs the code until the server countdown elapses', () => {
+    mockEngine(baseHookState);
+    // Three seconds still to wait on the server's clock.
+    mockCountdown.mockReturnValue(3);
 
-    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    const { rerender } = render(
+      <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
+    );
+
     const codePreview = screen.getByText('const x = 1;').closest('pre');
-
     expect(codePreview?.className).toContain('blur-[2px]');
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    expect(codePreview?.className).toContain('blur-[2px]');
+
+    mockCountdown.mockReturnValue(0);
+    rerender(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     expect(codePreview?.className).not.toContain('blur-[2px]');
   });
 
   it('renders incorrect input segment when currentInput exists', () => {
-    mockTypingEngine({ currentInput: 'x' });
+    mockEngine({
+      ...baseHookState,
+      state: {
+        ...baseHookState.state,
+        currentInput: 'x',
+      },
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
-
     expect(screen.getByText('x')).toBeDefined();
   });
 
   it('shows 0:00 before start as fallback elapsed time', () => {
-    mockTypingEngine();
+    mockEngine(baseHookState);
 
     render(
-      <SoloRace snippet={mockSnippet} startedAt="1970-01-01T00:00:00.000Z" />,
+      <SoloRace snippet={mockSnippet} startedAt={'1970-01-01T00:00:00.000Z'} />,
     );
 
     expect(screen.getByText('0:00')).toBeDefined();
   });
 
+  it('keeps input locked until the server countdown elapses', () => {
+    const mockHandleDelete = vi.fn();
+    mockEngine({
+      state: {
+        targetCode: 'abc',
+        acceptedPrefix: '',
+        currentInput: '',
+        isFinished: false,
+        snippet: { type: 'js' },
+      },
+      handleInput: vi.fn(),
+      handleDelete: mockHandleDelete,
+    });
+
+    mockCountdown.mockReturnValue(3);
+    const { rerender } = render(
+      <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
+    );
+    const textarea = screen.getByRole('textbox', { hidden: true });
+
+    fireEvent.keyDown(textarea, { key: 'Backspace' });
+    expect(mockHandleDelete).not.toHaveBeenCalled();
+
+    // Started, but the server's start time has not arrived yet.
+    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    fireEvent.keyDown(textarea, { key: 'Backspace' });
+    expect(mockHandleDelete).not.toHaveBeenCalled();
+
+    mockCountdown.mockReturnValue(0);
+    rerender(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    fireEvent.keyDown(textarea, { key: 'Backspace' });
+    expect(mockHandleDelete).toHaveBeenCalledTimes(1);
+  });
+
   it('hides world best menu once race starts', () => {
-    mockTypingEngine();
+    mockEngine(baseHookState);
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
-
     expect(screen.getByText('WORLD BEST')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
@@ -237,47 +332,69 @@ describe('SoloRace Component', () => {
   });
 
   it('progress bar uses accepted code only, not current mistyped chars', () => {
-    mockTypingEngine({
-      targetCode: '1234567890',
-      acceptedPrefix: '123',
-      currentInput: 'abcd',
+    mockEngine({
+      ...baseHookState,
+      state: {
+        ...baseHookState.state,
+        targetCode: '1234567890',
+        acceptedPrefix: '123',
+        currentInput: 'abcd',
+      },
     });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
 
-    expect(screen.getByLabelText('typing progress')).toHaveStyle({
-      width: '30%',
-    });
+    const progress = screen.getByLabelText('typing progress');
+    expect(progress).toHaveStyle({ width: '30%' });
   });
 
   it('processBeforeInputData forwards each character', () => {
-    const handleInput = vi.fn();
-    const preventDefault = vi.fn();
+    const mockHandleInput = vi.fn();
+    const mockPreventDefault = vi.fn();
 
-    processBeforeInputData(false, 'ab', handleInput, preventDefault);
+    processBeforeInputData(false, 'ab', mockHandleInput, mockPreventDefault);
 
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(handleInput).toHaveBeenNthCalledWith(1, 'a');
-    expect(handleInput).toHaveBeenNthCalledWith(2, 'b');
+    expect(mockPreventDefault).toHaveBeenCalledTimes(1);
+    expect(mockHandleInput).toHaveBeenNthCalledWith(1, 'a');
+    expect(mockHandleInput).toHaveBeenNthCalledWith(2, 'b');
   });
 
   it('processBeforeInputData ignores locked and empty input data', () => {
-    const handleInput = vi.fn();
-    const preventDefault = vi.fn();
+    const mockHandleInput = vi.fn();
+    const mockPreventDefault = vi.fn();
 
-    processBeforeInputData(true, 'z', handleInput, preventDefault);
-    processBeforeInputData(false, '', handleInput, preventDefault);
-    processBeforeInputData(false, null, handleInput, preventDefault);
+    processBeforeInputData(true, 'z', mockHandleInput, mockPreventDefault);
+    processBeforeInputData(false, '', mockHandleInput, mockPreventDefault);
+    processBeforeInputData(false, null, mockHandleInput, mockPreventDefault);
 
-    expect(preventDefault).not.toHaveBeenCalled();
-    expect(handleInput).not.toHaveBeenCalled();
+    expect(mockPreventDefault).not.toHaveBeenCalled();
+    expect(mockHandleInput).not.toHaveBeenCalled();
   });
 
-  it('does not render a finished state label when race is complete', () => {
-    mockTypingEngine({ isFinished: true });
+  it('ignores backspace while locked', () => {
+    mockCountdown.mockReturnValue(1);
+    const handleDelete = vi.fn();
+    mockEngine({
+      ...baseHookState,
+      handleDelete,
+    });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
+    const textarea = screen.getByRole('textbox', { hidden: true });
+    fireEvent.keyDown(textarea, { key: 'Backspace' });
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
 
+  it('does not render finished state label when race is complete', () => {
+    mockEngine({
+      ...baseHookState,
+      state: {
+        ...baseHookState.state,
+        isFinished: true,
+      },
+    });
+
+    render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     expect(screen.queryByText('Race Finished!')).toBeNull();
   });
 });

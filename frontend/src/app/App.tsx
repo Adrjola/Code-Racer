@@ -18,21 +18,21 @@ import RegisterPage from '@/features/auth/pages/RegisterPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
-import LobbyPage from '@/features/lobby/components/LobbyPage';
-import { SoloRace } from '@/features/solo-race/components/SoloRace';
-import { useSoloRaceSession } from '@/features/solo-race/hooks/useSoloRaceSession';
-import type { RaceSnippet } from '@/features/solo-race/types/race.types';
+import type { SoloSelection } from '@/features/solo/soloApi';
+import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
+import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
 
 type Route =
   | 'admin'
   | 'dashboard'
   | 'forgot'
-  | 'lobby'
   | 'login'
   | 'notFound'
   | 'pending'
   | 'playSolo'
   | 'register'
+  | 'soloPreview'
+  | 'soloSetup'
   | 'verify';
 
 type AppState = {
@@ -41,6 +41,7 @@ type AppState = {
   pendingEmail?: string;
   route: Route;
   session: AuthSession | null;
+  soloSelection?: SoloSelection;
 };
 
 type RouteResult = Pick<AppState, 'dashboardNotice' | 'loginNotice' | 'route'>;
@@ -59,12 +60,14 @@ function routeFromPath(pathname: string): Route {
       return 'dashboard';
     case '/forgot-password':
       return 'forgot';
-    case '/lobby':
-      return 'lobby';
     case '/login':
       return 'login';
     case '/not-found':
       return 'notFound';
+    case '/solo':
+      return 'soloSetup';
+    case '/solo/preview':
+      return 'soloPreview';
     case '/verify-email-pending':
       return 'pending';
     case '/verify-email':
@@ -84,8 +87,6 @@ function pathFromRoute(route: Route): string {
       return '/dashboard';
     case 'forgot':
       return '/forgot-password';
-    case 'lobby':
-      return '/lobby';
     case 'login':
       return '/login';
     case 'notFound':
@@ -96,52 +97,22 @@ function pathFromRoute(route: Route): string {
       return '/play/solo';
     case 'register':
       return '/';
+    case 'soloPreview':
+      return '/solo/preview';
+    case 'soloSetup':
+      return '/solo';
     case 'verify':
       return '/verify-email';
   }
-}
-
-const FALLBACK_SNIPPET: RaceSnippet = {
-  id: 'fallback-snippet',
-  code: '',
-  type: 'EASY',
-};
-
-function SoloRacePage({ onGoLobby }: { onGoLobby: () => void }) {
-  const { session, preview, isLoading, error, startNewRace, resetToMenuState } =
-    useSoloRaceSession();
-
-  const activeSnippet =
-    session?.snippet ?? preview?.snippet ?? FALLBACK_SNIPPET;
-  const startedAt = session?.startedAt ?? new Date().toISOString();
-  const shouldShowSnippetError =
-    !session && !preview && !isLoading && error === 'failed_to_start_solo_race';
-  const errorMessage = shouldShowSnippetError
-    ? 'Unable to load solo race snippet.'
-    : null;
-
-  return (
-    <SoloRace
-      errorMessage={errorMessage}
-      onLobbyNavigate={async () => {
-        await resetToMenuState();
-        onGoLobby();
-      }}
-      onRestartRace={startNewRace}
-      onStartRace={startNewRace}
-      snippet={activeSnippet}
-      startedAt={startedAt}
-      transport={session?.transport}
-    />
-  );
 }
 
 function isProtected(route: Route) {
   return (
     route === 'admin' ||
     route === 'dashboard' ||
-    route === 'lobby' ||
-    route === 'playSolo'
+    route === 'playSolo' ||
+    route === 'soloPreview' ||
+    route === 'soloSetup'
   );
 }
 
@@ -161,6 +132,11 @@ function defaultAuthenticatedRoute(session: AuthSession): Route {
 function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
   if (!session && isProtected(route)) {
     return { loginNotice: LOGIN_REQUIRED_MESSAGE, route: 'login' };
+  }
+
+  // The race lives on the run screen now, so the old standalone path leads there.
+  if (session && route === 'playSolo') {
+    return { route: 'soloPreview' };
   }
 
   if (session && isAuthRoute(route)) {
@@ -194,7 +170,14 @@ function createInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(createInitialState);
-  const { dashboardNotice, loginNotice, pendingEmail, route, session } = state;
+  const {
+    dashboardNotice,
+    loginNotice,
+    pendingEmail,
+    route,
+    session,
+    soloSelection,
+  } = state;
 
   const commitRoute = useCallback(
     (
@@ -285,26 +268,65 @@ export default function App() {
     commitRoute('login', null, false, { loginNotice: notice });
   };
 
+  const handleSessionExpired = () => {
+    clearSession();
+    commitRoute('login', null, true, {
+      loginNotice: SESSION_EXPIRED_MESSAGE,
+    });
+  };
+
+  const handleSelectSolo = (selection: SoloSelection) => {
+    setState((current) => ({ ...current, soloSelection: selection }));
+    commitRoute('soloPreview', session);
+  };
+
   if (session && (route === 'admin' || route === 'dashboard')) {
     return (
       <DashboardPage
         notice={dashboardNotice}
         onGoAdmin={() => navigate('admin')}
         onGoDashboard={() => navigate('dashboard')}
-        onGoLobby={() => navigate('lobby')}
         onLogout={handleLogout}
+        onPlaySolo={() => navigate('soloSetup')}
         session={session}
         view={route === 'admin' ? 'admin' : 'dashboard'}
       />
     );
   }
 
-  if (route === 'forgot') {
-    return <ForgotPasswordPage onBackToLogin={() => navigate('login')} />;
+  if (session && route === 'soloSetup') {
+    return (
+      <SoloSetupPage
+        onGoDashboard={() => navigate('dashboard')}
+        onLogout={handleLogout}
+        onSelect={handleSelectSolo}
+        onSessionExpired={handleSessionExpired}
+      />
+    );
   }
 
-  if (route === 'lobby') {
-    return <LobbyPage onOpenSolo={() => navigate('playSolo')} />;
+  if (session && route === 'soloPreview') {
+    if (!soloSelection) {
+      return (
+        <SoloSetupPage
+          onGoDashboard={() => navigate('dashboard')}
+          onLogout={handleLogout}
+          onSelect={handleSelectSolo}
+          onSessionExpired={handleSessionExpired}
+        />
+      );
+    }
+    return (
+      <SoloPreviewPage
+        onExitRace={() => navigate('dashboard')}
+        onSessionExpired={handleSessionExpired}
+        selection={soloSelection}
+      />
+    );
+  }
+
+  if (route === 'forgot') {
+    return <ForgotPasswordPage onBackToLogin={() => navigate('login')} />;
   }
 
   if (route === 'login') {
@@ -334,10 +356,6 @@ export default function App() {
         token={new URLSearchParams(window.location.search).get('token')}
       />
     );
-  }
-
-  if (route === 'playSolo') {
-    return <SoloRacePage onGoLobby={() => navigate('lobby')} />;
   }
 
   if (route === 'notFound') {

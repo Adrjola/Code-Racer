@@ -9,6 +9,9 @@ values (
 )
 on conflict (name) do nothing;
 
+-- Sources are dollar-quoted so the newlines are stored as real line breaks.
+-- A plain quoted literal would store the escape as two characters instead,
+-- which players would then have to type verbatim.
 insert into code_snippet (
     id,
     snippet_id,
@@ -29,19 +32,17 @@ values
         '7f685982-9328-4746-ae41-fbd5af99864e',
         1,
         'Two Sum (Brute Force)',
-        $snippet$class Solution {
-  int[] twoSum(int[] nums, int target) {
+        $$public int[] twoSum(int[] nums, int target) {
     for (int i = 0; i < nums.length; i++) {
-      for (int j = i + 1; j < nums.length; j++) {
-        if (nums[i] + nums[j] == target) {
-          return new int[] {i, j};
+        for (int j = i + 1; j < nums.length; j++) {
+            if (nums[i] + nums[j] == target) {
+                return new int[] {i, j};
+            }
         }
-      }
     }
     return new int[0];
-  }
-}$snippet$,
-        '46c549c012343c4835b6d09e7aa6b8206fe2721009290cc5e55e40c3606c2675',
+}$$,
+        '3297d5f921df33d6f2720145986fd66a52c45e9b3d60e5a6b5d9ddb3d8ad8aad',
         'EASY',
         'ACTIVE',
         (select id from category where name = 'Algorithms'),
@@ -54,12 +55,10 @@ values
         '071f4ee8-d96f-4c8a-a085-4eb36e95f6f4',
         1,
         'Reverse String',
-        $snippet$class Solution {
-  String reverse(String input) {
+        $$public String reverseString(String input) {
     return new StringBuilder(input).reverse().toString();
-  }
-}$snippet$,
-        '2b3bbcc520be74136588699714b47be696df3c76cd0afdb43ca83b7fdb2295b4',
+}$$,
+        '709a6848817c09be1bd8e5206e248674d9c6fe898ae5ceed19878e775cf9195f',
         'EASY',
         'ACTIVE',
         (select id from category where name = 'Algorithms'),
@@ -72,25 +71,26 @@ values
         'e1001f6b-a245-477e-9286-f5063ce9316f',
         1,
         'Valid Parentheses',
-        $snippet$class Solution {
-  boolean hasBalancedBrackets(String text) {
+        $$public boolean hasBalancedBrackets(String text) {
     int balance = 0;
 
     for (char current : text.toCharArray()) {
-      if (current == '(') {
-        balance++;
-      } else if (current == ')') {
-        balance--;
-        if (balance < 0) {
-          return false;
+        if (current == '(') {
+            balance++;
+            continue;
         }
-      }
+
+        if (current == ')') {
+            balance--;
+            if (balance < 0) {
+                return false;
+            }
+        }
     }
 
     return balance == 0;
-  }
-}$snippet$,
-        '83af265acec8d5bec847f7b2e6615dbcf7cd1126aef66d98caafcec307ca1c82',
+}$$,
+        '7dfbc1ed30c81db8123f061d93db63f1505e3b60568451a6f739f5fa898c94bf',
         'MEDIUM',
         'ACTIVE',
         (select id from category where name = 'Algorithms'),

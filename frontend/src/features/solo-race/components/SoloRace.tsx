@@ -1,61 +1,63 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { processBeforeInputData } from './processBeforeInputData';
-import { useExactCodeTypingEngine } from '../hooks/useExactCodeTypingEngine';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type SyntheticEvent,
+} from 'react';
 import { useCountdown } from '../hooks/useCountdown';
+import { useExactCodeTypingEngine } from '../hooks/useExactCodeTypingEngine';
 import type {
   ExactCodeTypingEngineTransport,
   RaceSnippet,
 } from '../types/race.types';
+import { codePointLength, sliceCodePoints } from '../utils/codePointText';
+import { processBeforeInputData } from '../utils/processBeforeInputData';
 import { SoloRaceHeader } from './SoloRaceHeader';
+import { SoloRaceKeyboardHints } from './SoloRaceKeyboardHints';
 import { SoloRaceStatsRow } from './SoloRaceStatsRow';
 import { SoloRaceWorldBest } from './SoloRaceWorldBest';
-import { SoloRaceKeyboardHints } from './SoloRaceKeyboardHints';
-import { codePointLength, sliceCodePoints } from '../utils/codePointText';
 
 interface SoloRaceProps {
-  snippet: RaceSnippet;
-  startedAt: string;
-  transport?: ExactCodeTypingEngineTransport;
+  errorMessage?: string | null;
   onLobbyNavigate?: () => void | Promise<void>;
   onRestartRace?: () => void | Promise<void>;
   onStartRace?: () => void | Promise<void>;
-  errorMessage?: string | null;
+  snippet: RaceSnippet;
+  startedAt: string;
+  transport?: ExactCodeTypingEngineTransport;
 }
 
-export const SoloRace: React.FC<SoloRaceProps> = ({
-  snippet,
-  startedAt,
-  transport,
+export function SoloRace({
+  errorMessage,
   onLobbyNavigate,
   onRestartRace,
   onStartRace,
-  errorMessage,
-}) => {
+  snippet,
+  startedAt,
+  transport,
+}: SoloRaceProps) {
   const { state, handleInput, handleDelete } = useExactCodeTypingEngine(
     snippet,
     startedAt,
     transport,
   );
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const isTabPressedRef = useRef(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [localRaceStarted, setLocalRaceStarted] = useState(false);
-  const [dismissedAttemptKey, setDismissedAttemptKey] = useState<string | null>(
-    null,
-  );
+  const [hasRaceStarted, setHasRaceStarted] = useState(false);
   const [isBootstrappingRace, setIsBootstrappingRace] = useState(false);
-  const attemptKey = transport ? `${snippet.id}:${startedAt}` : null;
-  const hasRaceStarted =
-    localRaceStarted ||
-    (attemptKey !== null && dismissedAttemptKey !== attemptKey);
-  const countdown = useCountdown(hasRaceStarted ? startedAt : null);
 
-  const isCountdownActive =
-    hasRaceStarted && countdown !== null && countdown > 0;
-  const isLocked = !hasRaceStarted || isCountdownActive;
+  const countdown = useCountdown(
+    hasRaceStarted && startedAt ? startedAt : null,
+  );
+  const isCountdownActive = countdown !== null && countdown > 0;
+  const raceStartedAtMs =
+    hasRaceStarted && startedAt ? Date.parse(startedAt) : null;
+  const isLocked = !hasRaceStarted || !startedAt || isCountdownActive;
 
   const focusInput = useCallback(() => {
-    /* v8 ignore next */
     if (!isLocked) {
       inputRef.current?.focus();
     }
@@ -65,10 +67,10 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     if (!isLocked) {
       focusInput();
     }
-  }, [isLocked, focusInput]);
+  }, [focusInput, isLocked]);
 
   useEffect(() => {
-    if (state.isFinished || !hasRaceStarted || isLocked) {
+    if (state.isFinished || !hasRaceStarted || raceStartedAtMs === null) {
       return;
     }
 
@@ -79,59 +81,29 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     return () => {
       window.clearInterval(timer);
     };
-  }, [hasRaceStarted, isLocked, state.isFinished]);
+  }, [hasRaceStarted, raceStartedAtMs, state.isFinished]);
+
+  const [renderedSnippetId, setRenderedSnippetId] = useState(snippet.id);
+  if (renderedSnippetId !== snippet.id) {
+    setRenderedSnippetId(snippet.id);
+    setHasRaceStarted(false);
+  }
 
   const terminateRaceToMenu = () => {
-    setLocalRaceStarted(false);
-    setDismissedAttemptKey(attemptKey);
+    setHasRaceStarted(false);
     setNowMs(Date.now());
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (isLocked) return;
-
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      terminateRaceToMenu();
-      return;
-    }
-
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      restartRace();
-      return;
-    }
-
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      handleDelete();
-      return;
-    }
-
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      isTabPressedRef.current = true;
-      handleInput(' ');
-      handleInput(' ');
-      handleInput(' ');
-    }
-  };
-
-  const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
-      isTabPressedRef.current = false;
-    }
-  };
-
-  const preventDefault = (e: React.SyntheticEvent) => e.preventDefault();
-
   const goToLobby = async () => {
-    if (isBootstrappingRace) return;
+    if (isBootstrappingRace) {
+      return;
+    }
 
     if (onLobbyNavigate) {
       setIsBootstrappingRace(true);
       try {
         await onLobbyNavigate();
+        terminateRaceToMenu();
       } finally {
         setIsBootstrappingRace(false);
       }
@@ -142,27 +114,77 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   };
 
   const restartRace = async () => {
-    if (isBootstrappingRace) return;
+    if (isBootstrappingRace) {
+      return;
+    }
 
     if (onRestartRace) {
       setIsBootstrappingRace(true);
       try {
         await onRestartRace();
-        setDismissedAttemptKey(null);
-        setLocalRaceStarted(true);
+      } finally {
+        setIsBootstrappingRace(false);
+      }
+    }
+
+    terminateRaceToMenu();
+  };
+
+  const startRace = async () => {
+    if (isBootstrappingRace) {
+      return;
+    }
+
+    if (onStartRace) {
+      setIsBootstrappingRace(true);
+      try {
+        await onStartRace();
+        setHasRaceStarted(true);
         setNowMs(Date.now());
       } catch {
-        setLocalRaceStarted(false);
+        setHasRaceStarted(false);
       } finally {
         setIsBootstrappingRace(false);
       }
       return;
     }
 
-    setDismissedAttemptKey(null);
-    setLocalRaceStarted(true);
+    setHasRaceStarted(true);
     setNowMs(Date.now());
   };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isLocked) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      void goToLobby();
+      return;
+    }
+
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      void restartRace();
+      return;
+    }
+
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      handleDelete();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      handleInput(' ');
+      handleInput(' ');
+      handleInput(' ');
+    }
+  };
+
+  const preventDefault = (event: SyntheticEvent) => event.preventDefault();
 
   const typedLength = codePointLength(state.acceptedPrefix);
   const totalLength = Math.max(codePointLength(state.targetCode), 1);
@@ -170,17 +192,17 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     0,
     Math.min(100, (typedLength / totalLength) * 100),
   );
-  const startedAtMs = Date.parse(startedAt);
   const elapsedMs =
-    hasRaceStarted && !isCountdownActive && Number.isFinite(startedAtMs)
-      ? Math.max(0, nowMs - startedAtMs)
+    raceStartedAtMs !== null && Number.isFinite(raceStartedAtMs)
+      ? Math.max(0, nowMs - raceStartedAtMs)
       : 0;
-  const activeElapsedSeconds = Math.floor(elapsedMs / 1000);
+  const activeElapsedSeconds = hasRaceStarted
+    ? Math.floor(elapsedMs / 1000)
+    : 0;
   const resultElapsedSeconds =
     state.result?.durationMs !== null && state.result?.durationMs !== undefined
       ? Math.floor(state.result.durationMs / 1000)
       : null;
-
   const elapsedSeconds = resultElapsedSeconds ?? activeElapsedSeconds;
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
@@ -197,30 +219,6 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   );
   const totalLines = snippet.code.split('\n').length;
 
-  const startRace = async () => {
-    if (isBootstrappingRace) return;
-
-    if (onStartRace) {
-      setIsBootstrappingRace(true);
-      try {
-        await onStartRace();
-        setDismissedAttemptKey(null);
-        setLocalRaceStarted(true);
-        setNowMs(Date.now());
-      } catch {
-        setLocalRaceStarted(false);
-      } finally {
-        setIsBootstrappingRace(false);
-      }
-      return;
-    }
-
-    setDismissedAttemptKey(null);
-    setLocalRaceStarted(true);
-    setNowMs(Date.now());
-  };
-
-  // Rendering characters
   const renderCode = () => {
     const { targetCode, acceptedPrefix, currentInput } = state;
     const remaining = sliceCodePoints(
@@ -228,17 +226,12 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       codePointLength(acceptedPrefix),
     );
     const incorrectPart = currentInput;
-
-    // We need to be careful with rest calculation if currentInput has multi-byte chars
     const incorrectCharCount = codePointLength(incorrectPart);
-
-    // Slice target remaining by the number of characters in incorrectPart
-    const targetArray = Array.from(remaining);
-    const rest = targetArray.slice(incorrectCharCount).join('');
+    const rest = Array.from(remaining).slice(incorrectCharCount).join('');
 
     return (
       <pre
-        className={`font-mono text-lg leading-relaxed whitespace-pre-wrap break-all select-none transition duration-200 ${
+        className={`whitespace-pre-wrap break-all font-mono text-sm leading-relaxed transition duration-200 select-none sm:text-base lg:text-lg ${
           isLocked ? 'blur-[2px]' : ''
         }`}
       >
@@ -248,9 +241,9 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
             {incorrectPart}
           </span>
         )}
-        <span className="relative text-slate-200/40">
+        <span className="text-slate-200/40">
           {!incorrectPart && !isLocked && (
-            <span className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-emerald-400 animate-pulse" />
+            <span className="inline-block h-[1.15em] w-[2px] translate-y-[0.2em] animate-pulse bg-emerald-400" />
           )}
           {rest}
         </span>
@@ -259,80 +252,81 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   };
 
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden bg-[#08051A] font-sans text-slate-50 lg:h-[100dvh] lg:min-h-0 lg:w-screen lg:overflow-hidden">
-      <div className="min-h-[100dvh] lg:fixed lg:left-0 lg:top-0 lg:h-[1080px] lg:min-h-0 lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--page-scale))]">
-        <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
+    <div className="min-h-screen w-full bg-[#08051A] text-slate-50">
+      <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
-        <main className="mx-auto mt-[110px] w-full px-10" onClick={focusInput}>
-          <div className="grid grid-cols-[minmax(0,1fr)_487px] items-start gap-10">
-            <div className="mx-auto flex w-full max-w-[868.63px] flex-col">
-              <SoloRaceStatsRow
-                cpm={cpm}
-                currentLine={line}
-                elapsed={elapsed}
-                progressPercent={progressPercent}
-                totalLines={totalLines}
-              />
-
-              <div
-                className="relative h-[667px] w-full rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-8"
-                style={{
-                  boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)',
-                }}
-              >
-                {renderCode()}
-
-                {errorMessage ? (
-                  <div className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100">
-                    {errorMessage}
-                  </div>
-                ) : null}
-
-                {isCountdownActive && (
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <span className="font-mono text-8xl font-extrabold leading-none text-[#FDE68A] drop-shadow-[0_0_24px_rgba(244,114,182,0.55)]">
-                      {countdown}
-                    </span>
-                  </div>
-                )}
-
-                <textarea
-                  ref={inputRef}
-                  readOnly={isLocked}
-                  className="absolute inset-0 h-full w-full resize-none cursor-default opacity-0"
-                  onKeyDown={handleKeyDown}
-                  onKeyUp={handleKeyUp}
-                  /* v8 ignore next */
-                  onBeforeInput={(e: React.FormEvent<HTMLTextAreaElement>) =>
-                    processBeforeInputData(
-                      isLocked,
-                      (e.nativeEvent as InputEvent).data,
-                      handleInput,
-                      () => e.preventDefault(),
-                    )
-                  }
-                  onPaste={preventDefault}
-                  onDrop={preventDefault}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  autoComplete="off"
-                  spellCheck="false"
-                />
-              </div>
-
-              <div className="mt-[10px]">
-                <SoloRaceKeyboardHints />
-              </div>
-            </div>
-
-            {!hasRaceStarted && (
-              <div className="mx-0 w-[487px]">
-                <SoloRaceWorldBest onStartRace={startRace} />
-              </div>
-            )}
+      <div
+        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10"
+        onClick={focusInput}
+      >
+        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:min-h-[980px] lg:gap-0">
+          <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
+            <SoloRaceStatsRow
+              cpm={cpm}
+              currentLine={line}
+              elapsed={elapsed}
+              progressPercent={progressPercent}
+              totalLines={totalLines}
+            />
           </div>
-        </main>
+
+          <div className="w-full max-w-[611px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
+            <div
+              className="relative min-h-[360px] rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
+              style={{
+                boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)',
+              }}
+            >
+              {renderCode()}
+
+              {errorMessage ? (
+                <div className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100">
+                  {errorMessage}
+                </div>
+              ) : null}
+
+              {isCountdownActive && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="font-mono text-8xl leading-none font-extrabold text-[#FDE68A] drop-shadow-[0_0_24px_rgba(244,114,182,0.55)]">
+                    {countdown}
+                  </span>
+                </div>
+              )}
+
+              <textarea
+                ref={inputRef}
+                readOnly={isLocked}
+                className="absolute inset-0 h-full w-full cursor-default resize-none opacity-0"
+                onKeyDown={handleKeyDown}
+                onBeforeInput={(event: FormEvent<HTMLTextAreaElement>) => {
+                  const { data } = event as FormEvent<HTMLTextAreaElement> & {
+                    data?: string | null;
+                  };
+                  processBeforeInputData(isLocked, data, handleInput, () =>
+                    event.preventDefault(),
+                  );
+                }}
+                onPaste={preventDefault}
+                onDrop={preventDefault}
+                autoCapitalize="off"
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck="false"
+              />
+            </div>
+          </div>
+
+          {!hasRaceStarted && (
+            <div className="w-full max-w-[487px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
+              <SoloRaceWorldBest onStartRace={startRace} />
+            </div>
+          )}
+
+          <div className="w-full lg:absolute lg:left-1/2 lg:top-[802px] lg:w-auto lg:-translate-x-1/2">
+            <SoloRaceKeyboardHints />
+          </div>
+        </div>
       </div>
     </div>
   );
-};
+}

@@ -1,24 +1,32 @@
+import {
+  isProgressAck,
+  soloRaceApi,
+  type SoloAttemptResultResponse,
+} from './soloRaceApi';
 import type {
   ExactCodeTypingEngineTransport,
   ProgressAcknowledge,
   ProgressBatch,
 } from '../types/race.types';
-import {
-  soloRaceApi,
-  type ProgressAckResponse,
-  type SubmitProgressResponse,
-} from './soloRaceApi';
 
-function isProgressAck(
-  response: SubmitProgressResponse,
-): response is ProgressAckResponse {
-  return 'acceptedOffset' in response;
-}
+export type SoloRaceTransportOptions = {
+  /**
+   * Called once the server reports the attempt COMPLETED. The result carries the
+   * authoritative duration and cpm, so the UI never computes them itself.
+   */
+  onResult?: (result: SoloAttemptResultResponse) => void;
+};
 
 export function createSoloRaceTransport(
   attemptId: string,
+  options: SoloRaceTransportOptions = {},
 ): ExactCodeTypingEngineTransport {
-  let nextSequence = 1;
+  // The server takes one delta per sequence number and demands each request be
+  // exactly lastSequence + 1. Event versions count characters, not requests, so
+  // the transport keeps its own request counter: batching two keystrokes would
+  // otherwise skip a number and be rejected with PROGRESS_SEQUENCE_CONFLICT.
+  let sequence = 0;
+  let acceptedOffset = 0;
 
   return {
     async sendProgressBatch(
@@ -26,33 +34,27 @@ export function createSoloRaceTransport(
     ): Promise<ProgressAcknowledge> {
       const last = batch.events[batch.events.length - 1];
       const characters = batch.events.map((event) => event.value).join('');
-      const sequence = nextSequence;
+      const nextSequence = sequence + 1;
       const response = await soloRaceApi.submitProgress(
         attemptId,
-        sequence,
+        nextSequence,
         characters,
       );
-      nextSequence += 1;
+
+      // Advance only once the server has taken the delta, so a failed send is
+      // retried under the same number instead of skipping one.
+      sequence = nextSequence;
 
       if (isProgressAck(response)) {
-        return {
-          version: last.version,
-          serverOffset: response.acceptedOffset,
-          completed: false,
-        };
+        acceptedOffset = response.acceptedOffset;
+        return { serverOffset: acceptedOffset, version: last.version };
       }
 
-      return {
-        version: last.version,
-        serverOffset: last.version,
-        completed: true,
-        result: {
-          cpm: response.cpm,
-          durationMs: response.durationMs,
-          finishedAt: response.finishedAt,
-          state: response.state,
-        },
-      };
+      // The batch that finishes the attempt answers with the result rather than
+      // an ack. This is the only point the server hands the result over.
+      acceptedOffset += [...characters].length;
+      options.onResult?.(response);
+      return { serverOffset: acceptedOffset, version: last.version };
     },
     async submitCompletion() {
       return;

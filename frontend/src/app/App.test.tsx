@@ -433,47 +433,35 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders lobby page for /lobby route', () => {
-    saveSession(session());
-    window.history.replaceState(null, '', '/lobby');
+  it('sends an unauthenticated visitor from /play/solo to login', () => {
+    window.history.replaceState(null, '', '/play/solo');
 
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: /lobby/i })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /singleplayer/i }),
+      screen.getByRole('heading', { name: /welcome back/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/please log in/i);
   });
 
-  it('renders solo race page for /play/solo route', async () => {
-    saveSession(session());
-    window.history.replaceState(null, '', '/play/solo');
+  it('falls back to snippet selection when /play/solo has no started attempt', async () => {
     server.use(
-      http.get(`${API_URL}/api/snippets/random`, () =>
+      http.get(`${API_URL}/api/categories`, () =>
         HttpResponse.json({
           data: {
-            difficulty: 'EASY',
-            id: '2d357563-9706-43b0-b11e-e4ab2f77b1d1',
-            source: 'class Main {}',
-          },
-        }),
-      ),
-      http.get(`${API_URL}/api/solo-attempts/world-best`, () =>
-        HttpResponse.json({
-          data: {
-            cpm: null,
-            cpmHolderName: null,
-            time: null,
-            timeHolderName: null,
+            content: [],
+            page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
           },
         }),
       ),
     );
+    saveSession(session());
+    window.history.replaceState(null, '', '/play/solo');
 
     render(<App />);
 
     expect(
-      await screen.findByRole('button', { name: /start race/i }),
+      await screen.findByRole('heading', { name: /^category$/i }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: /page not found/i }),
@@ -528,21 +516,6 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: /^categories$/i }),
     ).toBeInTheDocument();
-  });
-
-  it('navigates from dashboard to lobby using the lobby button', async () => {
-    const user = userEvent.setup();
-    saveSession(session());
-    window.history.replaceState(null, '', '/dashboard');
-
-    render(<App />);
-
-    await user.click(screen.getByRole('button', { name: /^lobby$/i }));
-
-    expect(
-      await screen.findByRole('heading', { name: /^lobby$/i }),
-    ).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/lobby');
   });
 
   it('redirects expired sessions back to login', () => {
