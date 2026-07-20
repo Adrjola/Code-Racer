@@ -79,6 +79,10 @@ export default function LandingPage({ onPlay }: LandingPageProps) {
       <div className="lg:absolute lg:left-0 lg:top-0 lg:h-[1080px] lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--auth-login-scale))]">
         <AnimatedBackground />
 
+        <h1 className="sr-only">
+          Code Racer — practice Java syntax in real-time typing races
+        </h1>
+
         {/* This wrapper only exists to stack things vertically on mobile
          */}
         <div className="relative z-10 flex min-h-[100dvh] flex-col px-5 pb-3 pt-3 lg:contents">

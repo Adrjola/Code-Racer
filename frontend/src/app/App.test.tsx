@@ -75,7 +75,11 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(await screen.findByRole('button', { name: /play/i }));
+    await user.click(
+      // LandingPage is lazy-loaded (it pulls in three.js), so give the
+      // dynamic import more room than the default timeout under load.
+      await screen.findByRole('button', { name: /play/i }, { timeout: 5000 }),
+    );
 
     expect(
       screen.getByRole('heading', { name: /create your account/i }),

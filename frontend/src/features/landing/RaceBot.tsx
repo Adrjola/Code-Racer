@@ -432,18 +432,6 @@ export default function RaceBot({
     scene.add(root);
 
     const pointer = { x: 0, y: 0, clientX: -1, clientY: -1, inside: false };
-    const onPointerMove = (e: PointerEvent) => {
-      pointer.clientX = e.clientX;
-      pointer.clientY = e.clientY;
-      pointer.inside = true;
-      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -((e.clientY / window.innerHeight) * 2 - 1);
-    };
-    const onPointerLeave = () => {
-      pointer.inside = false;
-    };
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerleave', onPointerLeave);
 
     // Only hovering over the face should trigger the "broken" look —
     // not the whole body.
@@ -475,6 +463,41 @@ export default function RaceBot({
         setExpression(baseExpression);
       }
     };
+
+    // Reduced motion gets a static render, updated only on real pointer
+    // events instead of a continuously-running animation loop.
+    const renderStatic = () => {
+      updateHoverState();
+
+      let nearPlay = false;
+      const target = pointTargetRef?.current;
+      if (target && pointer.inside) {
+        const r = target.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dist = Math.hypot(pointer.clientX - cx, pointer.clientY - cy);
+        nearPlay = dist < POINT_RADIUS_PX;
+      }
+      armR.rotation.z = nearPlay ? 1.5 : 0;
+      armR.rotation.x = nearPlay ? -0.15 : 0;
+
+      renderer.render(scene, camera);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      pointer.clientX = e.clientX;
+      pointer.clientY = e.clientY;
+      pointer.inside = true;
+      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -((e.clientY / window.innerHeight) * 2 - 1);
+      if (reducedMotion) renderStatic();
+    };
+    const onPointerLeave = () => {
+      pointer.inside = false;
+      if (reducedMotion) renderStatic();
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerleave', onPointerLeave);
 
     const G = 6.2;
     const jump = { active: false, vy: 0, y: 0 };
@@ -516,7 +539,7 @@ export default function RaceBot({
       if (nearPlay) pointArm = 'R';
       else if (pointArm === 'R') pointArm = null;
 
-      const bob = Math.sin(t * 2.2) * 0.008;
+      const bob = reducedMotion ? 0 : Math.sin(t * 2.2) * 0.008;
       if (jump.active) {
         jump.y += jump.vy * dt;
         jump.vy -= G * dt;
@@ -574,9 +597,15 @@ export default function RaceBot({
 
       renderer.render(scene, camera);
     };
-    raf = requestAnimationFrame(tick);
+
+    if (reducedMotion) {
+      renderStatic();
+    } else {
+      raf = requestAnimationFrame(tick);
+    }
 
     const onVisibility = () => {
+      if (reducedMotion) return;
       if (document.hidden) {
         running = false;
         cancelAnimationFrame(raf);
