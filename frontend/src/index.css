@@ -30,7 +30,13 @@ body {
   min-height: 100dvh;
 }
 
-button,
-input {
-  font: inherit;
+/* Wrapped in @layer base so Tailwind utility classes (like text-[40px]) can
+   still win over this — without the layer, this rule would beat any utility
+   no matter its specificity, because Tailwind's utilities all live inside
+   a CSS layer. */
+@layer base {
+  button,
+  input {
+    font: inherit;
+  }
 }

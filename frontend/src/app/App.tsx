@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   loginUser,
   registerUser,
@@ -19,10 +19,15 @@ import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPa
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
 
+// Loaded lazily so three.js — the 3D mascot's dependency — ships as its own
+// chunk and only gets downloaded when someone actually visits the landing page.
+const LandingPage = lazy(() => import('@/features/landing/LandingPage'));
+
 type Route =
   | 'admin'
   | 'dashboard'
   | 'forgot'
+  | 'landing'
   | 'login'
   | 'notFound'
   | 'pending'
@@ -46,6 +51,8 @@ const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please log in again.';
 function routeFromPath(pathname: string): Route {
   switch (pathname) {
     case '/':
+      return 'landing';
+    case '/register':
       return 'register';
     case '/admin':
       return 'admin';
@@ -74,6 +81,8 @@ function pathFromRoute(route: Route): string {
       return '/dashboard';
     case 'forgot':
       return '/forgot-password';
+    case 'landing':
+      return '/';
     case 'login':
       return '/login';
     case 'notFound':
@@ -81,7 +90,7 @@ function pathFromRoute(route: Route): string {
     case 'pending':
       return '/verify-email-pending';
     case 'register':
-      return '/';
+      return '/register';
     case 'verify':
       return '/verify-email';
   }
@@ -109,7 +118,7 @@ function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
     return { loginNotice: LOGIN_REQUIRED_MESSAGE, route: 'login' };
   }
 
-  if (session && isAuthRoute(route)) {
+  if (session && (route === 'landing' || isAuthRoute(route))) {
     return { route: defaultAuthenticatedRoute(session) };
   }
 
@@ -281,16 +290,24 @@ export default function App() {
     return (
       <NotFoundPage
         onGoHome={() =>
-          navigate(session ? defaultAuthenticatedRoute(session) : 'register')
+          navigate(session ? defaultAuthenticatedRoute(session) : 'landing')
         }
       />
     );
   }
 
+  if (route === 'register') {
+    return (
+      <RegisterPage
+        onRegister={handleRegister}
+        onSignIn={() => navigate('login')}
+      />
+    );
+  }
+
   return (
-    <RegisterPage
-      onRegister={handleRegister}
-      onSignIn={() => navigate('login')}
-    />
+    <Suspense fallback={<div className="min-h-[100dvh] bg-surface" />}>
+      <LandingPage onPlay={() => navigate('register')} />
+    </Suspense>
   );
 }
