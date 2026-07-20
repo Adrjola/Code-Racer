@@ -111,27 +111,31 @@ export function useExactCodeTypingEngine(
     }
   }, [state.isExpired, state.isFinished, transport]);
 
+  // Destructured so the dependency list names the exact fields used, rather than
+  // depending on the whole state object.
+  const { ackedVersion, completionRequested, isExpired, isFinished } = state;
+
   const requestCompletion = useCallback(async () => {
     /* v8 ignore next */
-    if (shouldSkipCompletionRequest(state)) {
+    if (
+      shouldSkipCompletionRequest({
+        completionRequested,
+        isExpired,
+        isFinished,
+      })
+    ) {
       /* v8 ignore next */
       return;
     }
 
     dispatch({ type: 'REQUEST_COMPLETION' });
     try {
-      await transport.submitCompletion({ version: state.ackedVersion });
+      await transport.submitCompletion({ version: ackedVersion });
       dispatch({ type: 'FINISH' });
     } catch {
       dispatch({ type: 'TRANSPORT_FAILURE', reason: 'completion_send_failed' });
     }
-  }, [
-    state.ackedVersion,
-    state.completionRequested,
-    state.isExpired,
-    state.isFinished,
-    transport,
-  ]);
+  }, [ackedVersion, completionRequested, isExpired, isFinished, transport]);
 
   useEffect(() => {
     const targetLength = Array.from(state.targetCode).length;

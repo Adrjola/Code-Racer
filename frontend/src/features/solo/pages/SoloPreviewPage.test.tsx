@@ -291,6 +291,10 @@ describe('SoloPreviewPage', () => {
     ).toBeInTheDocument();
     // A failed start must leave the typing surface locked.
     expect(container.querySelector('textarea')).toHaveAttribute('readonly');
+    // ...and must not enter race mode, which would hide the only way to retry.
+    expect(
+      screen.getByRole('button', { name: /start race/i }),
+    ).toBeInTheDocument();
   });
 
   it('reports an expired session instead of an error message', async () => {

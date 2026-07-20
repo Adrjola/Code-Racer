@@ -46,7 +46,7 @@ export type UseSoloSetupResult = {
   setCategoryId: (categoryId: string | undefined) => void;
   setDifficulty: (difficulty: Difficulty | undefined) => void;
   snippetPhase: SnippetPhase;
-  start: () => void;
+  start: () => Promise<void>;
   startPhase: StartPhase;
 };
 
@@ -154,38 +154,45 @@ export function useSoloSetup(
     setStartPhase({ phase: 'idle' });
   }, []);
 
-  const start = useCallback(() => {
+  /**
+   * Rejects when no attempt was created, so the caller can stay on the
+   * pre-start screen instead of showing a race that the server never started.
+   */
+  const start = useCallback(async () => {
     if (startInFlightRef.current || snippetPhase.phase !== 'ready') {
-      return;
+      throw new Error('solo_start_unavailable');
     }
     const snippet = snippetPhase.snippet;
     startInFlightRef.current = true;
     setStartPhase({ phase: 'starting' });
 
-    startSoloAttempt(snippet.id)
-      .then((attempt) => {
-        startInFlightRef.current = false;
-        if (attempt.codeSnippetId !== snippet.id) {
-          setStartPhase({
-            message:
-              'Your selection changed before starting. Refresh and try again.',
-            phase: 'error',
-          });
-          return;
-        }
-        setStartPhase({ attempt, phase: 'started', snippet });
-      })
-      .catch((error: unknown) => {
-        startInFlightRef.current = false;
-        if (isSessionExpiredError(error)) {
-          handleSessionExpired();
-          return;
-        }
+    let attempt: StartSoloAttemptResponse;
+    try {
+      attempt = await startSoloAttempt(snippet.id);
+    } catch (error: unknown) {
+      if (isSessionExpiredError(error)) {
+        handleSessionExpired();
+      } else {
         setStartPhase({ message: readableSoloError(error), phase: 'error' });
         if (isSnippetUnavailableError(error)) {
           loadSnippet();
         }
+      }
+      throw error;
+    } finally {
+      startInFlightRef.current = false;
+    }
+
+    if (attempt.codeSnippetId !== snippet.id) {
+      setStartPhase({
+        message:
+          'Your selection changed before starting. Refresh and try again.',
+        phase: 'error',
       });
+      throw new Error('solo_snippet_changed');
+    }
+
+    setStartPhase({ attempt, phase: 'started', snippet });
   }, [handleSessionExpired, loadSnippet, snippetPhase]);
 
   const setCategoryId = useCallback((next: string | undefined) => {

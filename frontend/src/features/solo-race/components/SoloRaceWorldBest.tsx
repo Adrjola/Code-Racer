@@ -63,7 +63,7 @@ export function SoloRaceWorldBest({
       </h2>
 
       <div
-        className="mb-4 h-[185px] w-[487px] rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
+        className="mb-4 min-h-[160px] w-full rounded-2xl border border-[#FBBF2442] px-5 pb-6 pt-[13px] sm:px-6 lg:h-[185px] lg:min-h-0 lg:w-[487px]"
         style={{
           background:
             'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)',
@@ -72,7 +72,7 @@ export function SoloRaceWorldBest({
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">
           world record - cpm
         </p>
-        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">
+        <p className="font-['JetBrains_Mono'] text-[52px] font-bold leading-none text-white sm:text-[84px]">
           {cpmValue}{' '}
           <span className="font-['JetBrains_Mono'] text-[20px] font-normal leading-none text-[#F9A8D4]">
             CPM
@@ -85,7 +85,7 @@ export function SoloRaceWorldBest({
       </div>
 
       <div
-        className="h-[185px] w-[487px] rounded-2xl border border-[#FBBF2442] px-6 pb-6 pt-[13px]"
+        className="min-h-[160px] w-full rounded-2xl border border-[#FBBF2442] px-5 pb-6 pt-[13px] sm:px-6 lg:h-[185px] lg:min-h-0 lg:w-[487px]"
         style={{
           background:
             'radial-gradient(60% 60% at 100% 0%, rgba(251, 191, 36, 0.14) 0%, rgba(251, 191, 36, 0) 70%), rgba(18, 15, 31, 0.8)',
@@ -94,7 +94,7 @@ export function SoloRaceWorldBest({
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">
           world record - time
         </p>
-        <p className="font-['JetBrains_Mono'] text-[84px] font-bold leading-none text-white">
+        <p className="font-['JetBrains_Mono'] text-[52px] font-bold leading-none text-white sm:text-[84px]">
           {timeValue}
         </p>
         <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">
@@ -104,7 +104,7 @@ export function SoloRaceWorldBest({
       </div>
 
       <button
-        className="mt-8 inline-flex h-[72px] w-[280px] cursor-pointer items-center justify-center rounded-xl bg-[linear-gradient(107.27deg,#F472B6_0%,#A855F7_100%)] font-['Manrope'] text-[20px] font-bold uppercase leading-none text-center text-white shadow-[0_0_28px_rgba(244,114,182,0.5)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F9A8D4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08051A] active:scale-[0.98]"
+        className="mt-8 inline-flex h-[72px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-xl bg-[linear-gradient(107.27deg,#F472B6_0%,#A855F7_100%)] font-['Manrope'] text-[20px] font-bold uppercase leading-none text-center text-white shadow-[0_0_28px_rgba(244,114,182,0.5)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F9A8D4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08051A] active:scale-[0.98]"
         onClick={onStartRace}
         type="button"
       >

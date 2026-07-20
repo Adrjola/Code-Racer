@@ -207,8 +207,8 @@ describe('useSoloSetup', () => {
     );
 
     act(() => {
-      result.current.start();
-      result.current.start();
+      void result.current.start().catch(() => undefined);
+      void result.current.start().catch(() => undefined);
     });
 
     await waitFor(() =>
@@ -240,7 +240,7 @@ describe('useSoloSetup', () => {
     expect(snippetCalls).toBe(1);
 
     act(() => {
-      result.current.start();
+      void result.current.start().catch(() => undefined);
     });
 
     await waitFor(() => expect(result.current.startPhase.phase).toBe('error'));
@@ -265,7 +265,7 @@ describe('useSoloSetup', () => {
     );
 
     act(() => {
-      result.current.start();
+      void result.current.start().catch(() => undefined);
     });
 
     await waitFor(() => expect(result.current.startPhase.phase).toBe('error'));

@@ -104,6 +104,25 @@ describe('SoloRaceResult', () => {
     expect(await screen.findByText(/first completed race/)).toBeInTheDocument();
   });
 
+  it('claims nothing about records until history has loaded', async () => {
+    // Never resolves, so the screen stays in its pre-load state.
+    server.use(http.get(HISTORY_URL, () => new Promise(() => {})));
+    render(
+      <SoloRaceResult
+        onLobby={vi.fn()}
+        onRaceAgain={vi.fn()}
+        result={result()}
+      />,
+    );
+
+    expect(screen.getByText('452')).toBeInTheDocument();
+    expect(
+      screen.getByText(/checking your previous races/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/first completed race/)).not.toBeInTheDocument();
+  });
+
   it('celebrates beating the previous best', async () => {
     withHistory([
       result(),

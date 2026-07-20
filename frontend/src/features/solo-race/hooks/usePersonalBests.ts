@@ -5,6 +5,12 @@ import {
 } from '../api/soloRaceApi';
 
 export type PersonalBests = {
+  /**
+   * False until the history lookup settles. Callers must not read a null best as
+   * "no previous best" before this is true, or the screen claims a personal best
+   * on every race for the moment before history arrives.
+   */
+  isLoaded: boolean;
   /** Best cpm before this attempt, or null when this was the first. */
   previousBestCpm: number | null;
   /** Best duration before this attempt, or null when this was the first. */
@@ -12,6 +18,7 @@ export type PersonalBests = {
 };
 
 const EMPTY: PersonalBests = {
+  isLoaded: false,
   previousBestCpm: null,
   previousBestDurationMs: null,
 };
@@ -48,6 +55,7 @@ export function usePersonalBests(
       }
 
       setBests({
+        isLoaded: true,
         previousBestCpm: firstOther(byCpm, attemptId)?.cpm ?? null,
         previousBestDurationMs:
           firstOther(byDuration, attemptId)?.durationMs ?? null,

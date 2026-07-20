@@ -62,9 +62,11 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     }
   };
 
+  // Focuses inline rather than calling focusInput, which is rebuilt every render
+  // and would make this effect re-run on each one.
   useEffect(() => {
     if (!isLocked) {
-      focusInput();
+      inputRef.current?.focus();
     }
   }, [isLocked]);
 
@@ -244,7 +246,7 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
 
     return (
       <pre
-        className={`font-mono text-lg leading-relaxed whitespace-pre-wrap break-all select-none transition duration-200 ${
+        className={`font-mono text-sm sm:text-base lg:text-lg leading-relaxed whitespace-pre-wrap break-all select-none transition duration-200 ${
           isLocked ? 'blur-[2px]' : ''
         }`}
       >
@@ -269,11 +271,13 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
       <div
-        className="mx-auto mt-10 w-full max-w-[1920px] px-6"
+        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10"
         onClick={focusInput}
       >
-        <div className="relative min-h-[980px]">
-          <div className="absolute left-1/2 top-[37px] w-[868.63px] -translate-x-1/2">
+        {/* Stacks in flow on small screens; the fixed desktop composition only
+            applies from lg up, where there is room for it. */}
+        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:min-h-[980px] lg:gap-0">
+          <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
             <SoloRaceStatsRow
               cpm={cpm}
               currentLine={line}
@@ -283,9 +287,9 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
             />
           </div>
 
-          <div className="absolute left-1/2 top-[125px] w-[611px] -translate-x-1/2">
+          <div className="w-full max-w-[611px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
             <div
-              className="relative h-[667px] rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-8"
+              className="relative min-h-[360px] rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
               style={{
                 boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)',
               }}
@@ -336,12 +340,12 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
           </div>
 
           {!hasRaceStarted && (
-            <div className="absolute right-[38px] top-[120px]">
+            <div className="w-full max-w-[487px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
               <SoloRaceWorldBest onStartRace={startRace} />
             </div>
           )}
 
-          <div className="absolute left-1/2 top-[802px] -translate-x-1/2">
+          <div className="w-full lg:absolute lg:left-1/2 lg:top-[802px] lg:w-auto lg:-translate-x-1/2">
             <SoloRaceKeyboardHints />
           </div>
         </div>

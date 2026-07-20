@@ -9,6 +9,9 @@ values (
 )
 on conflict (name) do nothing;
 
+-- Sources are dollar-quoted so the newlines are stored as real line breaks.
+-- A plain quoted literal would store the escape as two characters instead,
+-- which players would then have to type verbatim.
 insert into code_snippet (
     id,
     snippet_id,
@@ -29,8 +32,17 @@ values
         '7f685982-9328-4746-ae41-fbd5af99864e',
         1,
         'Two Sum (Brute Force)',
-        'function twoSum(nums, target) {\n  for (let i = 0; i < nums.length; i += 1) {\n    for (let j = i + 1; j < nums.length; j += 1) {\n      if (nums[i] + nums[j] === target) {\n        return [i, j];\n      }\n    }\n  }\n  return [];\n}',
-        'f44f21200e3f28c9d26e1f13017da6f4f2376a7637f6e4d5bcdadf0f85e15726',
+        $$public int[] twoSum(int[] nums, int target) {
+    for (int i = 0; i < nums.length; i++) {
+        for (int j = i + 1; j < nums.length; j++) {
+            if (nums[i] + nums[j] == target) {
+                return new int[] {i, j};
+            }
+        }
+    }
+    return new int[0];
+}$$,
+        '3297d5f921df33d6f2720145986fd66a52c45e9b3d60e5a6b5d9ddb3d8ad8aad',
         'EASY',
         'ACTIVE',
         (select id from category where name = 'Algorithms'),
@@ -43,8 +55,10 @@ values
         '071f4ee8-d96f-4c8a-a085-4eb36e95f6f4',
         1,
         'Reverse String',
-        'function reverseString(input) {\n  return Array.from(input).reverse().join("");\n}',
-        '81e47f7b6a2a3c34830cf2b4f5aa2cb2f8a58dbf7fc5f05140ecdbaf88c4f067',
+        $$public String reverseString(String input) {
+    return new StringBuilder(input).reverse().toString();
+}$$,
+        '709a6848817c09be1bd8e5206e248674d9c6fe898ae5ceed19878e775cf9195f',
         'EASY',
         'ACTIVE',
         (select id from category where name = 'Algorithms'),
@@ -57,8 +71,26 @@ values
         'e1001f6b-a245-477e-9286-f5063ce9316f',
         1,
         'Valid Parentheses',
-        'function hasBalancedBrackets(text) {\n  let balance = 0;\n\n  for (const char of text) {\n    if (char === "(") {\n      balance += 1;\n      continue;\n    }\n\n    if (char === ")") {\n      balance -= 1;\n      if (balance < 0) {\n        return false;\n      }\n    }\n  }\n\n  return balance === 0;\n}',
-        '22682f28cf3a2ff5dc9c6bd948c34fce9f0730a6f3dd9b90fef57c3f88d7a5b2',
+        $$public boolean hasBalancedBrackets(String text) {
+    int balance = 0;
+
+    for (char current : text.toCharArray()) {
+        if (current == '(') {
+            balance++;
+            continue;
+        }
+
+        if (current == ')') {
+            balance--;
+            if (balance < 0) {
+                return false;
+            }
+        }
+    }
+
+    return balance == 0;
+}$$,
+        '7dfbc1ed30c81db8123f061d93db63f1505e3b60568451a6f739f5fa898c94bf',
         'MEDIUM',
         'ACTIVE',
         (select id from category where name = 'Algorithms'),

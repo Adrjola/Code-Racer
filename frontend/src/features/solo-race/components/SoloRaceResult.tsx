@@ -24,11 +24,15 @@ export function SoloRaceResult({
   onRaceAgain,
   result,
 }: SoloRaceResultProps) {
-  const { previousBestCpm, previousBestDurationMs } = usePersonalBests(result);
+  const { isLoaded, previousBestCpm, previousBestDurationMs } =
+    usePersonalBests(result);
 
   const isCompleted = result.state === 'COMPLETED';
   const cpm = result.cpm;
+  // Gated on isLoaded: before history arrives every best reads as null, which
+  // would otherwise announce a personal best on every single race.
   const isPersonalBest =
+    isLoaded &&
     isCompleted &&
     cpm !== null &&
     (previousBestCpm === null || cpm > previousBestCpm);
@@ -73,7 +77,9 @@ export function SoloRaceResult({
 
         {isCompleted ? (
           <p className="mt-2 font-mono text-xs text-text-muted">
-            {cpmGain !== null && cpmGain > 0 ? (
+            {!isLoaded ? (
+              <span>checking your previous races...</span>
+            ) : cpmGain !== null && cpmGain > 0 ? (
               <span className="text-emerald-400">
                 ↗ +{cpmGain} cpm over previous best ({previousBestCpm})
               </span>
