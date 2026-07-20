@@ -99,20 +99,25 @@ src/
         `-- org/
             `-- coderacer/
                 `-- backend/
-                    |-- BackendApplicationTests.java             - Spring Boot context smoke test
-                    |-- common/
-                    |   |-- exception/
-                    |   |   `-- GlobalExceptionHandlerTest.java  - Exception handling verification
-                    |   `-- logging/
-                    |       `-- CorrelationIdFilterTest.java     - Correlation ID verification
-                    `-- config/
-                        |-- CorsConfigTest.java                  - CORS policy verification
-                        `-- CorsPropertiesTest.java              - CORS property validation
+                    |-- config/       - configuration tests
+                    |   `-- properties/ - configuration property tests
+                    |-- controller/   - MockMvc controller tests
+                    |-- dto/          - API contract tests
+                    |-- enums/        - enum behavior tests
+                    |-- exception/    - exception mapping tests
+                    |-- filter/       - servlet filter tests
+                    |-- integration/  - full application and PostgreSQL integration tests
+                    |-- repository/   - repository tests against PostgreSQL
+                    |-- security/     - authentication and authorization tests
+                    |-- service/      - application and domain service tests
+                    |-- support/      - shared test configuration and fixtures
+                    `-- util/         - utility tests
 ```
 
 Test packages under `src/test/java/` mirror the packages under
-`src/main/java/`. They may look adjacent in a compact IDE tree, but Gradle
-treats them as separate production and test source sets.
+`src/main/java/` where a test targets one layer. Cross-layer integration tests
+live under `integration/`, and reusable test infrastructure lives under
+`support/`. Gradle treats production and test code as separate source sets.
 
 Frontend tests are colocated with the source they verify using `.test.ts` or
 `.test.tsx` suffixes. Shared frontend test configuration lives under
