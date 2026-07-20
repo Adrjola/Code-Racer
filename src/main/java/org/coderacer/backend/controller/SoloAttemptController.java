@@ -7,6 +7,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AbandonResponse;
 import org.coderacer.backend.dto.BaseResponse;
+import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.ProgressAckResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
@@ -17,6 +18,7 @@ import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
 import org.coderacer.backend.service.SoloAttemptService;
@@ -42,6 +44,7 @@ public class SoloAttemptController {
 
   private final SoloAttemptService soloAttemptService;
   private final SoloAttemptHistoryService historyService;
+  private final PersonalStatisticsService statisticsService;
   private final CurrentUserProvider currentUserProvider;
   private final SoloAttemptMapper mapper;
 
@@ -104,6 +107,12 @@ public class SoloAttemptController {
     SoloAttempt attempt = soloAttemptService.abandon(id, userId);
     AbandonResponse response = new AbandonResponse(attempt.getId(), attempt.getState());
     return ResponseEntity.ok(new BaseResponse<>(response, MDC.get("correlationId")));
+  }
+
+  @GetMapping("/statistics")
+  public BaseResponse<PersonalStatisticsResponse> statistics(HttpServletRequest httpRequest) {
+    UUID userId = currentUserProvider.resolve(httpRequest);
+    return new BaseResponse<>(statisticsService.forUser(userId), MDC.get("correlationId"));
   }
 
   @GetMapping("/{id}")
