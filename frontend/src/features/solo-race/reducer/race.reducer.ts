@@ -1,4 +1,9 @@
 import type { RaceAction, RaceState } from '../types/race.types';
+import {
+  codePointAt,
+  codePointLength,
+  sliceCodePoints,
+} from '../utils/codePointText';
 
 export const initialState: RaceState = {
   snippet: { id: '', code: '', type: '' },
@@ -16,6 +21,7 @@ export const initialState: RaceState = {
   completionRequested: false,
   hasError: false,
   startedAt: null,
+  result: null,
 };
 
 export function raceReducer(state: RaceState, action: RaceAction): RaceState {
@@ -31,14 +37,17 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
     case 'INPUT': {
       if (state.isFinished || state.isExpired) return state;
 
-      const remainingCode = state.targetCode.slice(state.acceptedPrefix.length);
-      if (remainingCode.length === 0) return state;
+      const acceptedOffset = codePointLength(state.acceptedPrefix);
+      const nextChar = codePointAt(state.targetCode, acceptedOffset);
+      if (!nextChar) return state;
 
-      // Use Array.from to handle surrogate pairs (basic Unicode support)
-      const nextChar = Array.from(remainingCode)[0];
       const isCorrect = action.char === nextChar;
 
-      if (isCorrect && !state.hasError && state.currentInput.length === 0) {
+      if (
+        isCorrect &&
+        !state.hasError &&
+        codePointLength(state.currentInput) === 0
+      ) {
         const newAcceptedPrefix = state.acceptedPrefix + action.char;
         return {
           ...state,
@@ -59,9 +68,9 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
 
     case 'DELETE': {
       if (state.isFinished || state.isExpired) return state;
-      if (state.currentInput.length === 0) return state;
+      if (codePointLength(state.currentInput) === 0) return state;
 
-      const newCurrentInput = state.currentInput.slice(0, -1);
+      const newCurrentInput = sliceCodePoints(state.currentInput, 0, -1);
       return {
         ...state,
         currentInput: newCurrentInput,
@@ -72,7 +81,10 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
     case 'ACKNOWLEDGE': {
       if (action.version <= state.ackedVersion) return state;
 
-      const boundedOffset = Math.max(0, Math.min(action.serverOffset, state.targetCode.length));
+      const boundedOffset = Math.max(
+        0,
+        Math.min(action.serverOffset, codePointLength(state.targetCode)),
+      );
       const ackDelta = action.version - state.ackedVersion;
       return {
         ...state,
@@ -85,8 +97,11 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
     }
 
     case 'REJECT': {
-      const boundedOffset = Math.max(0, Math.min(action.serverOffset, state.targetCode.length));
-      const resetPrefix = state.targetCode.slice(0, boundedOffset);
+      const boundedOffset = Math.max(
+        0,
+        Math.min(action.serverOffset, codePointLength(state.targetCode)),
+      );
+      const resetPrefix = sliceCodePoints(state.targetCode, 0, boundedOffset);
       return {
         ...state,
         acceptedPrefix: resetPrefix,
@@ -129,6 +144,7 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
       return {
         ...state,
         isFinished: true,
+        result: action.result ?? state.result,
       };
 
     default:

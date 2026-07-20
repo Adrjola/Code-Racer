@@ -22,7 +22,9 @@ export function useSoloRaceSession() {
   const [error, setError] = useState<string | null>(null);
   const actionIdRef = useRef(0);
 
-  const mapSnippet = (snippet: Awaited<ReturnType<typeof soloRaceApi.getRandomSnippet>>): RaceSnippet => ({
+  const mapSnippet = (
+    snippet: Awaited<ReturnType<typeof soloRaceApi.getRandomSnippet>>,
+  ): RaceSnippet => ({
     id: snippet.id,
     code: snippet.source,
     type: snippet.difficulty,
@@ -57,7 +59,9 @@ export function useSoloRaceSession() {
     setError(null);
 
     try {
-      const snippet = await loadSnippetForRace(session?.snippet.id ?? preview?.snippet.id);
+      const snippet = await loadSnippetForRace(
+        session?.snippet.id ?? preview?.snippet.id,
+      );
       const attempt = await soloRaceApi.startAttempt(snippet.id);
       if (actionId !== actionIdRef.current) return;
 

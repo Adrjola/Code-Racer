@@ -2,11 +2,15 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { processBeforeInputData } from './processBeforeInputData';
 import { useExactCodeTypingEngine } from '../hooks/useExactCodeTypingEngine';
 import { useCountdown } from '../hooks/useCountdown';
-import type { ExactCodeTypingEngineTransport, RaceSnippet } from '../types/race.types';
+import type {
+  ExactCodeTypingEngineTransport,
+  RaceSnippet,
+} from '../types/race.types';
 import { SoloRaceHeader } from './SoloRaceHeader';
 import { SoloRaceStatsRow } from './SoloRaceStatsRow';
 import { SoloRaceWorldBest } from './SoloRaceWorldBest';
 import { SoloRaceKeyboardHints } from './SoloRaceKeyboardHints';
+import { codePointLength, sliceCodePoints } from '../utils/codePointText';
 
 interface SoloRaceProps {
   snippet: RaceSnippet;
@@ -27,18 +31,28 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   onStartRace,
   errorMessage,
 }) => {
-  const { state, handleInput, handleDelete } = useExactCodeTypingEngine(snippet, startedAt, transport);
-  const countdown = useCountdown(startedAt);
+  const { state, handleInput, handleDelete } = useExactCodeTypingEngine(
+    snippet,
+    startedAt,
+    transport,
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isTabPressedRef = useRef(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [finishedElapsedSeconds, setFinishedElapsedSeconds] = useState<number | null>(null);
-  const [hasRaceStarted, setHasRaceStarted] = useState(false);
-  const [raceStartedAtMs, setRaceStartedAtMs] = useState<number | null>(null);
-  const [startCountdown, setStartCountdown] = useState<number | null>(null);
+  const [localRaceStarted, setLocalRaceStarted] = useState(false);
+  const [dismissedAttemptKey, setDismissedAttemptKey] = useState<string | null>(
+    null,
+  );
   const [isBootstrappingRace, setIsBootstrappingRace] = useState(false);
+  const attemptKey = transport ? `${snippet.id}:${startedAt}` : null;
+  const hasRaceStarted =
+    localRaceStarted ||
+    (attemptKey !== null && dismissedAttemptKey !== attemptKey);
+  const countdown = useCountdown(hasRaceStarted ? startedAt : null);
 
-  const isLocked = !hasRaceStarted || startCountdown !== null || (countdown !== null && countdown > 0);
+  const isCountdownActive =
+    hasRaceStarted && countdown !== null && countdown > 0;
+  const isLocked = !hasRaceStarted || isCountdownActive;
 
   const focusInput = useCallback(() => {
     /* v8 ignore next */
@@ -54,7 +68,7 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
   }, [isLocked, focusInput]);
 
   useEffect(() => {
-    if (state.isFinished || !hasRaceStarted || raceStartedAtMs === null) {
+    if (state.isFinished || !hasRaceStarted || isLocked) {
       return;
     }
 
@@ -65,51 +79,11 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
     return () => {
       window.clearInterval(timer);
     };
-  }, [hasRaceStarted, raceStartedAtMs, state.isFinished]);
-
-  useEffect(() => {
-    if (startCountdown === null) {
-      return;
-    }
-
-    if (startCountdown <= 1) {
-      const timer = window.setTimeout(() => {
-        setStartCountdown(null);
-        const startTimestamp = Date.now();
-        setRaceStartedAtMs(startTimestamp);
-        setNowMs(startTimestamp);
-        focusInput();
-      }, 0);
-      return () => {
-        window.clearTimeout(timer);
-      };
-    }
-
-    const timer = window.setTimeout(() => {
-      setStartCountdown(startCountdown - 1);
-    }, 1000);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [startCountdown, focusInput]);
-
-  useEffect(() => {
-    const reset = setTimeout(() => {
-      setHasRaceStarted(false);
-      setRaceStartedAtMs(null);
-      setNowMs(Date.now());
-      setFinishedElapsedSeconds(null);
-      setStartCountdown(null);
-    }, 0);
-    return () => clearTimeout(reset);
-  }, [snippet.id]);
+  }, [hasRaceStarted, isLocked, state.isFinished]);
 
   const terminateRaceToMenu = () => {
-    setHasRaceStarted(false);
-    setStartCountdown(null);
-    setRaceStartedAtMs(null);
-    setFinishedElapsedSeconds(null);
+    setLocalRaceStarted(false);
+    setDismissedAttemptKey(attemptKey);
     setNowMs(Date.now());
   };
 
@@ -174,46 +148,53 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       setIsBootstrappingRace(true);
       try {
         await onRestartRace();
-        setHasRaceStarted(true);
-        setStartCountdown(3);
+        setDismissedAttemptKey(null);
+        setLocalRaceStarted(true);
+        setNowMs(Date.now());
       } catch {
-        setHasRaceStarted(false);
-        setStartCountdown(null);
+        setLocalRaceStarted(false);
       } finally {
         setIsBootstrappingRace(false);
       }
       return;
     }
 
-    setHasRaceStarted(true);
-    setStartCountdown(3);
+    setDismissedAttemptKey(null);
+    setLocalRaceStarted(true);
+    setNowMs(Date.now());
   };
 
-  const typedLength = Array.from(state.acceptedPrefix).length;
-  const totalLength = Math.max(Array.from(state.targetCode).length, 1);
-  const progressPercent = Math.max(0, Math.min(100, (typedLength / totalLength) * 100));
-  const elapsedMs = raceStartedAtMs !== null ? Math.max(0, nowMs - raceStartedAtMs) : 0;
-  const activeElapsedSeconds = hasRaceStarted ? Math.floor(elapsedMs / 1000) : 0;
+  const typedLength = codePointLength(state.acceptedPrefix);
+  const totalLength = Math.max(codePointLength(state.targetCode), 1);
+  const progressPercent = Math.max(
+    0,
+    Math.min(100, (typedLength / totalLength) * 100),
+  );
+  const startedAtMs = Date.parse(startedAt);
+  const elapsedMs =
+    hasRaceStarted && !isCountdownActive && Number.isFinite(startedAtMs)
+      ? Math.max(0, nowMs - startedAtMs)
+      : 0;
+  const activeElapsedSeconds = Math.floor(elapsedMs / 1000);
+  const resultElapsedSeconds =
+    state.result?.durationMs !== null && state.result?.durationMs !== undefined
+      ? Math.floor(state.result.durationMs / 1000)
+      : null;
 
-  useEffect(() => {
-    if (hasRaceStarted && state.isFinished && finishedElapsedSeconds === null) {
-      const t = setTimeout(() => setFinishedElapsedSeconds(activeElapsedSeconds), 0);
-      return () => clearTimeout(t);
-    }
-
-    if ((!state.isFinished || !hasRaceStarted) && finishedElapsedSeconds !== null) {
-      const t = setTimeout(() => setFinishedElapsedSeconds(null), 0);
-      return () => clearTimeout(t);
-    }
-  }, [activeElapsedSeconds, finishedElapsedSeconds, hasRaceStarted, state.isFinished]);
-
-  const elapsedSeconds = finishedElapsedSeconds ?? activeElapsedSeconds;
+  const elapsedSeconds = resultElapsedSeconds ?? activeElapsedSeconds;
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
   const elapsed = `${minutes}:${String(seconds).padStart(2, '0')}`;
-  const acceptedChars = Array.from(state.acceptedPrefix).length;
-  const cpm = elapsedSeconds > 0 ? Math.round(((acceptedChars / 5) / elapsedSeconds) * 60) : 0;
-  const line = Math.min(state.acceptedPrefix.split('\n').length, snippet.code.split('\n').length);
+  const acceptedChars = codePointLength(state.acceptedPrefix);
+  const cpm =
+    state.result?.cpm ??
+    (elapsedSeconds > 0
+      ? Math.round((acceptedChars / 5 / elapsedSeconds) * 60)
+      : 0);
+  const line = Math.min(
+    state.acceptedPrefix.split('\n').length,
+    snippet.code.split('\n').length,
+  );
   const totalLines = snippet.code.split('\n').length;
 
   const startRace = async () => {
@@ -223,30 +204,34 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       setIsBootstrappingRace(true);
       try {
         await onStartRace();
-        setHasRaceStarted(true);
-        setStartCountdown(3);
+        setDismissedAttemptKey(null);
+        setLocalRaceStarted(true);
+        setNowMs(Date.now());
       } catch {
-        setHasRaceStarted(false);
-        setStartCountdown(null);
+        setLocalRaceStarted(false);
       } finally {
         setIsBootstrappingRace(false);
       }
       return;
     }
 
-    setHasRaceStarted(true);
-    setStartCountdown(3);
+    setDismissedAttemptKey(null);
+    setLocalRaceStarted(true);
+    setNowMs(Date.now());
   };
 
   // Rendering characters
   const renderCode = () => {
     const { targetCode, acceptedPrefix, currentInput } = state;
-    const remaining = targetCode.slice(acceptedPrefix.length);
+    const remaining = sliceCodePoints(
+      targetCode,
+      codePointLength(acceptedPrefix),
+    );
     const incorrectPart = currentInput;
-    
+
     // We need to be careful with rest calculation if currentInput has multi-byte chars
-    const incorrectCharCount = Array.from(incorrectPart).length;
-    
+    const incorrectCharCount = codePointLength(incorrectPart);
+
     // Slice target remaining by the number of characters in incorrectPart
     const targetArray = Array.from(remaining);
     const rest = targetArray.slice(incorrectCharCount).join('');
@@ -265,7 +250,7 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
         )}
         <span className="relative text-slate-200/40">
           {!incorrectPart && !isLocked && (
-             <span className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-emerald-400 animate-pulse" />
+            <span className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-emerald-400 animate-pulse" />
           )}
           {rest}
         </span>
@@ -278,17 +263,22 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
       <div className="min-h-[100dvh] lg:fixed lg:left-0 lg:top-0 lg:h-[1080px] lg:min-h-0 lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--page-scale))]">
         <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
-        <main
-          className="mx-auto mt-[110px] w-full px-10"
-          onClick={focusInput}
-        >
+        <main className="mx-auto mt-[110px] w-full px-10" onClick={focusInput}>
           <div className="grid grid-cols-[minmax(0,1fr)_487px] items-start gap-10">
             <div className="mx-auto flex w-full max-w-[868.63px] flex-col">
-              <SoloRaceStatsRow cpm={cpm} currentLine={line} elapsed={elapsed} progressPercent={progressPercent} totalLines={totalLines} />
+              <SoloRaceStatsRow
+                cpm={cpm}
+                currentLine={line}
+                elapsed={elapsed}
+                progressPercent={progressPercent}
+                totalLines={totalLines}
+              />
 
               <div
                 className="relative h-[667px] w-full rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-8"
-                style={{ boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)' }}
+                style={{
+                  boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)',
+                }}
               >
                 {renderCode()}
 
@@ -298,10 +288,10 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
                   </div>
                 ) : null}
 
-                {startCountdown !== null && (
+                {isCountdownActive && (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <span className="font-mono text-8xl font-extrabold leading-none text-[#FDE68A] drop-shadow-[0_0_24px_rgba(244,114,182,0.55)]">
-                      {startCountdown}
+                      {countdown}
                     </span>
                   </div>
                 )}
@@ -314,7 +304,12 @@ export const SoloRace: React.FC<SoloRaceProps> = ({
                   onKeyUp={handleKeyUp}
                   /* v8 ignore next */
                   onBeforeInput={(e: React.FormEvent<HTMLTextAreaElement>) =>
-                    processBeforeInputData(isLocked, (e.nativeEvent as InputEvent).data, handleInput, () => e.preventDefault())
+                    processBeforeInputData(
+                      isLocked,
+                      (e.nativeEvent as InputEvent).data,
+                      handleInput,
+                      () => e.preventDefault(),
+                    )
                   }
                   onPaste={preventDefault}
                   onDrop={preventDefault}

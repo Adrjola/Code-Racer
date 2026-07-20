@@ -4,9 +4,9 @@ import { SoloRaceWorldBest } from '../../../features/solo-race/components/SoloRa
 import { soloRaceApi } from '../../../features/solo-race/api/soloRaceApi';
 
 vi.mock('../../../features/solo-race/api/soloRaceApi', async () => {
-  const actual = await vi.importActual<typeof import('../../../features/solo-race/api/soloRaceApi')>(
-    '../../../features/solo-race/api/soloRaceApi',
-  );
+  const actual = await vi.importActual<
+    typeof import('../../../features/solo-race/api/soloRaceApi')
+  >('../../../features/solo-race/api/soloRaceApi');
   return {
     ...actual,
     soloRaceApi: {
@@ -22,7 +22,9 @@ describe('SoloRaceWorldBest', () => {
   });
 
   it('renders N/A values when world best data is not available', async () => {
-    vi.mocked(soloRaceApi.getWorldBest).mockRejectedValue(new Error('request_failed_404'));
+    vi.mocked(soloRaceApi.getWorldBest).mockRejectedValue(
+      new Error('request_failed_404'),
+    );
 
     render(<SoloRaceWorldBest />);
 

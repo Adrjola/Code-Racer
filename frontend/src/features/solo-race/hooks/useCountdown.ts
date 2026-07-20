@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react';
 
+function secondsUntil(targetDate: string, now: number): number {
+  const target = new Date(targetDate).getTime();
+  return Math.max(0, Math.ceil((target - now) / 1000));
+}
+
 export function useCountdown(targetDate: string | null) {
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!targetDate) return;
+    if (!targetDate) {
+      return;
+    }
 
-    const target = new Date(targetDate).getTime();
-    
-    const update = () => {
-      const now = Date.now();
-      const diff = Math.max(0, Math.ceil((target - now) / 1000));
-      setTimeLeft(diff);
+    const refresh = () => {
+      setNow(Date.now());
     };
+    const initialTimer = setTimeout(refresh, 0);
+    const intervalTimer = setInterval(refresh, 1000);
 
-    update();
-    const timer = setInterval(update, 1000);
-
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
   }, [targetDate]);
 
-  return timeLeft;
+  return targetDate ? secondsUntil(targetDate, now) : null;
 }

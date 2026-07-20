@@ -111,7 +111,8 @@ function SoloRacePage({ onGoLobby }: { onGoLobby: () => void }) {
   const { session, preview, isLoading, error, startNewRace, resetToMenuState } =
     useSoloRaceSession();
 
-  const activeSnippet = session?.snippet ?? preview?.snippet ?? FALLBACK_SNIPPET;
+  const activeSnippet =
+    session?.snippet ?? preview?.snippet ?? FALLBACK_SNIPPET;
   const startedAt = session?.startedAt ?? new Date().toISOString();
   const shouldShowSnippetError =
     !session && !preview && !isLoading && error === 'failed_to_start_solo_race';
@@ -136,7 +137,12 @@ function SoloRacePage({ onGoLobby }: { onGoLobby: () => void }) {
 }
 
 function isProtected(route: Route) {
-  return route === 'admin' || route === 'dashboard';
+  return (
+    route === 'admin' ||
+    route === 'dashboard' ||
+    route === 'lobby' ||
+    route === 'playSolo'
+  );
 }
 
 function isAuthRoute(route: Route) {

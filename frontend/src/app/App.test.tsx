@@ -434,6 +434,7 @@ describe('App', () => {
   });
 
   it('renders lobby page for /lobby route', () => {
+    saveSession(session());
     window.history.replaceState(null, '', '/lobby');
 
     render(<App />);
@@ -445,7 +446,29 @@ describe('App', () => {
   });
 
   it('renders solo race page for /play/solo route', async () => {
+    saveSession(session());
     window.history.replaceState(null, '', '/play/solo');
+    server.use(
+      http.get(`${API_URL}/api/snippets/random`, () =>
+        HttpResponse.json({
+          data: {
+            difficulty: 'EASY',
+            id: '2d357563-9706-43b0-b11e-e4ab2f77b1d1',
+            source: 'class Main {}',
+          },
+        }),
+      ),
+      http.get(`${API_URL}/api/solo-attempts/world-best`, () =>
+        HttpResponse.json({
+          data: {
+            cpm: null,
+            cpmHolderName: null,
+            time: null,
+            timeHolderName: null,
+          },
+        }),
+      ),
+    );
 
     render(<App />);
 

@@ -16,6 +16,15 @@ export interface ProgressBatch {
 export interface ProgressAcknowledge {
   version: number;
   serverOffset: number;
+  completed?: boolean;
+  result?: RaceResult;
+}
+
+export interface RaceResult {
+  cpm: number | null;
+  durationMs: number | null;
+  finishedAt: string | null;
+  state: string;
 }
 
 export interface RaceState {
@@ -48,6 +57,8 @@ export interface RaceState {
   hasError: boolean;
   // Start time from backend
   startedAt: string | null;
+  // Server-authoritative terminal result
+  result: RaceResult | null;
 }
 
 export type RaceAction =
@@ -60,7 +71,7 @@ export type RaceAction =
   | { type: 'EXPIRE' }
   | { type: 'REQUEST_COMPLETION' }
   | { type: 'SET_RACE'; snippet: RaceSnippet; startedAt: string }
-  | { type: 'FINISH' };
+  | { type: 'FINISH'; result?: RaceResult };
 
 export interface ExactCodeTypingEngineTransport {
   sendProgressBatch(batch: ProgressBatch): Promise<ProgressAcknowledge>;
