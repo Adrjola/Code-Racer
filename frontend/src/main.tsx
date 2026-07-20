@@ -1,17 +1,18 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from '@/app/App';
 
-const AUTH_DESIGN_HEIGHT = 1080;
-const AUTH_DESIGN_WIDTH = 1920;
+const DESIGN_HEIGHT = 1080;
+const DESIGN_WIDTH = 1920;
 
-function updateAuthScale() {
+function updateLayoutScale() {
   const scale = Math.min(
-    window.innerWidth / AUTH_DESIGN_WIDTH,
-    window.innerHeight / AUTH_DESIGN_HEIGHT,
+    window.innerWidth / DESIGN_WIDTH,
+    window.innerHeight / DESIGN_HEIGHT,
   );
-  const loginScale = window.innerWidth / AUTH_DESIGN_WIDTH;
+  const loginScale = window.innerWidth / DESIGN_WIDTH;
   const authCenterX = window.innerWidth / (2 * scale);
   const loginCenterX = window.innerWidth / (2 * loginScale);
 
@@ -28,13 +29,16 @@ function updateAuthScale() {
     '--auth-login-center-x',
     `${loginCenterX}px`,
   );
+  document.documentElement.style.setProperty('--page-scale', `${scale}`);
 }
 
-updateAuthScale();
-window.addEventListener('resize', updateAuthScale);
+updateLayoutScale();
+window.addEventListener('resize', updateLayoutScale);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>,
 );

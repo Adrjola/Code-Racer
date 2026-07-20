@@ -433,6 +433,30 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders lobby page for /lobby route', () => {
+    window.history.replaceState(null, '', '/lobby');
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: /lobby/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /singleplayer/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders solo race page for /play/solo route', async () => {
+    window.history.replaceState(null, '', '/play/solo');
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole('button', { name: /start race/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /page not found/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('updates the login notice when a protected route redirects to login again', async () => {
     const user = userEvent.setup();
     saveSession(session());
@@ -481,6 +505,21 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: /^categories$/i }),
     ).toBeInTheDocument();
+  });
+
+  it('navigates from dashboard to lobby using the lobby button', async () => {
+    const user = userEvent.setup();
+    saveSession(session());
+    window.history.replaceState(null, '', '/dashboard');
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /^lobby$/i }));
+
+    expect(
+      await screen.findByRole('heading', { name: /^lobby$/i }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/lobby');
   });
 
   it('redirects expired sessions back to login', () => {

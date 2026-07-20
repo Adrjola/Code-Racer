@@ -17,7 +17,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 class JwtCurrentUserProviderTest {
 
-  private final JwtCurrentUserProvider provider = new JwtCurrentUserProvider();
+  private final JwtCurrentUserProvider provider = new JwtCurrentUserProvider(false);
+  private final JwtCurrentUserProvider unauthenticatedProvider = new JwtCurrentUserProvider(true);
   private final HttpServletRequest request = null;
 
   @AfterEach
@@ -48,6 +49,14 @@ class JwtCurrentUserProviderTest {
     SecurityContextHolder.clearContext();
 
     assertThrows(MissingCurrentUserException.class, () -> provider.resolve(request));
+  }
+
+  @Test
+  void returnsFallbackUserWhenUnauthenticatedModeEnabled() {
+    SecurityContextHolder.clearContext();
+
+    assertThat(unauthenticatedProvider.resolve(request))
+        .isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
   }
 
   @Test
