@@ -11,14 +11,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import javax.crypto.SecretKey;
-import org.coderacer.backend.category.repository.CategoryRepository;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.user.model.User;
 import org.coderacer.backend.user.model.UserRole;
 import org.coderacer.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
@@ -33,21 +32,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class JwtExpiryIntegrationTest {
 
   @Autowired private TestRestTemplate restTemplate;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private SecretKey jwtSecretKey;
 
-  @BeforeEach
-  void setUp() {
-    categoryRepository.deleteAll();
-    userRepository.deleteAll();
-  }
+  private UUID savedAdminId;
 
   @AfterEach
   void tearDown() {
-    categoryRepository.deleteAll();
-    userRepository.deleteAll();
+    if (savedAdminId != null) {
+      userRepository.deleteById(savedAdminId);
+      savedAdminId = null;
+    }
   }
 
   @Test
@@ -89,15 +85,18 @@ class JwtExpiryIntegrationTest {
   }
 
   private User saveAdmin() {
+    String suffix = UUID.randomUUID().toString().substring(0, 8);
     User user = new User();
-    user.setEmail("admin@example.com");
-    user.setUsername("admin");
+    user.setEmail("expired-admin-" + suffix + "@example.com");
+    user.setUsername("expadmin" + suffix);
     user.setPasswordHash(passwordEncoder.encode("StrongerPass123"));
     user.setRole(UserRole.ADMIN);
     user.setEmailVerified(true);
     user.setEnabled(true);
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
-    return userRepository.saveAndFlush(user);
+    User savedUser = userRepository.saveAndFlush(user);
+    savedAdminId = savedUser.getId();
+    return savedUser;
   }
 }
