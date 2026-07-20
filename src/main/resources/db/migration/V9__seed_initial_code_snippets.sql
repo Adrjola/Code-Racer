@@ -97,4 +97,5 @@ values
         now(),
         now(),
         0
-    );
+    )
+on conflict (snippet_id, revision_number) do nothing;

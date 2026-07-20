@@ -7,7 +7,7 @@ import {
   type Category,
   type Difficulty,
   type SoloSelection,
-} from '@/features/solo/soloApi';
+} from '@/features/solo/api/soloApi';
 
 type SoloSetupPageProps = {
   onGoDashboard: () => void;

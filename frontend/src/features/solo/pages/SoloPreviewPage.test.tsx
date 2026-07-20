@@ -4,12 +4,13 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SoloPreviewPage from './SoloPreviewPage';
 import { saveSession } from '@/features/auth/session';
-import type { SoloSelection } from '@/features/solo/soloApi';
+import type { SoloSelection } from '@/features/solo/api/soloApi';
 import { server } from '@/test/server';
 
 const API_URL = 'http://localhost:8080';
 const RANDOM_URL = `${API_URL}/api/snippets/random`;
 const START_URL = `${API_URL}/api/solo-attempts`;
+const WORLD_BEST_URL = `${API_URL}/api/solo-attempts/world-best`;
 
 const selection: SoloSelection = {
   categoryId: 'c1',
@@ -39,6 +40,21 @@ function withCategories() {
           content: [],
           page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
         },
+      }),
+    ),
+    http.get(WORLD_BEST_URL, () =>
+      HttpResponse.json({
+        data: {
+          cpm: null,
+          cpmHolderName: null,
+          time: null,
+          timeHolderName: null,
+        },
+      }),
+    ),
+    http.post(`${API_URL}/api/solo-attempts/:id/abandon`, ({ params }) =>
+      HttpResponse.json({
+        data: { attemptId: String(params.id), state: 'ABANDONED' },
       }),
     ),
   );
