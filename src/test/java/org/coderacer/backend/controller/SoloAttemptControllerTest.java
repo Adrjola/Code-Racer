@@ -14,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.coderacer.backend.dto.DifficultyStatistics;
+import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.SoloAttemptSnippetSummary;
 import org.coderacer.backend.enums.Difficulty;
@@ -30,6 +32,7 @@ import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
 import org.coderacer.backend.service.SoloAttemptService;
@@ -47,6 +50,7 @@ class SoloAttemptControllerTest {
 
   private final SoloAttemptService service = mock(SoloAttemptService.class);
   private final SoloAttemptHistoryService historyService = mock(SoloAttemptHistoryService.class);
+  private final PersonalStatisticsService statisticsService = mock(PersonalStatisticsService.class);
   private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
   private MockMvc mockMvc;
@@ -55,7 +59,8 @@ class SoloAttemptControllerTest {
   void setUp() {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
-                new SoloAttemptController(service, historyService, currentUserProvider, mapper))
+                new SoloAttemptController(
+                    service, historyService, statisticsService, currentUserProvider, mapper))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();
@@ -358,5 +363,29 @@ class SoloAttemptControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.state").value("COMPLETED"))
         .andExpect(jsonPath("$.data.cpm").value(400));
+  }
+
+  @Test
+  void statistics_returns200WithMetricsForTheResolvedUser() throws Exception {
+    UUID userId = UUID.randomUUID();
+    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(statisticsService.forUser(userId))
+        .thenReturn(
+            new PersonalStatisticsResponse(
+                List.of(
+                    new DifficultyStatistics(Difficulty.EASY, 20_000L, 300, 30_000L, 250),
+                    new DifficultyStatistics(Difficulty.MEDIUM, null, null, null, null),
+                    new DifficultyStatistics(Difficulty.HARD, null, null, null, null))));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.difficulties.length()").value(3))
+        .andExpect(jsonPath("$.data.difficulties[0].difficulty").value("EASY"))
+        .andExpect(jsonPath("$.data.difficulties[0].fastestDurationMs").value(20_000))
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm").value(300))
+        .andExpect(jsonPath("$.data.difficulties[0].averageDurationMs").value(30_000))
+        .andExpect(jsonPath("$.data.difficulties[0].averageCpm").value(250))
+        .andExpect(jsonPath("$.data.difficulties[1].averageCpm").doesNotExist());
   }
 }
