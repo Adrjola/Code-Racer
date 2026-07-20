@@ -9,9 +9,6 @@ values (
 )
 on conflict (name) do nothing;
 
--- Sources are dollar-quoted so the newlines are stored as real line breaks.
--- A plain quoted literal would store the escape as two characters instead,
--- which players would then have to type verbatim.
 insert into code_snippet (
     id,
     snippet_id,
