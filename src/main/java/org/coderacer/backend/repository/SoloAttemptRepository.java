@@ -1,6 +1,7 @@
 package org.coderacer.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -47,4 +48,16 @@ public interface SoloAttemptRepository
   @Override
   @EntityGraph(attributePaths = "codeSnippet")
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
+
+  // Finds fastest user by duration filtered by difficulty and attempt state
+  @EntityGraph(attributePaths = "user")
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserEnabledTrueAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
+
+  // Finds fastest user by cpm filtered by difficulty and attempt state
+  @EntityGraph(attributePaths = "user")
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserEnabledTrueAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
 }
