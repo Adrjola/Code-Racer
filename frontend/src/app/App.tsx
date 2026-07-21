@@ -316,6 +316,7 @@ export default function App() {
       <StatisticsPage
         onGoDashboard={() => navigate('dashboard')}
         onLogout={handleLogout}
+        onSessionExpired={handleSessionExpired}
         session={session}
       />
     );

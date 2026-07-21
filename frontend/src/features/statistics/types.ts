@@ -16,8 +16,8 @@ export type PersonalActivityEntry = {
 };
 
 export type PersonalStatsSummary = {
-  averageCpm: number;
+  averageCpm: number | null;
   averageTime: string;
-  fastestCpm: number;
+  fastestCpm: number | null;
   fastestTime: string;
 };

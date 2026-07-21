@@ -22,4 +22,22 @@ describe('PersonalStatsSummaryGrid', () => {
     expect(screen.getByText('Average CPM')).toBeInTheDocument();
     expect(screen.getAllByText('122')).toHaveLength(2);
   });
+
+  it('exposes the cpm value to screen readers as characters per minute', () => {
+    render(<PersonalStatsSummaryGrid summary={summary} />);
+
+    expect(screen.getAllByLabelText('122 characters per minute')).toHaveLength(
+      2,
+    );
+  });
+
+  it('renders a placeholder when a cpm metric is missing', () => {
+    render(
+      <PersonalStatsSummaryGrid
+        summary={{ ...summary, averageCpm: null, fastestCpm: null }}
+      />,
+    );
+
+    expect(screen.getAllByText('--')).toHaveLength(2);
+  });
 });

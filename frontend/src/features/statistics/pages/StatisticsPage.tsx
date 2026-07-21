@@ -2,9 +2,12 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Logo from '@/components/Logo';
 import type { AuthSession } from '@/features/auth/session';
 import type { Difficulty } from '@/features/solo/api/soloApi';
+import {
+  toPersonalActivityEntries,
+  toPersonalStatsSummary,
+} from '../api/statisticsMappers';
 import { getMockGlobalRanking } from '../data/mockGlobalRanking';
-import { getMockPersonalActivity } from '../data/mockPersonalActivity';
-import { getMockPersonalStatsSummary } from '../data/mockPersonalStatsSummary';
+import { usePersonalStatistics } from '../hooks/usePersonalStatistics';
 import { DifficultyTabs } from '../components/DifficultyTabs';
 import { GlobalRankingTable } from '../components/GlobalRankingTable';
 import { PersonalActivityGrid } from '../components/PersonalActivityGrid';
@@ -16,8 +19,24 @@ import type { StatsView } from '../types';
 type StatisticsPageProps = {
   onGoDashboard: () => void;
   onLogout: () => void;
+  onSessionExpired: () => void;
   session: AuthSession;
 };
+
+const VIEWS: StatsView[] = ['GLOBAL', 'PERSONAL'];
+const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
+
+function readView(params: URLSearchParams): StatsView {
+  const value = params.get('view');
+  return VIEWS.includes(value as StatsView) ? (value as StatsView) : 'GLOBAL';
+}
+
+function readDifficulty(params: URLSearchParams): Difficulty {
+  const value = params.get('difficulty');
+  return DIFFICULTIES.includes(value as Difficulty)
+    ? (value as Difficulty)
+    : 'EASY';
+}
 
 function useNaturalHeight() {
   const ref = useRef<HTMLDivElement>(null);
@@ -41,20 +60,49 @@ function useNaturalHeight() {
 export default function StatisticsPage({
   onGoDashboard,
   onLogout,
+  onSessionExpired,
   session,
 }: StatisticsPageProps) {
-  const [view, setView] = useState<StatsView>('GLOBAL');
-  const [difficulty, setDifficulty] = useState<Difficulty>('EASY');
+  const [view, setView] = useState<StatsView>(() =>
+    readView(new URLSearchParams(window.location.search)),
+  );
+  const [difficulty, setDifficulty] = useState<Difficulty>(() =>
+    readDifficulty(new URLSearchParams(window.location.search)),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
+  const {
+    personalStats,
+    retry: retryPersonalStats,
+    snippetStats,
+    status: personalStatus,
+  } = usePersonalStatistics(onSessionExpired);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', view);
+    params.set('difficulty', difficulty);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    if (nextUrl !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, '', nextUrl);
+    }
+  }, [difficulty, view]);
 
   const ranking =
     view === 'GLOBAL' ? getMockGlobalRanking(difficulty) : undefined;
   const activity =
-    view === 'PERSONAL' ? getMockPersonalActivity(difficulty) : undefined;
+    view === 'PERSONAL' && personalStatus === 'success'
+      ? toPersonalActivityEntries(
+          snippetStats.filter((snippet) => snippet.difficulty === difficulty),
+        )
+      : [];
   const statsSummary =
-    view === 'PERSONAL' ? getMockPersonalStatsSummary(difficulty) : undefined;
+    view === 'PERSONAL' && personalStatus === 'success'
+      ? toPersonalStatsSummary(
+          personalStats.find((stats) => stats.difficulty === difficulty),
+        )
+      : undefined;
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
@@ -155,21 +203,48 @@ export default function StatisticsPage({
             </p>
           )}
 
-          {view === 'PERSONAL' && statsSummary && (
-            <div className="mb-6">
-              <PersonalStatsSummaryGrid summary={statsSummary} />
+          {view === 'PERSONAL' && personalStatus === 'loading' && (
+            <p className="text-text-muted" role="status">
+              Loading your stats…
+            </p>
+          )}
+
+          {view === 'PERSONAL' && personalStatus === 'error' && (
+            <div className="flex flex-col items-start gap-3" role="alert">
+              <p className="text-text-muted">
+                Couldn&apos;t load your stats. Check your connection and try
+                again.
+              </p>
+              <button
+                className="rounded-[9px] border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[12px] font-bold tracking-wide text-text-primary hover:border-white/20"
+                onClick={retryPersonalStats}
+                type="button"
+              >
+                Try again
+              </button>
             </div>
           )}
 
-          {view === 'PERSONAL' && activity && (
-            <PersonalActivityGrid entries={activity} />
-          )}
+          {view === 'PERSONAL' &&
+            personalStatus === 'success' &&
+            statsSummary && (
+              <div className="mb-6">
+                <PersonalStatsSummaryGrid summary={statsSummary} />
+              </div>
+            )}
 
-          {view === 'PERSONAL' && !statsSummary && !activity && (
-            <p className="text-text-muted" role="status">
-              No activity yet for this difficulty.
-            </p>
-          )}
+          {view === 'PERSONAL' &&
+            personalStatus === 'success' &&
+            activity.length > 0 && <PersonalActivityGrid entries={activity} />}
+
+          {view === 'PERSONAL' &&
+            personalStatus === 'success' &&
+            !statsSummary &&
+            activity.length === 0 && (
+              <p className="text-text-muted" role="status">
+                No activity yet for this difficulty.
+              </p>
+            )}
         </main>
       </div>
     </div>

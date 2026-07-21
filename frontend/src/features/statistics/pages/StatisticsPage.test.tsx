@@ -1,8 +1,21 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
-import type { AuthSession, CurrentUser } from '@/features/auth/session';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  saveSession,
+  type AuthSession,
+  type CurrentUser,
+} from '@/features/auth/session';
+import type { Difficulty } from '@/features/solo/api/soloApi';
+import type {
+  DifficultyStatistics,
+  SnippetStatistics,
+} from '../api/statisticsApi';
+import { server } from '@/test/server';
 import StatisticsPage from './StatisticsPage';
+
+const API_URL = 'http://localhost:8080';
 
 function userResponse(overrides: Partial<CurrentUser> = {}): CurrentUser {
   return {
@@ -27,15 +40,50 @@ function session(overrides: Partial<AuthSession> = {}): AuthSession {
   };
 }
 
+function emptyDifficulty(difficulty: Difficulty): DifficultyStatistics {
+  return {
+    averageCpm: null,
+    averageDurationMs: null,
+    difficulty,
+    fastestDurationMs: null,
+    highestCpm: null,
+  };
+}
+
+function mockPersonalStatistics(difficulties: DifficultyStatistics[]) {
+  server.use(
+    http.get(`${API_URL}/api/solo-attempts/statistics`, () =>
+      HttpResponse.json({ data: { difficulties } }),
+    ),
+  );
+}
+
+function mockSnippetStatistics(snippets: SnippetStatistics[]) {
+  server.use(
+    http.get(`${API_URL}/api/solo-attempts/snippet-statistics`, () =>
+      HttpResponse.json({ data: { snippets } }),
+    ),
+  );
+}
+
 function renderStatistics(overrides: Partial<{ session: AuthSession }> = {}) {
   return render(
     <StatisticsPage
       onGoDashboard={vi.fn()}
       onLogout={vi.fn()}
+      onSessionExpired={vi.fn()}
       session={overrides.session ?? session()}
     />,
   );
 }
+
+beforeEach(() => {
+  saveSession(session());
+  mockPersonalStatistics(
+    (['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(emptyDifficulty),
+  );
+  mockSnippetStatistics([]);
+});
 
 describe('StatisticsPage', () => {
   it('shows the global easy ranking by default', () => {
@@ -82,18 +130,63 @@ describe('StatisticsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the personal easy activity by default when switching tabs', async () => {
+  it('shows a loading state before the personal stats resolve', async () => {
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/statistics`, async () => {
+        // Never resolves within the test, so the page stays in the loading state.
+        await new Promise(() => {});
+        return HttpResponse.json({ data: { difficulties: [] } });
+      }),
+    );
     const user = userEvent.setup();
     renderStatistics();
 
     await user.click(screen.getByRole('tab', { name: /personal/i }));
 
-    expect(screen.getByRole('tab', { name: /personal/i })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    expect(screen.getAllByText('Two Sum').length).toBeGreaterThan(0);
-    expect(screen.getByText('Group By Count')).toBeInTheDocument();
+    expect(screen.getByText(/loading your stats/i)).toBeInTheDocument();
+  });
+
+  it('shows the fetched personal summary and snippet log for the selected difficulty', async () => {
+    // The snippet's best was set 5 minutes before "now" at test time, computed
+    // against the real clock so nothing needs to fake timers around the fetch.
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+    mockPersonalStatistics([
+      {
+        averageCpm: 420,
+        averageDurationMs: 43_000,
+        difficulty: 'EASY',
+        fastestDurationMs: 41_201,
+        highestCpm: 452,
+      },
+      emptyDifficulty('MEDIUM'),
+      emptyDifficulty('HARD'),
+    ]);
+    mockSnippetStatistics([
+      {
+        bestCpm: 452,
+        bestDurationMs: 41_201,
+        bestFinishedAt: fiveMinutesAgo,
+        categoryName: 'java',
+        difficulty: 'EASY',
+        snippetId: 'snippet-1',
+        snippetTitle: 'Two Sum',
+      },
+    ]);
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+
+    // "0:41.201" and "452" each appear twice: once in the summary card
+    // (fastest time/cpm) and once in the snippet log entry for the same run.
+    expect(await screen.findAllByText('0:41.201')).toHaveLength(2);
+    expect(screen.getAllByText('452')).toHaveLength(2);
+    expect(
+      screen.getByLabelText('452 characters per minute'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Two Sum')).toBeInTheDocument();
+    expect(screen.getByText('JAVA')).toBeInTheDocument();
+    expect(screen.getByText('5 min ago')).toBeInTheDocument();
   });
 
   it('shows a placeholder when a difficulty has no personal activity yet', async () => {
@@ -104,8 +197,95 @@ describe('StatisticsPage', () => {
     await user.click(screen.getByRole('tab', { name: /locked in/i }));
 
     expect(
-      screen.getByText(/no activity yet for this difficulty/i),
+      await screen.findByText(/no activity yet for this difficulty/i),
     ).toBeInTheDocument();
+  });
+
+  it('shows an error with a retry that refetches personal stats', async () => {
+    let attempts = 0;
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/statistics`, () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return HttpResponse.error();
+        }
+        return HttpResponse.json({
+          data: {
+            difficulties: (['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(
+              emptyDifficulty,
+            ),
+          },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+
+    const retry = await screen.findByRole('button', { name: /try again/i });
+    await user.click(retry);
+
+    expect(
+      await screen.findByText(/no activity yet for this difficulty/i),
+    ).toBeInTheDocument();
+  });
+
+  it('calls onSessionExpired when the personal stats request is unauthorized', async () => {
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/statistics`, () =>
+        HttpResponse.json(
+          {
+            code: 'AUTHENTICATION_REQUIRED',
+            instance: '/api/solo-attempts/statistics',
+            message: 'expired',
+            status: 401,
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+    const onSessionExpired = vi.fn();
+    render(
+      <StatisticsPage
+        onGoDashboard={vi.fn()}
+        onLogout={vi.fn()}
+        onSessionExpired={onSessionExpired}
+        session={session()}
+      />,
+    );
+
+    await waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
+  });
+
+  it('restores view and difficulty from the URL on load', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/statistics?view=PERSONAL&difficulty=HARD',
+    );
+
+    renderStatistics();
+
+    expect(screen.getByRole('tab', { name: /personal/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tab', { name: /locked in/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('updates the URL when switching view and difficulty tabs', async () => {
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(screen.getByRole('tab', { name: /locked in/i }));
+
+    expect(window.location.search).toContain('view=PERSONAL');
+    expect(window.location.search).toContain('difficulty=HARD');
   });
 
   it('goes to the dashboard when the logo is clicked', async () => {
@@ -115,6 +295,7 @@ describe('StatisticsPage', () => {
       <StatisticsPage
         onGoDashboard={onGoDashboard}
         onLogout={vi.fn()}
+        onSessionExpired={vi.fn()}
         session={session()}
       />,
     );
@@ -142,6 +323,7 @@ describe('StatisticsPage', () => {
       <StatisticsPage
         onGoDashboard={vi.fn()}
         onLogout={onLogout}
+        onSessionExpired={vi.fn()}
         session={session()}
       />,
     );

@@ -32,11 +32,20 @@ type StatCardProps = {
   subLabel: string;
   tone: Tone;
   unit?: string;
+  /** Long-form unit spoken by screen readers, e.g. "characters per minute" for "cpm". */
+  unitLabel?: string;
   value: string;
 };
 
-
-function StatCard({ icon, label, subLabel, tone, unit, value }: StatCardProps) {
+function StatCard({
+  icon,
+  label,
+  subLabel,
+  tone,
+  unit,
+  unitLabel,
+  value,
+}: StatCardProps) {
   const toneClassName = TONE_CLASSNAME[tone];
 
   return (
@@ -51,10 +60,14 @@ function StatCard({ icon, label, subLabel, tone, unit, value }: StatCardProps) {
           {label}
         </p>
       </div>
-      <p className="font-mono text-[34px] font-bold leading-none text-white">
+      <p
+        aria-label={unitLabel ? `${value} ${unitLabel}` : undefined}
+        className="font-mono text-[34px] font-bold leading-none text-white"
+      >
         {value}
         {unit && (
           <span
+            aria-hidden={Boolean(unitLabel)}
             className={`ml-1.5 font-mono text-xs font-bold ${toneClassName.text}`}
           >
             {unit}
@@ -90,7 +103,10 @@ export function PersonalStatsSummaryGrid({
             subLabel="your record"
             tone="amber"
             unit="cpm"
-            value={String(summary.fastestCpm)}
+            unitLabel="characters per minute"
+            value={
+              summary.fastestCpm === null ? '--' : String(summary.fastestCpm)
+            }
           />
         </div>
         <div className={pairClassName}>
@@ -107,7 +123,10 @@ export function PersonalStatsSummaryGrid({
             subLabel="across all runs"
             tone="pink"
             unit="cpm"
-            value={String(summary.averageCpm)}
+            unitLabel="characters per minute"
+            value={
+              summary.averageCpm === null ? '--' : String(summary.averageCpm)
+            }
           />
         </div>
       </div>

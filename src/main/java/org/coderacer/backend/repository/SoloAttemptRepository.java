@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
+import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.springframework.data.domain.Page;
@@ -66,4 +67,11 @@ public interface SoloAttemptRepository
   Optional<SoloAttempt>
       findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
           Difficulty difficulty, SoloAttemptState state);
+
+  /**
+   * Every completed attempt of one user across all difficulties.
+   */
+  @EntityGraph(attributePaths = "codeSnippet.category")
+  List<SoloAttempt> findByUserIdAndStateAndCodeSnippetLifecycleNot(
+      UUID userId, SoloAttemptState state, SnippetLifecycle lifecycle);
 }
