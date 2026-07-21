@@ -11,7 +11,7 @@ import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.coderacer.backend.service.SnippetService;
 import org.coderacer.backend.service.TokenInvalidationService;
 import org.coderacer.backend.support.IntegrationTest;
@@ -36,7 +36,7 @@ class SecurityAuthorizationIntegrationTest {
   @Autowired private CodeSnippetRepository snippetRepository;
   @Autowired private SnippetService snippetService;
   @Autowired private PasswordEncoder passwordEncoder;
-  @Autowired private JwtService jwtService;
+  @Autowired private JwtTokenService jwtTokenService;
   @Autowired private TokenInvalidationService tokenInvalidationService;
 
   @BeforeEach
@@ -77,7 +77,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/categories",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -92,7 +92,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/categories",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -118,7 +118,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/snippets/random?categoryId=" + category.getId() + "&difficulty=EASY",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -133,7 +133,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -148,7 +148,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -164,7 +164,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/categories",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -173,7 +173,7 @@ class SecurityAuthorizationIntegrationTest {
   @Test
   void oldTokenCannotAccessProtectedRouteAfterTokenInvalidation() {
     User admin = saveUser("admin", UserRole.ADMIN);
-    String oldToken = jwtService.createAccessToken(admin);
+    String oldToken = jwtTokenService.createAccessToken(admin);
 
     tokenInvalidationService.invalidateTokensForPasswordReset(admin.getId());
 
@@ -185,7 +185,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/categories",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(refreshedAdmin)),
+            bearerEntity(jwtTokenService.createAccessToken(refreshedAdmin)),
             String.class);
 
     assertThat(oldTokenResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);

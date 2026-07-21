@@ -7,7 +7,7 @@ import org.coderacer.backend.exception.AuthenticationFailedException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ public class AuthenticationService {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
-  private final JwtService jwtService;
+  private final JwtTokenService jwtTokenService;
   private final UserMapper userMapper;
   private final LoginAttemptService loginAttemptService;
 
@@ -45,9 +45,9 @@ public class AuthenticationService {
 
     loginAttemptService.recordSuccess(attemptKey, clientAddress);
     return new LoginResponse(
-        jwtService.createAccessToken(user),
+        jwtTokenService.createAccessToken(user),
         TOKEN_TYPE,
-        jwtService.accessTokenTtl().toSeconds(),
+        jwtTokenService.accessTokenTtl().toSeconds(),
         userMapper.toResponse(user));
   }
 

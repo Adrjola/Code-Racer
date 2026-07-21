@@ -31,7 +31,7 @@ import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
@@ -51,7 +51,7 @@ class SoloAttemptControllerTest {
   private final SoloAttemptService service = mock(SoloAttemptService.class);
   private final SoloAttemptHistoryService historyService = mock(SoloAttemptHistoryService.class);
   private final PersonalStatisticsService statisticsService = mock(PersonalStatisticsService.class);
-  private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+  private final CurrentJwtUserProvider currentUserProvider = mock(CurrentJwtUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
   private MockMvc mockMvc;
 
@@ -96,7 +96,7 @@ class SoloAttemptControllerTest {
     UUID snippetId = UUID.randomUUID();
     UUID attemptId = UUID.randomUUID();
     Instant startedAt = Instant.parse("2026-01-01T00:00:03Z");
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(service.start(eq(userId), eq(snippetId)))
         .thenReturn(newAttempt(attemptId, userId, snippetId, startedAt));
 
@@ -121,7 +121,7 @@ class SoloAttemptControllerTest {
   @Test
   void submitProgress_returns403ForOwnershipMismatch() throws Exception {
     UUID attemptId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(UUID.randomUUID());
+    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
     when(service.submitProgress(eq(attemptId), any(), anyLong(), anyString()))
         .thenThrow(new SoloAttemptOwnershipException("Attempt does not belong to this user"));
 
@@ -137,7 +137,7 @@ class SoloAttemptControllerTest {
   @Test
   void submitProgress_returns404ForMissingAttempt() throws Exception {
     UUID attemptId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(UUID.randomUUID());
+    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
     when(service.submitProgress(eq(attemptId), any(), anyLong(), anyString()))
         .thenThrow(new SoloAttemptNotFoundException(attemptId));
 
@@ -153,7 +153,7 @@ class SoloAttemptControllerTest {
   @Test
   void submitProgress_returns409ForNotActiveAttempt() throws Exception {
     UUID attemptId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(UUID.randomUUID());
+    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
     when(service.submitProgress(eq(attemptId), any(), anyLong(), anyString()))
         .thenThrow(new SoloAttemptNotActiveException("Attempt is not active"));
 
@@ -170,7 +170,7 @@ class SoloAttemptControllerTest {
   void submitProgress_returns409ForOneActiveAttemptConflict() throws Exception {
     UUID userId = UUID.randomUUID();
     UUID snippetId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(service.start(userId, snippetId))
         .thenThrow(new OneActiveAttemptConflictException("Already has an active attempt"));
 
@@ -203,7 +203,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt =
         newAttempt(attemptId, userId, snippetId, Instant.parse("2026-01-01T00:00:00Z"));
     attempt.activate();
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(service.submitProgress(eq(attemptId), eq(userId), eq(1L), eq("he")))
         .thenReturn(new ProgressResult(attempt, 2));
 
@@ -226,7 +226,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt = newAttempt(attemptId, userId, snippetId, startedAt);
     attempt.activate();
     attempt.complete(startedAt.plusSeconds(45), 45_000, 400);
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(service.submitProgress(eq(attemptId), eq(userId), eq(1L), eq("hello")))
         .thenReturn(new ProgressResult(attempt, 5));
 
@@ -248,7 +248,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt =
         newAttempt(attemptId, userId, snippetId, Instant.parse("2026-01-01T00:00:00Z"));
     attempt.abandon();
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(service.abandon(attemptId, userId)).thenReturn(attempt);
 
     mockMvc
@@ -273,7 +273,7 @@ class SoloAttemptControllerTest {
             400,
             Instant.parse("2026-01-01T00:00:00Z"),
             Instant.parse("2026-01-01T00:00:45Z"));
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(historyService.findHistory(
             eq(userId),
             eq(SoloAttemptState.COMPLETED),
@@ -305,7 +305,7 @@ class SoloAttemptControllerTest {
   @Test
   void history_returns200WithNoFilters() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(historyService.findHistory(
             eq(userId), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
@@ -318,7 +318,7 @@ class SoloAttemptControllerTest {
 
   @Test
   void history_returns400ForUnknownStateValue() throws Exception {
-    when(currentUserProvider.resolve(any())).thenReturn(UUID.randomUUID());
+    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
 
     mockMvc
         .perform(get("/api/solo-attempts").param("state", "NOT_A_STATE"))
@@ -329,7 +329,7 @@ class SoloAttemptControllerTest {
   @Test
   void history_returns400ForNonTerminalStateFilter() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(historyService.findHistory(
             eq(userId),
             eq(SoloAttemptState.ACTIVE),
@@ -355,7 +355,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt = newAttempt(attemptId, userId, snippetId, startedAt);
     attempt.activate();
     attempt.complete(startedAt.plusSeconds(45), 45_000, 400);
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(service.getById(attemptId, userId)).thenReturn(attempt);
 
     mockMvc
@@ -368,7 +368,7 @@ class SoloAttemptControllerTest {
   @Test
   void statistics_returns200WithMetricsForTheResolvedUser() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(currentUserProvider.resolve()).thenReturn(userId);
     when(statisticsService.forUser(userId))
         .thenReturn(
             new PersonalStatisticsResponse(

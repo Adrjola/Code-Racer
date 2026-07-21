@@ -37,7 +37,7 @@ describe('auth validation', () => {
         username: 'bad space',
       }),
     ).toMatchObject({
-      password: 'Password must be between 8 and 16 characters',
+      password: 'Password must be between 8 and 72 characters',
       username:
         'Username must be 3 to 20 characters and use letters, numbers, underscores, or hyphens',
     });
@@ -53,13 +53,15 @@ describe('auth validation', () => {
 
     expect(
       validateRegistration({
-        confirmPassword: 'LongPassword12345',
+        confirmPassword:
+          'VeryLongPassword1234567890VeryLongPassword1234567890VeryLongPassword1234567890',
         email: 'racer@example.com',
-        password: 'LongPassword12345',
+        password:
+          'VeryLongPassword1234567890VeryLongPassword1234567890VeryLongPassword1234567890',
         username: 'speed_racer',
       }),
     ).toMatchObject({
-      password: 'Password must be between 8 and 16 characters',
+      password: 'Password must be between 8 and 72 characters',
     });
   });
 });

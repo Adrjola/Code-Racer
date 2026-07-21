@@ -69,13 +69,8 @@ public class EmailVerificationService {
   }
 
   private EmailVerificationToken findUsableToken(String rawToken, Instant now) {
-    String token = rawToken == null ? "" : rawToken.trim();
-    if (token.isBlank()) {
-      throw new EmailVerificationFailedException();
-    }
-
     return tokenRepository
-        .findByTokenHashForUpdate(Sha256Hasher.hash(token))
+        .findByTokenHashForUpdate(Sha256Hasher.hash(rawToken.trim()))
         .filter(candidate -> candidate.isUsable(now))
         .orElseThrow(EmailVerificationFailedException::new);
   }

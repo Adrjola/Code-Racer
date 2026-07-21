@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class JwtService {
+public class JwtTokenService {
 
   static final String ROLES_CLAIM = "roles";
   static final String TOKEN_VALID_FROM_CLAIM = "tokenValidFrom";

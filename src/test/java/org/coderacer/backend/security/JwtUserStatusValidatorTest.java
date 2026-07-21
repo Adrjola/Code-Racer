@@ -19,15 +19,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 @ExtendWith(MockitoExtension.class)
-class JwtAccountValidatorTest {
+class JwtUserStatusValidatorTest {
 
   @Mock private UserRepository repository;
 
-  private JwtAccountValidator validator;
+  private JwtUserStatusValidator validator;
 
   @BeforeEach
   void setUp() {
-    validator = new JwtAccountValidator(repository);
+    validator = new JwtUserStatusValidator(repository);
   }
 
   @Test

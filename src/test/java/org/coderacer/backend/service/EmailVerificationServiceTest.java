@@ -133,6 +133,21 @@ class EmailVerificationServiceTest {
   }
 
   @Test
+  void confirm_rejectsAlreadyVerifiedUsers() {
+    User user = unverifiedUser();
+    user.setEmailVerified(true);
+    EmailVerificationToken token = usableToken(user, "raw-token");
+    when(tokenRepository.findByTokenHashForUpdate(hash("raw-token")))
+        .thenReturn(Optional.of(token));
+
+    assertThatThrownBy(() -> service.confirm(new EmailVerificationConfirmRequest("raw-token")))
+        .isInstanceOf(EmailVerificationFailedException.class);
+
+    assertThat(token.getUsedAt()).isNull();
+    verify(tokenRepository, never()).revokeOtherActiveTokensForUser(any(), any(), any());
+  }
+
+  @Test
   void confirm_rejectsMissingExpiredUsedAndRevokedTokensSafely() {
     User user = unverifiedUser();
     EmailVerificationToken expired = usableToken(user, "expired-token");

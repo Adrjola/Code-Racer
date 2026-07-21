@@ -14,17 +14,9 @@ public record JwtProperties(
     @NotBlank @Size(min = 32) String secret,
     @NotNull @DurationMin(seconds = 1) Duration accessTokenTtl) {
 
-  private static final String DEVELOPMENT_SECRET = "dev-only-change-me-code-racer-jwt-secret-32";
-  private static final String EXAMPLE_SECRET =
-      "replace-with-a-strong-random-secret-at-least-32-chars";
-
   public JwtProperties {
     if (secret != null) {
       secret = secret.trim();
     }
-  }
-
-  public boolean usesKnownUnsafeSecret() {
-    return DEVELOPMENT_SECRET.equals(secret) || EXAMPLE_SECRET.equals(secret);
   }
 }
