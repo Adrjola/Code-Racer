@@ -8,6 +8,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.enums.Difficulty;
+import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
@@ -61,6 +62,10 @@ public class SoloAttemptHistoryService {
       List<Predicate> predicates = new ArrayList<>();
       predicates.add(builder.equal(root.get("user").get("id"), userId));
       predicates.add(root.get("state").in(SoloAttemptState.terminalStates()));
+      // A soft-deleted snippet disappears from everything a player can see, so
+      // attempts on it drop out of their history too.
+      predicates.add(
+          builder.notEqual(root.get("codeSnippet").get("lifecycle"), SnippetLifecycle.DELETED));
       if (state != null) {
         predicates.add(builder.equal(root.get("state"), state));
       }

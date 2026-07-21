@@ -17,12 +17,9 @@ export type SnippetPreview = {
   difficulty: Difficulty;
   id: string;
   lifecycle: string;
-  revisionNumber: number;
-  snippetId: string;
   source: string;
   title: string;
   updatedAt: string;
-  version: number;
 };
 
 export type StartSoloAttemptResponse = {

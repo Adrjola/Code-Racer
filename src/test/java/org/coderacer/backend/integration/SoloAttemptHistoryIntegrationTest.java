@@ -127,24 +127,23 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
   }
 
   @Test
-  void resultStaysReadableAfterItsSnippetRevisionIsRetiredAndSoftDeleted() {
+  void attemptsOnDeletedSnippetsDisappearFromHistory() {
     User alice = newUser("alice");
-    CodeSnippet snippet = newSnippet("historical source", Difficulty.EASY);
-    completedAttempt(alice, snippet, now);
+    CodeSnippet visible = newSnippet("visible source", Difficulty.EASY);
+    CodeSnippet removed = newSnippet("removed source", Difficulty.EASY);
+    completedAttempt(alice, visible, now);
+    completedAttempt(alice, removed, now);
 
-    snippet.retire();
-    snippet.softDelete();
-    codeSnippetRepository.saveAndFlush(snippet);
+    removed.softDelete();
+    codeSnippetRepository.saveAndFlush(removed);
 
-    SoloAttemptResultResponse result =
+    List<SoloAttemptResultResponse> history =
         historyService
             .findHistory(alice.getId(), null, null, null, null, null, firstPage)
-            .getContent()
-            .getFirst();
+            .getContent();
 
-    assertThat(result.snippet().revisionId()).isEqualTo(snippet.getId());
-    assertThat(result.snippet().title()).isEqualTo("historical source");
-    assertThat(result.difficulty()).isEqualTo(Difficulty.EASY);
+    assertThat(history).hasSize(1);
+    assertThat(history.getFirst().snippet().title()).isEqualTo("visible source");
   }
 
   @Test
@@ -250,7 +249,7 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
     category.setActive(true);
     category = categoryRepository.save(category);
     return codeSnippetRepository.save(
-        CodeSnippet.firstRevision(source, source, sha256Hex(source), difficulty, category));
+        new CodeSnippet(source, source, sha256Hex(source), difficulty, category));
   }
 
   private static String sha256Hex(String value) {

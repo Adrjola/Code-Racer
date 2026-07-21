@@ -24,12 +24,9 @@ const snippet = {
   difficulty: 'EASY',
   id: 's1',
   lifecycle: 'ACTIVE',
-  revisionNumber: 1,
-  snippetId: 'g1',
   source: 'int a = 1;',
   title: 'FizzBuzz',
   updatedAt: '2026-07-16T12:00:00Z',
-  version: 0,
 };
 
 function withCategories() {

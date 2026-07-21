@@ -77,8 +77,7 @@ class SoloAttemptControllerTest {
     category.setId(UUID.randomUUID());
     category.setName("Java");
     category.setActive(true);
-    CodeSnippet snippet =
-        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category);
+    CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", id);
     return snippet;
   }
@@ -265,8 +264,7 @@ class SoloAttemptControllerTest {
     SoloAttemptResultResponse result =
         new SoloAttemptResultResponse(
             attemptId,
-            new SoloAttemptSnippetSummary(
-                UUID.randomUUID(), UUID.randomUUID(), 1, "FizzBuzz", categoryId),
+            new SoloAttemptSnippetSummary(UUID.randomUUID(), "FizzBuzz", categoryId),
             Difficulty.EASY,
             SoloAttemptState.COMPLETED,
             45_000L,

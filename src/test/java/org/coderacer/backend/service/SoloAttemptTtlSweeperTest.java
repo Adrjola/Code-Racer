@@ -50,8 +50,7 @@ class SoloAttemptTtlSweeperTest {
     category.setId(UUID.randomUUID());
     category.setName("Java");
     category.setActive(true);
-    CodeSnippet snippet =
-        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category);
+    CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
     SoloAttempt attempt = new SoloAttempt(user, snippet, Difficulty.EASY, startedAt);
     ReflectionTestUtils.setField(attempt, "id", UUID.randomUUID());

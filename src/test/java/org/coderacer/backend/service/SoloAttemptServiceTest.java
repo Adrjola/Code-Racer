@@ -92,8 +92,7 @@ class SoloAttemptServiceTest {
   }
 
   private CodeSnippet snippet() {
-    CodeSnippet snippet =
-        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category());
+    CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category());
     ReflectionTestUtils.setField(snippet, "id", snippetId);
     return snippet;
   }
@@ -139,26 +138,6 @@ class SoloAttemptServiceTest {
     when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
     assertThrows(SoloAttemptNotFoundException.class, () -> service.start(userId, snippetId));
-  }
-
-  @Test
-  void startRejectsInactiveSnippet() {
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
-    when(codeSnippetRepository.findById(snippetId))
-        .thenReturn(Optional.of(snippet(SnippetLifecycle.INACTIVE)));
-
-    assertThrows(
-        SoloAttemptSnippetUnavailableException.class, () -> service.start(userId, snippetId));
-  }
-
-  @Test
-  void startRejectsRetiredSnippet() {
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
-    when(codeSnippetRepository.findById(snippetId))
-        .thenReturn(Optional.of(snippet(SnippetLifecycle.RETIRED)));
-
-    assertThrows(
-        SoloAttemptSnippetUnavailableException.class, () -> service.start(userId, snippetId));
   }
 
   @Test

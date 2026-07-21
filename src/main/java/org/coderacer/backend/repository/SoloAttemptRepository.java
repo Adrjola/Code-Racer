@@ -39,7 +39,9 @@ public interface SoloAttemptRepository
              avg(s.durationMs) as averageDurationMs,
              avg(s.cpm) as averageCpm
       from SoloAttempt s
-      where s.user.id = :userId and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
+      where s.user.id = :userId
+        and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
+        and s.codeSnippet.lifecycle <> org.coderacer.backend.enums.SnippetLifecycle.DELETED
       group by s.difficulty
       """)
   List<DifficultyStatsProjection> aggregateCompletedByDifficulty(@Param("userId") UUID userId);

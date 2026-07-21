@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,7 +21,6 @@ import org.coderacer.backend.exception.GlobalExceptionHandler;
 import org.coderacer.backend.service.SnippetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
@@ -37,16 +35,13 @@ class SnippetControllerTest {
   private final SnippetResponse response =
       new SnippetResponse(
           UUID.randomUUID(),
-          UUID.randomUUID(),
-          1,
           "FizzBuzz",
           "code",
           Difficulty.EASY,
           SnippetLifecycle.ACTIVE,
           UUID.randomUUID(),
           Instant.now(),
-          Instant.now(),
-          0L);
+          Instant.now());
   private MockMvc mockMvc;
 
   @BeforeEach
@@ -70,7 +65,7 @@ class SnippetControllerTest {
                 .content(createBody()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.title").value("FizzBuzz"))
-        .andExpect(jsonPath("$.data.revisionNumber").value(1));
+        .andExpect(jsonPath("$.data.lifecycle").value("ACTIVE"));
   }
 
   @Test
@@ -101,39 +96,6 @@ class SnippetControllerTest {
   }
 
   @Test
-  void update_returns200() throws Exception {
-    when(service.update(eq(id), any())).thenReturn(response);
-
-    mockMvc
-        .perform(
-            put("/api/admin/snippets/" + id)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"difficulty\":\"EASY\","
-                        + "\"categoryId\":\""
-                        + categoryId
-                        + "\",\"version\":0}"))
-        .andExpect(status().isOk());
-  }
-
-  @Test
-  void update_returns409_whenOptimisticLockingFailsDuringFlush() throws Exception {
-    when(service.update(eq(id), any())).thenThrow(new OptimisticLockingFailureException("stale"));
-
-    mockMvc
-        .perform(
-            put("/api/admin/snippets/" + id)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"difficulty\":\"EASY\","
-                        + "\"categoryId\":\""
-                        + categoryId
-                        + "\",\"version\":0}"))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("VERSION_CONFLICT"));
-  }
-
-  @Test
   void get_returns200() throws Exception {
     when(service.getById(id)).thenReturn(response);
 
@@ -156,31 +118,10 @@ class SnippetControllerTest {
   }
 
   @Test
-  void activate_returns200() throws Exception {
-    when(service.activate(id)).thenReturn(response);
-
-    mockMvc.perform(post("/api/admin/snippets/" + id + "/activate")).andExpect(status().isOk());
-  }
-
-  @Test
-  void deactivate_returns200() throws Exception {
-    when(service.deactivate(id)).thenReturn(response);
-
-    mockMvc.perform(post("/api/admin/snippets/" + id + "/deactivate")).andExpect(status().isOk());
-  }
-
-  @Test
   void delete_returns204() throws Exception {
     mockMvc.perform(delete("/api/admin/snippets/" + id)).andExpect(status().isNoContent());
 
     verify(service).delete(id);
-  }
-
-  @Test
-  void restore_returns200() throws Exception {
-    when(service.restore(id)).thenReturn(response);
-
-    mockMvc.perform(post("/api/admin/snippets/" + id + "/restore")).andExpect(status().isOk());
   }
 
   @Test

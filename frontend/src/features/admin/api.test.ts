@@ -1,18 +1,14 @@
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  activateSnippet,
   createCategory,
   createSnippet,
-  deactivateSnippet,
   deleteCategory,
   deleteSnippet,
   listCategories,
   listSnippets,
   restoreCategory,
-  restoreSnippet,
   updateCategory,
-  updateSnippet,
   type Snippet,
 } from './api';
 import { saveSession } from '@/features/auth/session';
@@ -26,12 +22,9 @@ const snippet: Snippet = {
   difficulty: 'EASY',
   id: '019f66a0-981f-7368-aec1-4e814cc269f1',
   lifecycle: 'ACTIVE',
-  revisionNumber: 1,
-  snippetId: '019f66a0-981f-7368-aec1-4e814cc269f2',
   source: 'int a = 1;',
   title: 'FizzBuzz',
   updatedAt: '2026-07-16T12:00:00Z',
-  version: 0,
 };
 
 beforeEach(() => {
@@ -108,34 +101,7 @@ describe('admin api', () => {
     expect(url).not.toContain('lifecycle');
   });
 
-  it('echoes the version back when updating a snippet', async () => {
-    let body: unknown;
-    server.use(
-      http.put(
-        `${API_URL}/api/admin/snippets/${snippet.id}`,
-        async ({ request }) => {
-          body = await request.json();
-          return HttpResponse.json({ data: { ...snippet, revisionNumber: 2 } });
-        },
-      ),
-    );
-
-    const updated = await updateSnippet(
-      snippet.id,
-      {
-        categoryId: snippet.categoryId,
-        difficulty: 'HARD',
-        source: 'int b = 2;',
-        title: snippet.title,
-      },
-      7,
-    );
-
-    expect(body).toMatchObject({ difficulty: 'HARD', version: 7 });
-    expect(updated.revisionNumber).toBe(2);
-  });
-
-  it('creates a snippet without sending a version', async () => {
+  it('creates a snippet', async () => {
     let body: Record<string, unknown> = {};
     server.use(
       http.post(`${API_URL}/api/admin/snippets`, async ({ request }) => {
@@ -152,18 +118,7 @@ describe('admin api', () => {
     });
 
     expect(body).not.toHaveProperty('version');
-  });
-
-  it('posts lifecycle actions without a body', async () => {
-    server.use(
-      http.post(`${API_URL}/api/admin/snippets/${snippet.id}/deactivate`, () =>
-        HttpResponse.json({ data: { ...snippet, lifecycle: 'INACTIVE' } }),
-      ),
-    );
-
-    await expect(deactivateSnippet(snippet.id)).resolves.toMatchObject({
-      lifecycle: 'INACTIVE',
-    });
+    expect(body).toMatchObject({ title: snippet.title });
   });
 
   it('treats a category delete as a 204 with no body', async () => {
@@ -226,24 +181,6 @@ describe('admin api', () => {
 
     await expect(restoreCategory(snippet.categoryId)).resolves.toMatchObject({
       active: true,
-    });
-  });
-
-  it('activates and restores a snippet through its lifecycle routes', async () => {
-    server.use(
-      http.post(`${API_URL}/api/admin/snippets/${snippet.id}/activate`, () =>
-        HttpResponse.json({ data: { ...snippet, lifecycle: 'ACTIVE' } }),
-      ),
-      http.post(`${API_URL}/api/admin/snippets/${snippet.id}/restore`, () =>
-        HttpResponse.json({ data: { ...snippet, lifecycle: 'INACTIVE' } }),
-      ),
-    );
-
-    await expect(activateSnippet(snippet.id)).resolves.toMatchObject({
-      lifecycle: 'ACTIVE',
-    });
-    await expect(restoreSnippet(snippet.id)).resolves.toMatchObject({
-      lifecycle: 'INACTIVE',
     });
   });
 

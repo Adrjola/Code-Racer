@@ -2,7 +2,7 @@ import { apiRequest, type BaseResponse, type Page } from '@/lib/apiClient';
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
-export type SnippetLifecycle = 'ACTIVE' | 'INACTIVE' | 'RETIRED' | 'DELETED';
+export type SnippetLifecycle = 'ACTIVE' | 'DELETED';
 
 export type Category = {
   id: string;
@@ -20,8 +20,6 @@ export type CategoryValues = {
 
 export type Snippet = {
   id: string;
-  snippetId: string;
-  revisionNumber: number;
   title: string;
   source: string;
   difficulty: Difficulty;
@@ -29,7 +27,6 @@ export type Snippet = {
   categoryId: string;
   createdAt: string;
   updatedAt: string;
-  version: number;
 };
 
 export type SnippetValues = {
@@ -86,29 +83,6 @@ export function listSnippets(
 
 export function createSnippet(values: SnippetValues) {
   return send<Snippet>('/api/admin/snippets', 'POST', values);
-}
-
-export function updateSnippet(
-  id: string,
-  values: SnippetValues,
-  version: number,
-) {
-  return send<Snippet>(`/api/admin/snippets/${id}`, 'PUT', {
-    ...values,
-    version,
-  });
-}
-
-export function activateSnippet(id: string) {
-  return send<Snippet>(`/api/admin/snippets/${id}/activate`, 'POST');
-}
-
-export function deactivateSnippet(id: string) {
-  return send<Snippet>(`/api/admin/snippets/${id}/deactivate`, 'POST');
-}
-
-export function restoreSnippet(id: string) {
-  return send<Snippet>(`/api/admin/snippets/${id}/restore`, 'POST');
 }
 
 export function deleteSnippet(id: string) {
