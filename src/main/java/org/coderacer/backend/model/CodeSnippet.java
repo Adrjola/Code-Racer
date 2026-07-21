@@ -13,6 +13,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+/**
+ * A snippet players race against. Every field except the lifecycle is immutable once created, so an
+ * attempt's snippet can never change under it. The only permitted change is a one-way soft delete.
+ */
 @Entity
 @Table(name = "code_snippet")
 @Getter
@@ -24,13 +28,7 @@ public class CodeSnippet {
   @Column(nullable = false, updatable = false)
   private UUID id;
 
-  @Column(name = "snippet_id", nullable = false, updatable = false)
-  private UUID snippetId;
-
-  @Column(name = "revision_number", nullable = false, updatable = false)
-  private int revisionNumber;
-
-  @Column(nullable = false, length = 200)
+  @Column(nullable = false, length = 200, updatable = false)
   private String title;
 
   @Column(nullable = false, length = 10000, updatable = false)
@@ -64,80 +62,21 @@ public class CodeSnippet {
   private long version;
 
   public CodeSnippet(
-      UUID snippetId,
-      int revisionNumber,
-      String title,
-      String source,
-      String contentHash,
-      Difficulty difficulty,
-      Category category,
-      SnippetLifecycle lifecycle) {
-    if (revisionNumber < 1) {
-      throw new IllegalArgumentException("revisionNumber must be positive");
-    }
-    this.snippetId = Objects.requireNonNull(snippetId);
-    this.revisionNumber = revisionNumber;
+      String title, String source, String contentHash, Difficulty difficulty, Category category) {
     this.title = Objects.requireNonNull(title);
     this.source = Objects.requireNonNull(source);
     this.contentHash = Objects.requireNonNull(contentHash);
     this.difficulty = Objects.requireNonNull(difficulty);
     this.category = Objects.requireNonNull(category);
-    this.lifecycle = Objects.requireNonNull(lifecycle);
-  }
-
-  public static CodeSnippet firstRevision(
-      String title, String source, String contentHash, Difficulty difficulty, Category category) {
-    return new CodeSnippet(
-        UUID.randomUUID(),
-        1,
-        title,
-        source,
-        contentHash,
-        difficulty,
-        category,
-        SnippetLifecycle.ACTIVE);
-  }
-
-  public static CodeSnippet nextRevision(
-      UUID snippetId,
-      int revisionNumber,
-      String title,
-      String source,
-      String contentHash,
-      Difficulty difficulty,
-      Category category) {
-    return new CodeSnippet(
-        snippetId,
-        revisionNumber,
-        title,
-        source,
-        contentHash,
-        difficulty,
-        category,
-        SnippetLifecycle.ACTIVE);
-  }
-
-  public void rename(String title) {
-    this.title = Objects.requireNonNull(title);
-  }
-
-  public void activate() {
     this.lifecycle = SnippetLifecycle.ACTIVE;
   }
 
-  public void deactivate() {
-    this.lifecycle = SnippetLifecycle.INACTIVE;
+  public boolean isDeleted() {
+    return lifecycle == SnippetLifecycle.DELETED;
   }
 
-  public void retire() {
-    this.lifecycle = SnippetLifecycle.RETIRED;
-  }
-
+  /** One-way: a deleted snippet is never restored. */
   public void softDelete() {
     this.lifecycle = SnippetLifecycle.DELETED;
-  }
-
-  public void restore() {
-    this.lifecycle = SnippetLifecycle.INACTIVE;
   }
 }

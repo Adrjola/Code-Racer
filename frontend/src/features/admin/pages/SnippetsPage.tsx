@@ -5,14 +5,10 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import Pagination from '@/components/Pagination';
 import SelectField from '@/components/SelectField';
 import {
-  activateSnippet,
   createSnippet,
-  deactivateSnippet,
   deleteSnippet,
   listCategories,
   listSnippets,
-  restoreSnippet,
-  updateSnippet,
   type Category,
   type Difficulty,
   type Snippet,
@@ -23,13 +19,7 @@ import SnippetFormDialog from '@/features/admin/components/SnippetFormDialog';
 import { readableAdminError } from '@/features/admin/errors';
 import type { Page } from '@/lib/apiClient';
 
-type Dialog =
-  | {
-      snippet: Snippet;
-      type: 'activate' | 'deactivate' | 'delete' | 'edit' | 'restore';
-    }
-  | { type: 'create' }
-  | null;
+type Dialog = { snippet: Snippet; type: 'delete' } | { type: 'create' } | null;
 
 const PAGE_SIZE = 10;
 const CATEGORY_FETCH_SIZE = 100;
@@ -37,15 +27,11 @@ const CATEGORY_FETCH_SIZE = 100;
 const LIFECYCLE_TONE: Record<SnippetLifecycle, BadgeTone> = {
   ACTIVE: 'positive',
   DELETED: 'danger',
-  INACTIVE: 'muted',
-  RETIRED: 'neutral',
 };
 
 const LIFECYCLE_LABEL: Record<SnippetLifecycle, string> = {
   ACTIVE: 'Active',
   DELETED: 'Deleted',
-  INACTIVE: 'Inactive',
-  RETIRED: 'Retired',
 };
 
 const cardClassName =
@@ -58,9 +44,9 @@ const difficultyOptions = (['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(
   }),
 );
 
-const lifecycleOptions = (
-  ['ACTIVE', 'INACTIVE', 'RETIRED', 'DELETED'] as SnippetLifecycle[]
-).map((lifecycle) => ({ label: LIFECYCLE_LABEL[lifecycle], value: lifecycle }));
+const lifecycleOptions = (['ACTIVE', 'DELETED'] as SnippetLifecycle[]).map(
+  (lifecycle) => ({ label: LIFECYCLE_LABEL[lifecycle], value: lifecycle }),
+);
 
 export default function SnippetsPage() {
   const [page, setPage] = useState(0);
@@ -167,47 +153,21 @@ export default function SnippetsPage() {
     }
   };
 
-  const handleSubmit = (values: SnippetValues) => {
-    if (dialog?.type !== 'edit') {
-      return run(async () => {
-        await createSnippet(values);
-        setNotice('Snippet created.');
-      });
-    }
-
-    const current = dialog.snippet;
-    return run(async () => {
-      const saved = await updateSnippet(current.id, values, current.version);
-      setNotice(
-        saved.id === current.id
-          ? `Saved revision ${saved.revisionNumber}.`
-          : `Created revision ${saved.revisionNumber}. Revision ${current.revisionNumber} is now retired.`,
-      );
+  const handleSubmit = (values: SnippetValues) =>
+    run(async () => {
+      await createSnippet(values);
+      setNotice('Snippet created.');
     });
-  };
 
-  const handleLifecycle = () => {
-    if (!dialog || dialog.type === 'create' || dialog.type === 'edit') {
+  const handleDelete = () => {
+    if (dialog?.type !== 'delete') {
       return;
     }
 
-    const { snippet, type } = dialog;
+    const { snippet } = dialog;
     return run(async () => {
-      if (type === 'activate') {
-        await activateSnippet(snippet.id);
-        setNotice(`Revision ${snippet.revisionNumber} is now active.`);
-      } else if (type === 'deactivate') {
-        await deactivateSnippet(snippet.id);
-        setNotice(`Revision ${snippet.revisionNumber} is now inactive.`);
-      } else if (type === 'restore') {
-        await restoreSnippet(snippet.id);
-        setNotice(
-          `Revision ${snippet.revisionNumber} was restored as inactive.`,
-        );
-      } else {
-        await deleteSnippet(snippet.id);
-        setNotice(`Revision ${snippet.revisionNumber} was deleted.`);
-      }
+      await deleteSnippet(snippet.id);
+      setNotice(`"${snippet.title}" was deleted.`);
     });
   };
 
@@ -216,7 +176,6 @@ export default function SnippetsPage() {
     'Unknown category';
 
   const snippets = data?.content ?? [];
-  const editing = dialog?.type === 'edit' ? dialog.snippet : undefined;
 
   return (
     <section>
@@ -226,8 +185,8 @@ export default function SnippetsPage() {
             Snippets
           </h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Editing the code, difficulty, or category creates a new revision and
-            retires the old one, so past results stay accurate.
+            Snippets cannot be edited once created. Deleting one hides it from
+            players and removes its results from what they see.
           </p>
         </div>
         <Button
@@ -312,7 +271,6 @@ export default function SnippetsPage() {
                     <Badge tone={LIFECYCLE_TONE[snippet.lifecycle]}>
                       {LIFECYCLE_LABEL[snippet.lifecycle]}
                     </Badge>
-                    <Badge tone="muted">Rev {snippet.revisionNumber}</Badge>
                   </div>
                   <p className="mt-1 text-xs text-text-muted">
                     {categoryName(snippet.categoryId)} -{' '}
@@ -324,37 +282,7 @@ export default function SnippetsPage() {
                   </pre>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
-                  {(snippet.lifecycle === 'ACTIVE' ||
-                    snippet.lifecycle === 'INACTIVE') && (
-                    <Button
-                      onClick={() => openDialog({ snippet, type: 'edit' })}
-                    >
-                      Edit
-                    </Button>
-                  )}
-                  {snippet.lifecycle === 'INACTIVE' && (
-                    <Button
-                      onClick={() => openDialog({ snippet, type: 'activate' })}
-                    >
-                      Activate
-                    </Button>
-                  )}
                   {snippet.lifecycle === 'ACTIVE' && (
-                    <Button
-                      onClick={() =>
-                        openDialog({ snippet, type: 'deactivate' })
-                      }
-                    >
-                      Deactivate
-                    </Button>
-                  )}
-                  {snippet.lifecycle === 'DELETED' ? (
-                    <Button
-                      onClick={() => openDialog({ snippet, type: 'restore' })}
-                    >
-                      Restore
-                    </Button>
-                  ) : (
                     <Button
                       onClick={() => openDialog({ snippet, type: 'delete' })}
                       variant="danger"
@@ -380,38 +308,13 @@ export default function SnippetsPage() {
         </div>
       )}
 
-      {(dialog?.type === 'create' || dialog?.type === 'edit') && (
+      {dialog?.type === 'create' && (
         <SnippetFormDialog
           categories={categories}
           error={dialogError}
           isSubmitting={isSubmitting}
           onCancel={() => setDialog(null)}
           onSubmit={handleSubmit}
-          snippet={editing}
-        />
-      )}
-
-      {dialog?.type === 'activate' && (
-        <ConfirmDialog
-          confirmLabel="Activate"
-          description={`Revision ${dialog.snippet.revisionNumber} of "${dialog.snippet.title}" becomes available for new races.`}
-          error={dialogError}
-          isSubmitting={isSubmitting}
-          onCancel={() => setDialog(null)}
-          onConfirm={handleLifecycle}
-          title="Activate revision"
-        />
-      )}
-
-      {dialog?.type === 'deactivate' && (
-        <ConfirmDialog
-          confirmLabel="Deactivate"
-          description={`Revision ${dialog.snippet.revisionNumber} of "${dialog.snippet.title}" stops appearing in new races. Past results are unaffected.`}
-          error={dialogError}
-          isSubmitting={isSubmitting}
-          onCancel={() => setDialog(null)}
-          onConfirm={handleLifecycle}
-          title="Deactivate revision"
         />
       )}
 
@@ -419,24 +322,12 @@ export default function SnippetsPage() {
         <ConfirmDialog
           confirmLabel="Delete"
           confirmVariant="danger"
-          description={`Revision ${dialog.snippet.revisionNumber} of "${dialog.snippet.title}" is removed from the catalog. Past results keep pointing at it, and you can restore it later.`}
+          description={`"${dialog.snippet.title}" is hidden from players and its results disappear from what they see. It stays visible here so you can copy the code, but it cannot be brought back.`}
           error={dialogError}
           isSubmitting={isSubmitting}
           onCancel={() => setDialog(null)}
-          onConfirm={handleLifecycle}
-          title="Delete revision"
-        />
-      )}
-
-      {dialog?.type === 'restore' && (
-        <ConfirmDialog
-          confirmLabel="Restore"
-          description={`Revision ${dialog.snippet.revisionNumber} of "${dialog.snippet.title}" comes back as inactive. Activate it when you want it raced again.`}
-          error={dialogError}
-          isSubmitting={isSubmitting}
-          onCancel={() => setDialog(null)}
-          onConfirm={handleLifecycle}
-          title="Restore revision"
+          onConfirm={handleDelete}
+          title="Delete snippet"
         />
       )}
     </section>

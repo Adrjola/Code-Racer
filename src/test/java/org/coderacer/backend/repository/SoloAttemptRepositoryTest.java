@@ -52,7 +52,7 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
     category.setActive(true);
     category = categoryRepository.save(category);
     return codeSnippetRepository.save(
-        CodeSnippet.firstRevision("Title", source, sha256Hex(source), Difficulty.EASY, category));
+        new CodeSnippet("Title", source, sha256Hex(source), Difficulty.EASY, category));
   }
 
   private static String sha256Hex(String value) {

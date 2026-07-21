@@ -78,13 +78,13 @@ class SoloAttemptFlowIntegrationTest {
     category.setActive(true);
     category = categoryRepository.saveAndFlush(category);
     return codeSnippetRepository.saveAndFlush(
-        CodeSnippet.firstRevision(
+        new CodeSnippet(
             "Title", content, sha256Hex(content + UUID.randomUUID()), Difficulty.EASY, category));
   }
 
-  private CodeSnippet newRetiredSnippet(String content) {
+  private CodeSnippet newDeletedSnippet(String content) {
     CodeSnippet snippet = newSnippet(content);
-    snippet.retire();
+    snippet.softDelete();
     return codeSnippetRepository.saveAndFlush(snippet);
   }
 
@@ -161,7 +161,7 @@ class SoloAttemptFlowIntegrationTest {
   @Test
   void startRejectsAttemptAgainstRetiredSnippet() throws Exception {
     User user = newUser("frank");
-    CodeSnippet snippet = newRetiredSnippet("hi");
+    CodeSnippet snippet = newDeletedSnippet("hi");
 
     ResponseEntity<Map> response =
         restTemplate.exchange(

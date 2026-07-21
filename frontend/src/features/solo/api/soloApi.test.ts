@@ -48,12 +48,9 @@ const snippet: SnippetPreview = {
   difficulty: 'EASY',
   id: 'snippet-1',
   lifecycle: 'ACTIVE',
-  revisionNumber: 1,
-  snippetId: 'snippet-group-1',
   source: 'public class Main {}',
   title: 'Hello World',
   updatedAt: '2026-07-01T00:00:00Z',
-  version: 0,
 };
 
 describe('soloApi', () => {
