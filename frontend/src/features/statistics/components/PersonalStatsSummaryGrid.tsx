@@ -67,7 +67,11 @@ function StatCard({ icon, label, subLabel, tone, unit, value }: StatCardProps) {
   );
 }
 
-const pairClassName = 'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-[74px]';
+// Capped to match the snippet cards' own max-w-[834px] (380 + 74 gap + 380)
+// so a pair's right edge lines up with the card below it instead of
+// stretching to fill whatever the outer grid track happens to be.
+const pairClassName =
+  'grid w-full max-w-[834px] grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-[74px]';
 
 export function PersonalStatsSummaryGrid({
   summary,
