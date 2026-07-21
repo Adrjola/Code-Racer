@@ -31,11 +31,12 @@ export default function SoloPreviewPage({
   onSessionExpired,
   selection,
 }: SoloPreviewPageProps) {
-  const { resetStart, snippetPhase, start, startPhase } = useSoloPreview({
-    categoryId: selection.categoryId,
-    difficulty: selection.difficulty,
-    onSessionExpired,
-  });
+  const { refresh, resetStart, snippetPhase, start, startPhase } =
+    useSoloPreview({
+      categoryId: selection.categoryId,
+      difficulty: selection.difficulty,
+      onSessionExpired,
+    });
   const [result, setResult] = useState<SoloAttemptResultResponse | null>(null);
 
   const attempt = startPhase.phase === 'started' ? startPhase.attempt : null;
@@ -98,10 +99,18 @@ export default function SoloPreviewPage({
     resetStart();
   };
 
+  // Same reset as a restart, except the preview also pulls a different snippet
+  // for the same category and difficulty.
+  const newSnippet = async () => {
+    await raceAgain();
+    refresh();
+  };
+
   if (result) {
     return (
       <SoloRaceResult
         onLobby={onExitRace}
+        onNewSnippet={newSnippet}
         onRaceAgain={raceAgain}
         result={result}
       />

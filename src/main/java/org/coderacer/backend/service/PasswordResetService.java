@@ -8,6 +8,7 @@ import org.coderacer.backend.dto.ForgotPasswordRequest;
 import org.coderacer.backend.dto.ForgotPasswordResponse;
 import org.coderacer.backend.dto.ResetPasswordRequest;
 import org.coderacer.backend.exception.PasswordResetFailedException;
+import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.model.PasswordResetToken;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.PasswordResetTokenRepository;
@@ -17,7 +18,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.validation.ValidationException;
 
 @Service
 @RequiredArgsConstructor
@@ -87,7 +87,7 @@ public class PasswordResetService {
 
   private void validatePasswordsMatch(ResetPasswordRequest request) {
     if (!request.newPassword().equals(request.confirmPassword())) {
-      throw new ValidationException("New password and confirm password do not match.");
+      throw new ValidationException("Validation failed: confirmPassword must match newPassword");
     }
   }
 

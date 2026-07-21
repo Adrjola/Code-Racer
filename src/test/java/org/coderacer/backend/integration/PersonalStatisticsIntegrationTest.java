@@ -146,7 +146,7 @@ class PersonalStatisticsIntegrationTest extends AbstractPostgresIntegrationTest 
     category = categoryRepository.save(category);
     String source = UUID.randomUUID().toString();
     return codeSnippetRepository.save(
-        CodeSnippet.firstRevision(source, source, sha256Hex(source), difficulty, category));
+        new CodeSnippet(source, source, sha256Hex(source), difficulty, category));
   }
 
   private String sha256Hex(String value) {

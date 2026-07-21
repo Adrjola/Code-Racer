@@ -10,15 +10,12 @@ public class SnippetMapper {
   public SnippetResponse toResponse(CodeSnippet snippet) {
     return new SnippetResponse(
         snippet.getId(),
-        snippet.getSnippetId(),
-        snippet.getRevisionNumber(),
         snippet.getTitle(),
         snippet.getSource(),
         snippet.getDifficulty(),
         snippet.getLifecycle(),
         snippet.getCategory().getId(),
         snippet.getCreatedAt(),
-        snippet.getUpdatedAt(),
-        snippet.getVersion());
+        snippet.getUpdatedAt());
   }
 }

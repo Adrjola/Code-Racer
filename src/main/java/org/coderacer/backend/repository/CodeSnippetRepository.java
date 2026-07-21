@@ -15,11 +15,6 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
 
   boolean existsByContentHashAndLifecycle(String contentHash, SnippetLifecycle lifecycle);
 
-  boolean existsByContentHashAndLifecycleAndIdNot(
-      String contentHash, SnippetLifecycle lifecycle, UUID id);
-
-  Optional<CodeSnippet> findFirstBySnippetIdOrderByRevisionNumberDesc(UUID snippetId);
-
   @Query(
       """
       select s from CodeSnippet s

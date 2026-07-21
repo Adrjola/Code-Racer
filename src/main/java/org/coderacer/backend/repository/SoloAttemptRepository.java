@@ -1,6 +1,7 @@
 package org.coderacer.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -39,12 +40,35 @@ public interface SoloAttemptRepository
              avg(s.durationMs) as averageDurationMs,
              avg(s.cpm) as averageCpm
       from SoloAttempt s
-      where s.user.id = :userId and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
+      where s.user.id = :userId
+        and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
+        and s.codeSnippet.lifecycle <> org.coderacer.backend.enums.SnippetLifecycle.DELETED
       group by s.difficulty
       """)
   List<DifficultyStatsProjection> aggregateCompletedByDifficulty(@Param("userId") UUID userId);
 
+  /** Every scoring run on one snippet, which is the whole leaderboard for it. */
+  @EntityGraph(attributePaths = "user")
+  List<SoloAttempt> findByCodeSnippetIdAndStateAndUserDeletedFalse(
+      UUID codeSnippetId, SoloAttemptState state);
+
   @Override
   @EntityGraph(attributePaths = "codeSnippet")
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
+
+  /**
+   * The single COMPLETED attempt with the lowest durationMs for a difficulty, restricted to
+   * non-deleted users. Ties break by earliest finishedAt, then lowest user id, both encoded
+   * directly in the method name's ORDER BY.
+   */
+  @EntityGraph(attributePaths = "user")
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
+
+  /** Same shape as above, highest cpm instead of lowest durationMs. */
+  @EntityGraph(attributePaths = "user")
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
 }

@@ -7,7 +7,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.CreateSnippetRequest;
 import org.coderacer.backend.dto.SnippetResponse;
-import org.coderacer.backend.dto.UpdateSnippetRequest;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.ConflictException;
@@ -25,6 +24,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Snippets are created once and never edited. The only change an admin can make afterwards is a
+ * one-way soft delete, which hides the snippet from players while keeping it readable in the admin
+ * catalog.
+ */
 @Service
 @RequiredArgsConstructor
 public class SnippetService {
@@ -45,63 +49,16 @@ public class SnippetService {
     Category category = requireAvailableCategory(request.categoryId());
 
     CodeSnippet snippet =
-        CodeSnippet.firstRevision(
+        new CodeSnippet(
             request.title(), canonicalSource, contentHash, request.difficulty(), category);
     return saveAndMap(snippet);
   }
 
   @Transactional
-  public SnippetResponse update(UUID id, UpdateSnippetRequest request) {
-    CodeSnippet existing = findOrThrow(id);
-    requireExpectedVersion(existing, request.version());
-    requireEditableLifecycle(existing);
-
-    String canonicalSource = canonicalize(request.source());
-    validateLengths(request.title(), canonicalSource);
-    String contentHash = hash(canonicalSource);
-    Category category = requireAvailableCategory(request.categoryId());
-
-    if (!gameplayChanged(existing, contentHash, request.difficulty(), category)) {
-      existing.rename(request.title());
-      return saveAndMap(existing);
-    }
-
-    requireNoDuplicateActiveContent(contentHash, existing.getId());
-    existing.retire();
-    repository.saveAndFlush(existing);
-
-    CodeSnippet revision =
-        CodeSnippet.nextRevision(
-            existing.getSnippetId(),
-            nextRevisionNumber(existing.getSnippetId()),
-            request.title(),
-            canonicalSource,
-            contentHash,
-            request.difficulty(),
-            category);
-    return saveAndMap(revision);
-  }
-
-  @Transactional
-  public SnippetResponse activate(UUID id) {
-    return transition(id, SnippetLifecycle.INACTIVE, SnippetLifecycle.ACTIVE, "activate");
-  }
-
-  @Transactional
-  public SnippetResponse deactivate(UUID id) {
-    return transition(id, SnippetLifecycle.ACTIVE, SnippetLifecycle.INACTIVE, "deactivate");
-  }
-
-  @Transactional
-  public SnippetResponse restore(UUID id) {
-    return transition(id, SnippetLifecycle.DELETED, SnippetLifecycle.INACTIVE, "restore");
-  }
-
-  @Transactional
   public void delete(UUID id) {
     CodeSnippet snippet = findOrThrow(id);
-    if (snippet.getLifecycle() == SnippetLifecycle.DELETED) {
-      throw illegalTransition(snippet, "delete");
+    if (snippet.isDeleted()) {
+      throw new ConflictException("Snippet is already deleted", "ILLEGAL_LIFECYCLE_TRANSITION");
     }
     snippet.softDelete();
     repository.save(snippet);
@@ -137,57 +94,8 @@ public class SnippetService {
         .orElseThrow(this::noEligibleSnippet);
   }
 
-  private SnippetResponse transition(
-      UUID id, SnippetLifecycle required, SnippetLifecycle target, String action) {
-    CodeSnippet snippet = findOrThrow(id);
-    if (snippet.getLifecycle() != required) {
-      throw illegalTransition(snippet, action);
-    }
-    if (target == SnippetLifecycle.ACTIVE) {
-      requireNoDuplicateActiveContent(snippet.getContentHash());
-    }
-    applyLifecycle(snippet, target);
-    return saveAndMap(snippet);
-  }
-
-  private boolean gameplayChanged(
-      CodeSnippet existing, String contentHash, Difficulty difficulty, Category category) {
-    return !contentHash.equals(existing.getContentHash())
-        || difficulty != existing.getDifficulty()
-        || !category.getId().equals(existing.getCategory().getId());
-  }
-
-  private int nextRevisionNumber(UUID snippetId) {
-    return repository
-        .findFirstBySnippetIdOrderByRevisionNumberDesc(snippetId)
-        .map(latest -> latest.getRevisionNumber() + 1)
-        .orElse(1);
-  }
-
-  private void requireExpectedVersion(CodeSnippet snippet, long expectedVersion) {
-    if (snippet.getVersion() != expectedVersion) {
-      throw new ConflictException(
-          "Snippet revision was changed by someone else, reload it and try again",
-          "VERSION_CONFLICT");
-    }
-  }
-
-  private void requireEditableLifecycle(CodeSnippet snippet) {
-    if (snippet.getLifecycle() == SnippetLifecycle.RETIRED
-        || snippet.getLifecycle() == SnippetLifecycle.DELETED) {
-      throw illegalTransition(snippet, "update");
-    }
-  }
-
   private void requireNoDuplicateActiveContent(String contentHash) {
     if (repository.existsByContentHashAndLifecycle(contentHash, SnippetLifecycle.ACTIVE)) {
-      throw duplicateContentConflict();
-    }
-  }
-
-  private void requireNoDuplicateActiveContent(String contentHash, UUID excludedRevisionId) {
-    if (repository.existsByContentHashAndLifecycleAndIdNot(
-        contentHash, SnippetLifecycle.ACTIVE, excludedRevisionId)) {
       throw duplicateContentConflict();
     }
   }
@@ -209,14 +117,7 @@ public class SnippetService {
   private CodeSnippet findOrThrow(UUID id) {
     return repository
         .findById(id)
-        .orElseThrow(
-            () -> new ResourceNotFoundException("Snippet revision with id " + id + " not found"));
-  }
-
-  private ConflictException illegalTransition(CodeSnippet snippet, String action) {
-    return new ConflictException(
-        "Cannot " + action + " a revision that is " + snippet.getLifecycle(),
-        "ILLEGAL_LIFECYCLE_TRANSITION");
+        .orElseThrow(() -> new ResourceNotFoundException("Snippet with id " + id + " not found"));
   }
 
   private SnippetResponse saveAndMap(CodeSnippet snippet) {
@@ -233,11 +134,7 @@ public class SnippetService {
     if (detail.contains("uq_code_snippet_active_content_hash")) {
       return duplicateContentConflict();
     }
-    if (detail.contains("uq_code_snippet_revision")) {
-      return versionConflict();
-    }
-    return new ConflictException(
-        "Snippet revision conflicts with existing data", "SNIPPET_REVISION_CONFLICT");
+    return new ConflictException("Snippet conflicts with existing data", "SNIPPET_CONFLICT");
   }
 
   private ConflictException duplicateContentConflict() {
@@ -245,24 +142,9 @@ public class SnippetService {
         "An active snippet with identical content already exists", "DUPLICATE_CONTENT");
   }
 
-  private ConflictException versionConflict() {
-    return new ConflictException(
-        "Snippet revision was changed by someone else, reload it and try again",
-        "VERSION_CONFLICT");
-  }
-
   private ResourceNotFoundException noEligibleSnippet() {
     return new ResourceNotFoundException(
         "No eligible snippet is available for the requested filters", "NO_ELIGIBLE_SNIPPET");
-  }
-
-  private void applyLifecycle(CodeSnippet snippet, SnippetLifecycle target) {
-    switch (target) {
-      case ACTIVE -> snippet.activate();
-      case INACTIVE -> snippet.deactivate();
-      case RETIRED -> snippet.retire();
-      case DELETED -> snippet.softDelete();
-    }
   }
 
   private void validateLengths(String title, String canonicalSource) {

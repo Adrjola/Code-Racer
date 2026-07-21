@@ -14,7 +14,6 @@ import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.dto.CreateSnippetRequest;
 import org.coderacer.backend.dto.SnippetResponse;
-import org.coderacer.backend.dto.UpdateSnippetRequest;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.ConflictException;
@@ -68,7 +67,7 @@ class SnippetServiceTest {
   }
 
   @Test
-  void create_storesFirstRevisionAsActive() {
+  void create_storesSnippetAsActive() {
     givenCategoryIsAvailable();
     givenContentIsNotDuplicated();
     when(repository.saveAndFlush(any(CodeSnippet.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -76,8 +75,6 @@ class SnippetServiceTest {
     service.create(new CreateSnippetRequest("Title", "code", Difficulty.HARD, categoryId));
 
     CodeSnippet saved = savedSnippet();
-    assertThat(saved.getRevisionNumber()).isEqualTo(1);
-    assertThat(saved.getSnippetId()).isNotNull();
     assertThat(saved.getLifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
     assertThat(saved.getContentHash()).isEqualTo(sha256Hex("code"));
   }
@@ -169,102 +166,8 @@ class SnippetServiceTest {
   }
 
   @Test
-  void update_withOnlyATitleChangeKeepsTheSameRevision() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-    givenCategoryIsAvailable();
-    when(repository.saveAndFlush(existing)).thenReturn(existing);
-
-    service.update(
-        revisionId, new UpdateSnippetRequest("New title", "code", Difficulty.EASY, categoryId, 0L));
-
-    assertThat(existing.getTitle()).isEqualTo("New title");
-    assertThat(existing.getLifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
-    verify(repository, never()).save(any());
-  }
-
-  @Test
-  void update_withAGameplayChangeRetiresOldRevisionAndCreatesTheNextOne() {
-    CodeSnippet existing = existingRevision("old code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-    givenCategoryIsAvailable();
-    givenContentIsNotDuplicatedExceptCurrentRevision();
-    when(repository.findFirstBySnippetIdOrderByRevisionNumberDesc(existing.getSnippetId()))
-        .thenReturn(Optional.of(existing));
-    when(repository.saveAndFlush(any(CodeSnippet.class))).thenAnswer(inv -> inv.getArgument(0));
-
-    service.update(
-        revisionId, new UpdateSnippetRequest("Title", "new code", Difficulty.EASY, categoryId, 0L));
-
-    assertThat(existing.getLifecycle()).isEqualTo(SnippetLifecycle.RETIRED);
-    CodeSnippet revision = lastSavedSnippet();
-    assertThat(revision.getSnippetId()).isEqualTo(existing.getSnippetId());
-    assertThat(revision.getRevisionNumber()).isEqualTo(2);
-    assertThat(revision.getLifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
-    assertThat(revision.getSource()).isEqualTo("new code");
-  }
-
-  @Test
-  void update_rejectsAStaleVersion() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
-    ReflectionTestUtils.setField(existing, "version", 3L);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-
-    assertThatThrownBy(
-            () ->
-                service.update(
-                    revisionId,
-                    new UpdateSnippetRequest("Title", "code", Difficulty.EASY, categoryId, 2L)))
-        .isInstanceOf(ConflictException.class);
-    verify(repository, never()).saveAndFlush(any());
-  }
-
-  @Test
-  void update_rejectsARetiredRevision() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.RETIRED);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-
-    assertThatThrownBy(
-            () ->
-                service.update(
-                    revisionId,
-                    new UpdateSnippetRequest("Title", "code", Difficulty.EASY, categoryId, 0L)))
-        .isInstanceOf(ConflictException.class);
-  }
-
-  @Test
-  void activate_movesAnInactiveRevisionToActive() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.INACTIVE);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-    when(repository.saveAndFlush(existing)).thenReturn(existing);
-
-    service.activate(revisionId);
-
-    assertThat(existing.getLifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
-  }
-
-  @Test
-  void activate_rejectsARevisionThatIsNotInactive() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.RETIRED);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-
-    assertThatThrownBy(() -> service.activate(revisionId)).isInstanceOf(ConflictException.class);
-  }
-
-  @Test
-  void deactivate_movesAnActiveRevisionToInactive() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-    when(repository.saveAndFlush(existing)).thenReturn(existing);
-
-    service.deactivate(revisionId);
-
-    assertThat(existing.getLifecycle()).isEqualTo(SnippetLifecycle.INACTIVE);
-  }
-
-  @Test
   void delete_softDeletesTheRevision() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
+    CodeSnippet existing = existingSnippet("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
     when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
 
     service.delete(revisionId);
@@ -275,26 +178,15 @@ class SnippetServiceTest {
 
   @Test
   void delete_rejectsAnAlreadyDeletedRevision() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.DELETED);
+    CodeSnippet existing = existingSnippet("code", Difficulty.EASY, SnippetLifecycle.DELETED);
     when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
 
     assertThatThrownBy(() -> service.delete(revisionId)).isInstanceOf(ConflictException.class);
   }
 
   @Test
-  void restore_movesADeletedRevisionToInactive() {
-    CodeSnippet existing = existingRevision("code", Difficulty.EASY, SnippetLifecycle.DELETED);
-    when(repository.findById(revisionId)).thenReturn(Optional.of(existing));
-    when(repository.saveAndFlush(existing)).thenReturn(existing);
-
-    service.restore(revisionId);
-
-    assertThat(existing.getLifecycle()).isEqualTo(SnippetLifecycle.INACTIVE);
-  }
-
-  @Test
   void randomEligible_excludesTheContentThePlayerAlreadyHas() {
-    CodeSnippet current = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
+    CodeSnippet current = existingSnippet("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
     when(repository.findById(revisionId)).thenReturn(Optional.of(current));
     when(repository.findFirstEligibleAtOrAfter(
             eq(categoryId), eq("EASY"), eq(current.getContentHash()), anyDouble()))
@@ -310,7 +202,7 @@ class SnippetServiceTest {
 
   @Test
   void randomEligible_wrapsToTheBeginningWhenNoLaterRevisionExists() {
-    CodeSnippet current = existingRevision("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
+    CodeSnippet current = existingSnippet("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
     when(repository.findFirstEligibleAtOrAfter(eq(null), eq(null), eq(null), anyDouble()))
         .thenReturn(Optional.empty());
     when(repository.findFirstEligibleBefore(eq(null), eq(null), eq(null), anyDouble()))
@@ -342,12 +234,6 @@ class SnippetServiceTest {
         .thenReturn(false);
   }
 
-  private void givenContentIsNotDuplicatedExceptCurrentRevision() {
-    when(repository.existsByContentHashAndLifecycleAndIdNot(
-            any(), eq(SnippetLifecycle.ACTIVE), eq(revisionId)))
-        .thenReturn(false);
-  }
-
   private CodeSnippet savedSnippet() {
     ArgumentCaptor<CodeSnippet> captor = ArgumentCaptor.forClass(CodeSnippet.class);
     verify(repository).saveAndFlush(captor.capture());
@@ -360,18 +246,12 @@ class SnippetServiceTest {
     return captor.getAllValues().get(1);
   }
 
-  private CodeSnippet existingRevision(
+  private CodeSnippet existingSnippet(
       String source, Difficulty difficulty, SnippetLifecycle lifecycle) {
-    CodeSnippet snippet =
-        new CodeSnippet(
-            UUID.randomUUID(),
-            1,
-            "Title",
-            source,
-            sha256Hex(source),
-            difficulty,
-            category,
-            lifecycle);
+    CodeSnippet snippet = new CodeSnippet("Title", source, sha256Hex(source), difficulty, category);
+    if (lifecycle == SnippetLifecycle.DELETED) {
+      snippet.softDelete();
+    }
     ReflectionTestUtils.setField(snippet, "id", revisionId);
     return snippet;
   }
@@ -379,16 +259,13 @@ class SnippetServiceTest {
   private SnippetResponse response(CodeSnippet snippet) {
     return new SnippetResponse(
         snippet.getId(),
-        snippet.getSnippetId(),
-        snippet.getRevisionNumber(),
         snippet.getTitle(),
         snippet.getSource(),
         snippet.getDifficulty(),
         snippet.getLifecycle(),
         categoryId,
         null,
-        null,
-        0L);
+        null);
   }
 
   private static String sha256Hex(String value) {

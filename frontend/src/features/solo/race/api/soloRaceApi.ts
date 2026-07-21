@@ -8,8 +8,6 @@ export interface ProgressAckResponse {
 
 export interface SoloAttemptSnippetSummary {
   categoryId: string;
-  revisionId: string;
-  revisionNumber: number;
   snippetId: string;
   title: string;
 }
@@ -29,6 +27,20 @@ export interface SoloAttemptResultResponse {
 export interface AbandonResponse {
   attemptId: string;
   state: string;
+}
+
+/**
+ * Where a finished race stands on its snippet's leaderboard. `attemptRank` is
+ * where this run would land, `globalRank` is the place the player holds now.
+ */
+export interface SoloAttemptRankingResponse {
+  attemptId: string;
+  attemptRank: number;
+  globalRank: number;
+  newPersonalBest: boolean;
+  previousBestCpm: number | null;
+  previousBestDurationMs: number | null;
+  previousGlobalRank: number | null;
 }
 
 export interface SoloWorldBestResponse {
@@ -90,15 +102,12 @@ export const soloRaceApi = {
     ).data;
   },
 
-  /**
-   * Completed attempts of the signed-in player, best first for the given sort.
-   * Two are enough to find the previous best once the current one is skipped.
-   */
-  async getBestCompleted(sort: string): Promise<SoloAttemptResultResponse[]> {
-    const response = await get<{ content: SoloAttemptResultResponse[] }>(
-      `/api/solo-attempts?state=COMPLETED&size=2&sort=${sort}`,
-    );
-    return response.data.content;
+  async getRanking(attemptId: string): Promise<SoloAttemptRankingResponse> {
+    return (
+      await get<SoloAttemptRankingResponse>(
+        `/api/solo-attempts/${attemptId}/ranking`,
+      )
+    ).data;
   },
 
   async getWorldBest(): Promise<SoloWorldBestResponse> {

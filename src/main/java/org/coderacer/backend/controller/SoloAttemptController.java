@@ -6,8 +6,10 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AbandonResponse;
 import org.coderacer.backend.dto.BaseResponse;
+import org.coderacer.backend.dto.GlobalStatisticsResponse;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.ProgressAckResponse;
+import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
 import org.coderacer.backend.dto.StartSoloAttemptResponse;
@@ -17,9 +19,11 @@ import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
+import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
+import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
@@ -44,7 +48,9 @@ public class SoloAttemptController {
   private final SoloAttemptService soloAttemptService;
   private final SoloAttemptHistoryService historyService;
   private final PersonalStatisticsService statisticsService;
-  private final CurrentJwtUserProvider currentUserProvider;
+  private final GlobalStatisticsService globalStatisticsService;
+  private final SoloAttemptRankingService rankingService;
+  private final CurrentJwtUserProvider currentJwtUserProvider;
   private final SoloAttemptMapper mapper;
 
   @GetMapping
@@ -57,7 +63,7 @@ public class SoloAttemptController {
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
           Instant startedTo,
       Pageable pageable) {
-    UUID userId = currentUserProvider.resolve();
+    UUID userId = currentJwtUserProvider.resolve();
     Page<SoloAttemptResultResponse> history =
         historyService.findHistory(
             userId, state, categoryId, difficulty, startedFrom, startedTo, pageable);
@@ -67,7 +73,7 @@ public class SoloAttemptController {
   @PostMapping
   public ResponseEntity<BaseResponse<StartSoloAttemptResponse>> start(
       @Valid @RequestBody StartSoloAttemptRequest request) {
-    UUID userId = currentUserProvider.resolve();
+    UUID userId = currentJwtUserProvider.resolve();
     SoloAttempt attempt = soloAttemptService.start(userId, request.codeSnippetId());
     StartSoloAttemptResponse response =
         new StartSoloAttemptResponse(
@@ -82,7 +88,7 @@ public class SoloAttemptController {
   @PostMapping("/{id}/progress")
   public ResponseEntity<BaseResponse<?>> submitProgress(
       @PathVariable UUID id, @Valid @RequestBody SubmitProgressRequest request) {
-    UUID userId = currentUserProvider.resolve();
+    UUID userId = currentJwtUserProvider.resolve();
     ProgressResult result =
         soloAttemptService.submitProgress(id, userId, request.sequence(), request.characters());
 
@@ -98,7 +104,7 @@ public class SoloAttemptController {
 
   @PostMapping("/{id}/abandon")
   public ResponseEntity<BaseResponse<AbandonResponse>> abandon(@PathVariable UUID id) {
-    UUID userId = currentUserProvider.resolve();
+    UUID userId = currentJwtUserProvider.resolve();
     SoloAttempt attempt = soloAttemptService.abandon(id, userId);
     AbandonResponse response = new AbandonResponse(attempt.getId(), attempt.getState());
     return ResponseEntity.ok(new BaseResponse<>(response, MDC.get("correlationId")));
@@ -106,13 +112,24 @@ public class SoloAttemptController {
 
   @GetMapping("/statistics")
   public BaseResponse<PersonalStatisticsResponse> statistics() {
-    UUID userId = currentUserProvider.resolve();
+    UUID userId = currentJwtUserProvider.resolve();
     return new BaseResponse<>(statisticsService.forUser(userId), MDC.get("correlationId"));
+  }
+
+  @GetMapping("/global-statistics")
+  public BaseResponse<GlobalStatisticsResponse> globalStatistics() {
+    return new BaseResponse<>(globalStatisticsService.compute(), MDC.get("correlationId"));
+  }
+
+  @GetMapping("/{id}/ranking")
+  public BaseResponse<SoloAttemptRankingResponse> ranking(@PathVariable UUID id) {
+    UUID userId = currentJwtUserProvider.resolve();
+    return new BaseResponse<>(rankingService.forAttempt(id, userId), MDC.get("correlationId"));
   }
 
   @GetMapping("/{id}")
   public BaseResponse<?> getById(@PathVariable UUID id) {
-    UUID userId = currentUserProvider.resolve();
+    UUID userId = currentJwtUserProvider.resolve();
     SoloAttempt attempt = soloAttemptService.getById(id, userId);
     return new BaseResponse<>(mapper.toResultResponse(attempt), MDC.get("correlationId"));
   }

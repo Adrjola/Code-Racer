@@ -18,6 +18,7 @@ import org.coderacer.backend.dto.ForgotPasswordRequest;
 import org.coderacer.backend.dto.ResetPasswordRequest;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.PasswordResetFailedException;
+import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.model.PasswordResetToken;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.PasswordResetTokenRepository;
@@ -121,7 +122,7 @@ class PasswordResetServiceTest {
             () ->
                 service.resetPassword(
                     new ResetPasswordRequest("raw-reset-token", "NewPassword123", "Different123")))
-        .isInstanceOf(PasswordResetFailedException.class);
+        .isInstanceOf(ValidationException.class);
 
     verify(tokenRepository, never()).findByTokenHashForUpdate(any());
     verify(passwordEncoder, never()).encode(any());

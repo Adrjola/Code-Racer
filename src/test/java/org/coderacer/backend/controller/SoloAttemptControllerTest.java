@@ -14,8 +14,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.coderacer.backend.dto.DifficultyGlobalStatistics;
 import org.coderacer.backend.dto.DifficultyStatistics;
+import org.coderacer.backend.dto.FastestTimeRecord;
+import org.coderacer.backend.dto.GlobalStatisticsResponse;
+import org.coderacer.backend.dto.HighestCpmRecord;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
+import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.SoloAttemptSnippetSummary;
 import org.coderacer.backend.enums.Difficulty;
@@ -32,9 +37,11 @@ import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
+import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
+import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +58,10 @@ class SoloAttemptControllerTest {
   private final SoloAttemptService service = mock(SoloAttemptService.class);
   private final SoloAttemptHistoryService historyService = mock(SoloAttemptHistoryService.class);
   private final PersonalStatisticsService statisticsService = mock(PersonalStatisticsService.class);
-  private final CurrentJwtUserProvider currentUserProvider = mock(CurrentJwtUserProvider.class);
+  private final GlobalStatisticsService globalStatisticsService =
+      mock(GlobalStatisticsService.class);
+  private final SoloAttemptRankingService rankingService = mock(SoloAttemptRankingService.class);
+  private final CurrentJwtUserProvider currentJwtUserProvider = mock(CurrentJwtUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
   private MockMvc mockMvc;
 
@@ -60,7 +70,13 @@ class SoloAttemptControllerTest {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
                 new SoloAttemptController(
-                    service, historyService, statisticsService, currentUserProvider, mapper))
+                    service,
+                    historyService,
+                    statisticsService,
+                    globalStatisticsService,
+                    rankingService,
+                    currentJwtUserProvider,
+                    mapper))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();
@@ -77,8 +93,7 @@ class SoloAttemptControllerTest {
     category.setId(UUID.randomUUID());
     category.setName("Java");
     category.setActive(true);
-    CodeSnippet snippet =
-        CodeSnippet.firstRevision("hello", "hello", "hash", Difficulty.EASY, category);
+    CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", id);
     return snippet;
   }
@@ -96,7 +111,7 @@ class SoloAttemptControllerTest {
     UUID snippetId = UUID.randomUUID();
     UUID attemptId = UUID.randomUUID();
     Instant startedAt = Instant.parse("2026-01-01T00:00:03Z");
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(service.start(eq(userId), eq(snippetId)))
         .thenReturn(newAttempt(attemptId, userId, snippetId, startedAt));
 
@@ -121,7 +136,7 @@ class SoloAttemptControllerTest {
   @Test
   void submitProgress_returns403ForOwnershipMismatch() throws Exception {
     UUID attemptId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
+    when(currentJwtUserProvider.resolve()).thenReturn(UUID.randomUUID());
     when(service.submitProgress(eq(attemptId), any(), anyLong(), anyString()))
         .thenThrow(new SoloAttemptOwnershipException("Attempt does not belong to this user"));
 
@@ -137,7 +152,7 @@ class SoloAttemptControllerTest {
   @Test
   void submitProgress_returns404ForMissingAttempt() throws Exception {
     UUID attemptId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
+    when(currentJwtUserProvider.resolve()).thenReturn(UUID.randomUUID());
     when(service.submitProgress(eq(attemptId), any(), anyLong(), anyString()))
         .thenThrow(new SoloAttemptNotFoundException(attemptId));
 
@@ -153,7 +168,7 @@ class SoloAttemptControllerTest {
   @Test
   void submitProgress_returns409ForNotActiveAttempt() throws Exception {
     UUID attemptId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
+    when(currentJwtUserProvider.resolve()).thenReturn(UUID.randomUUID());
     when(service.submitProgress(eq(attemptId), any(), anyLong(), anyString()))
         .thenThrow(new SoloAttemptNotActiveException("Attempt is not active"));
 
@@ -170,7 +185,7 @@ class SoloAttemptControllerTest {
   void submitProgress_returns409ForOneActiveAttemptConflict() throws Exception {
     UUID userId = UUID.randomUUID();
     UUID snippetId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(service.start(userId, snippetId))
         .thenThrow(new OneActiveAttemptConflictException("Already has an active attempt"));
 
@@ -203,7 +218,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt =
         newAttempt(attemptId, userId, snippetId, Instant.parse("2026-01-01T00:00:00Z"));
     attempt.activate();
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(service.submitProgress(eq(attemptId), eq(userId), eq(1L), eq("he")))
         .thenReturn(new ProgressResult(attempt, 2));
 
@@ -226,7 +241,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt = newAttempt(attemptId, userId, snippetId, startedAt);
     attempt.activate();
     attempt.complete(startedAt.plusSeconds(45), 45_000, 400);
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(service.submitProgress(eq(attemptId), eq(userId), eq(1L), eq("hello")))
         .thenReturn(new ProgressResult(attempt, 5));
 
@@ -248,7 +263,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt =
         newAttempt(attemptId, userId, snippetId, Instant.parse("2026-01-01T00:00:00Z"));
     attempt.abandon();
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(service.abandon(attemptId, userId)).thenReturn(attempt);
 
     mockMvc
@@ -265,15 +280,14 @@ class SoloAttemptControllerTest {
     SoloAttemptResultResponse result =
         new SoloAttemptResultResponse(
             attemptId,
-            new SoloAttemptSnippetSummary(
-                UUID.randomUUID(), UUID.randomUUID(), 1, "FizzBuzz", categoryId),
+            new SoloAttemptSnippetSummary(UUID.randomUUID(), "FizzBuzz", categoryId),
             Difficulty.EASY,
             SoloAttemptState.COMPLETED,
             45_000L,
             400,
             Instant.parse("2026-01-01T00:00:00Z"),
             Instant.parse("2026-01-01T00:00:45Z"));
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(historyService.findHistory(
             eq(userId),
             eq(SoloAttemptState.COMPLETED),
@@ -305,7 +319,7 @@ class SoloAttemptControllerTest {
   @Test
   void history_returns200WithNoFilters() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(historyService.findHistory(
             eq(userId), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
@@ -318,7 +332,7 @@ class SoloAttemptControllerTest {
 
   @Test
   void history_returns400ForUnknownStateValue() throws Exception {
-    when(currentUserProvider.resolve()).thenReturn(UUID.randomUUID());
+    when(currentJwtUserProvider.resolve()).thenReturn(UUID.randomUUID());
 
     mockMvc
         .perform(get("/api/solo-attempts").param("state", "NOT_A_STATE"))
@@ -329,7 +343,7 @@ class SoloAttemptControllerTest {
   @Test
   void history_returns400ForNonTerminalStateFilter() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(historyService.findHistory(
             eq(userId),
             eq(SoloAttemptState.ACTIVE),
@@ -355,7 +369,7 @@ class SoloAttemptControllerTest {
     SoloAttempt attempt = newAttempt(attemptId, userId, snippetId, startedAt);
     attempt.activate();
     attempt.complete(startedAt.plusSeconds(45), 45_000, 400);
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(service.getById(attemptId, userId)).thenReturn(attempt);
 
     mockMvc
@@ -368,7 +382,7 @@ class SoloAttemptControllerTest {
   @Test
   void statistics_returns200WithMetricsForTheResolvedUser() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUserProvider.resolve()).thenReturn(userId);
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
     when(statisticsService.forUser(userId))
         .thenReturn(
             new PersonalStatisticsResponse(
@@ -387,5 +401,89 @@ class SoloAttemptControllerTest {
         .andExpect(jsonPath("$.data.difficulties[0].averageDurationMs").value(30_000))
         .andExpect(jsonPath("$.data.difficulties[0].averageCpm").value(250))
         .andExpect(jsonPath("$.data.difficulties[1].averageCpm").doesNotExist());
+  }
+
+  @Test
+  void globalStatistics_returns200WithRecordsForEachDifficulty() throws Exception {
+    Instant recordedAt = Instant.parse("2026-01-01T00:00:45Z");
+    when(globalStatisticsService.compute())
+        .thenReturn(
+            new GlobalStatisticsResponse(
+                List.of(
+                    new DifficultyGlobalStatistics(
+                        Difficulty.EASY,
+                        new FastestTimeRecord("alice", 20_000L, recordedAt),
+                        new HighestCpmRecord("bob", 500, recordedAt)),
+                    new DifficultyGlobalStatistics(Difficulty.MEDIUM, null, null),
+                    new DifficultyGlobalStatistics(Difficulty.HARD, null, null))));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/global-statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.difficulties.length()").value(3))
+        .andExpect(jsonPath("$.data.difficulties[0].difficulty").value("EASY"))
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.username").value("alice"))
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.durationMs").value(20_000))
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.username").value("bob"))
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.cpm").value(500))
+        .andExpect(jsonPath("$.data.difficulties[1].fastestTime").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[1].highestCpm").doesNotExist());
+  }
+
+  @Test
+  void globalStatistics_responseOmitsEmailAndAdminFields() throws Exception {
+    Instant recordedAt = Instant.parse("2026-01-01T00:00:45Z");
+    when(globalStatisticsService.compute())
+        .thenReturn(
+            new GlobalStatisticsResponse(
+                List.of(
+                    new DifficultyGlobalStatistics(
+                        Difficulty.EASY,
+                        new FastestTimeRecord("alice", 20_000L, recordedAt),
+                        new HighestCpmRecord("alice", 300, recordedAt)),
+                    new DifficultyGlobalStatistics(Difficulty.MEDIUM, null, null),
+                    new DifficultyGlobalStatistics(Difficulty.HARD, null, null))));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/global-statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.email").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.enabled").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.role").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.email").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.enabled").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.role").doesNotExist());
+  }
+
+  @Test
+  void rankingReturnsTheLeaderboardContextForAnAttempt() throws Exception {
+    UUID attemptId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
+    when(rankingService.forAttempt(attemptId, userId))
+        .thenReturn(new SoloAttemptRankingResponse(attemptId, true, 47_000L, 431, 171, 171, 301));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/" + attemptId + "/ranking"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.newPersonalBest").value(true))
+        .andExpect(jsonPath("$.data.previousBestDurationMs").value(47000))
+        .andExpect(jsonPath("$.data.previousBestCpm").value(431))
+        .andExpect(jsonPath("$.data.attemptRank").value(171))
+        .andExpect(jsonPath("$.data.globalRank").value(171))
+        .andExpect(jsonPath("$.data.previousGlobalRank").value(301));
+  }
+
+  @Test
+  void rankingReturns404ForAnAttemptThatDoesNotExist() throws Exception {
+    UUID attemptId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
+    when(rankingService.forAttempt(attemptId, userId))
+        .thenThrow(new SoloAttemptNotFoundException(attemptId));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/" + attemptId + "/ranking"))
+        .andExpect(status().isNotFound());
   }
 }

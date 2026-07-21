@@ -1,11 +1,12 @@
-/** Formats the server's attempt duration as m:ss. */
-export function formatDuration(durationMs: number | null): string {
+/** Formats a duration as m:ss.mmm. */
+export function formatDurationPrecise(durationMs: number | null): string {
   if (durationMs === null) {
     return '--';
   }
 
-  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  const safeMs = Math.max(0, durationMs);
+  const minutes = Math.floor(safeMs / 60_000);
+  const seconds = Math.floor((safeMs % 60_000) / 1000);
+  const millis = Math.floor(safeMs % 1000);
+  return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 }
