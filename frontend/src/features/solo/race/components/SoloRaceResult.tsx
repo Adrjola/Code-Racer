@@ -1,5 +1,5 @@
 import type { SoloAttemptResultResponse } from '../api/soloRaceApi';
-import { usePersonalBests } from '../hooks/usePersonalBests';
+import { useAttemptRanking } from '../hooks/useAttemptRanking';
 import { formatDuration } from '../utils/formatDuration';
 
 type SoloRaceResultProps = {
@@ -24,16 +24,13 @@ export function SoloRaceResult({
   onRaceAgain,
   result,
 }: SoloRaceResultProps) {
-  const { isLoaded, previousBestCpm, previousBestDurationMs } =
-    usePersonalBests(result);
+  const ranking = useAttemptRanking(result);
 
   const isCompleted = result.state === 'COMPLETED';
   const cpm = result.cpm;
-  const isPersonalBest =
-    isLoaded &&
-    isCompleted &&
-    cpm !== null &&
-    (previousBestCpm === null || cpm > previousBestCpm);
+  const previousBestCpm = ranking?.previousBestCpm ?? null;
+  const previousBestDurationMs = ranking?.previousBestDurationMs ?? null;
+  const isPersonalBest = ranking?.newPersonalBest ?? false;
   const cpmGain =
     cpm !== null && previousBestCpm !== null ? cpm - previousBestCpm : null;
 
@@ -75,7 +72,7 @@ export function SoloRaceResult({
 
         {isCompleted ? (
           <p className="mt-2 font-mono text-xs text-text-muted">
-            {!isLoaded ? (
+            {ranking === null ? (
               <span>checking your previous races...</span>
             ) : cpmGain !== null && cpmGain > 0 ? (
               <span className="text-emerald-400">
@@ -112,9 +109,13 @@ export function SoloRaceResult({
             <dt className="flex items-center gap-2 text-[11px] tracking-wide text-purple-200/80 uppercase">
               <span aria-hidden>RANK</span> Global rank
             </dt>
-            <dd className="mt-1 text-2xl font-bold text-text-muted">N/A</dd>
+            <dd className="mt-1 text-2xl font-bold text-text-primary">
+              {ranking === null ? '--' : `#${ranking.globalRank}`}
+            </dd>
             <dd className="mt-1 text-[11px] text-text-muted">
-              // needs a ranking endpoint
+              {ranking?.previousGlobalRank == null
+                ? ''
+                : `// previously #${ranking.previousGlobalRank}`}
             </dd>
           </div>
         </dl>
