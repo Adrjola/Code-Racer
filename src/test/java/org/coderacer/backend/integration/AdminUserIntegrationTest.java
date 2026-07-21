@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.exception.ConflictException;
+import org.coderacer.backend.exception.SelfActionForbiddenException;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
 import org.coderacer.backend.service.AdminUserService;
@@ -52,7 +52,7 @@ class AdminUserIntegrationTest extends AbstractPostgresIntegrationTest {
     User admin = saveUser("self_admin", UserRole.ADMIN, true, false);
 
     assertThatThrownBy(() -> service.delete(admin.getId(), admin.getId()))
-        .isInstanceOf(ConflictException.class);
+        .isInstanceOf(SelfActionForbiddenException.class);
     assertThat(userRepository.findById(admin.getId()).orElseThrow().isDeleted()).isFalse();
   }
 

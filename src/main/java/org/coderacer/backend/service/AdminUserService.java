@@ -9,6 +9,7 @@ import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
+import org.coderacer.backend.exception.SelfActionForbiddenException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
@@ -46,7 +47,7 @@ public class AdminUserService {
       throw new ConflictException("User is already deleted", "USER_ALREADY_DELETED");
     }
     user.setDeleted(true);
-    repository.save(user);
+    repository.saveAndFlush(user);
   }
 
   @Transactional
@@ -61,8 +62,7 @@ public class AdminUserService {
 
   private void requireNotSelf(UUID targetId, UUID currentAdminId, String action) {
     if (targetId.equals(currentAdminId)) {
-      throw new ConflictException(
-          "Admins cannot " + action + " their own account", "SELF_ACTION_FORBIDDEN");
+      throw new SelfActionForbiddenException("Admins cannot " + action + " their own account");
     }
   }
 

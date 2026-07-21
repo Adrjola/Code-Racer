@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.GlobalExceptionHandler;
+import org.coderacer.backend.exception.SelfActionForbiddenException;
 import org.coderacer.backend.security.CurrentUserProvider;
 import org.coderacer.backend.service.AdminUserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,16 +91,14 @@ class AdminUserControllerTest {
   }
 
   @Test
-  void delete_returns409_whenSelfProtectionTriggered() throws Exception {
-    doThrow(
-            new ConflictException(
-                "Admins cannot delete their own account", "SELF_ACTION_FORBIDDEN"))
+  void delete_returns403_whenSelfProtectionTriggered() throws Exception {
+    doThrow(new SelfActionForbiddenException("Admins cannot delete their own account"))
         .when(service)
         .delete(id, adminId);
 
     mockMvc
         .perform(delete("/api/admin/users/" + id))
-        .andExpect(status().isConflict())
+        .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("SELF_ACTION_FORBIDDEN"));
   }
 

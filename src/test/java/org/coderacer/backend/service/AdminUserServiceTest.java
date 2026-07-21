@@ -18,6 +18,7 @@ import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
+import org.coderacer.backend.exception.SelfActionForbiddenException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
@@ -88,7 +89,7 @@ class AdminUserServiceTest {
     service.delete(id, adminId);
 
     assertThat(user.isDeleted()).isTrue();
-    verify(repository).save(user);
+    verify(repository).saveAndFlush(user);
   }
 
   @Test
@@ -100,19 +101,19 @@ class AdminUserServiceTest {
     assertThatThrownBy(() -> service.delete(id, adminId))
         .isInstanceOf(ConflictException.class)
         .hasMessageContaining("already deleted");
-    verify(repository, never()).save(any());
+    verify(repository, never()).saveAndFlush(any());
   }
 
   @Test
-  void delete_throwsConflict_whenTargetingSelf() {
+  void delete_throwsForbidden_whenTargetingSelf() {
     User user = new User();
     user.setDeleted(false);
     when(repository.findById(id)).thenReturn(Optional.of(user));
 
     assertThatThrownBy(() -> service.delete(id, id))
-        .isInstanceOf(ConflictException.class)
+        .isInstanceOf(SelfActionForbiddenException.class)
         .hasMessageContaining("own account");
-    verify(repository, never()).save(any());
+    verify(repository, never()).saveAndFlush(any());
   }
 
   @Test
