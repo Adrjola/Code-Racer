@@ -47,6 +47,11 @@ public interface SoloAttemptRepository
       """)
   List<DifficultyStatsProjection> aggregateCompletedByDifficulty(@Param("userId") UUID userId);
 
+  /** Every scoring run on one snippet, which is the whole leaderboard for it. */
+  @EntityGraph(attributePaths = "user")
+  List<SoloAttempt> findByCodeSnippetIdAndStateAndUserDeletedFalse(
+      UUID codeSnippetId, SoloAttemptState state);
+
   @Override
   @EntityGraph(attributePaths = "codeSnippet")
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
