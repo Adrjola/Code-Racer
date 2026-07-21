@@ -6,7 +6,6 @@ export type CurrentUser = {
   username: string;
   role: UserRole;
   emailVerified: boolean;
-  enabled: boolean;
   createdAt: string;
   updatedAt: string;
 };

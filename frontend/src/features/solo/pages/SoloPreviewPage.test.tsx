@@ -88,7 +88,6 @@ beforeEach(() => {
       createdAt: '2026-07-16T12:00:00Z',
       email: 'player@example.com',
       emailVerified: true,
-      enabled: true,
       id: 'u1',
       role: 'USER',
       updatedAt: '2026-07-16T12:00:00Z',

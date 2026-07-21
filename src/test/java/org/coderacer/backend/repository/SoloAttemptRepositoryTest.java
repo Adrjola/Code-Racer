@@ -41,7 +41,6 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
     user.setPasswordHash("hashed-password");
     user.setRole(UserRole.USER);
     user.setEmailVerified(true);
-    user.setEnabled(true);
     user.setDeleted(false);
     return user;
   }

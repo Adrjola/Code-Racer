@@ -64,7 +64,6 @@ class UserRegistrationServiceTest {
     assertThat(savedUser.getPasswordHash()).isNotEqualTo("StrongerPass123");
     assertThat(savedUser.getRole()).isEqualTo(UserRole.USER);
     assertThat(savedUser.isEmailVerified()).isFalse();
-    assertThat(savedUser.isEnabled()).isTrue();
     assertThat(savedUser.isDeleted()).isFalse();
     assertThat(response.email()).isEqualTo("player@example.com");
     assertThat(response.role()).isEqualTo(UserRole.USER);
