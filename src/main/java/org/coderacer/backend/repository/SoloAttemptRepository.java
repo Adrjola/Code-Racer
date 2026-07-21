@@ -1,6 +1,7 @@
 package org.coderacer.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -49,32 +50,18 @@ public interface SoloAttemptRepository
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
 
   /**
-   * Candidate COMPLETED attempts for a difficulty, restricted to non-deleted users, ordered so the
-   * fastest (lowest durationMs) is first; ties break by earliest finishedAt, then lowest user id.
-   * The caller passes a single-row Pageable, so only one row ever crosses the wire.
+   * The single COMPLETED attempt with the lowest durationMs for a difficulty, restricted to
+   * non-deleted users. Ties break by earliest finishedAt, then lowest user id, both encoded
+   * directly in the method name's ORDER BY.
    */
   @EntityGraph(attributePaths = "user")
-  @Query(
-      """
-      select s from SoloAttempt s
-      where s.difficulty = :difficulty
-        and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
-        and s.user.deleted = false
-      order by s.durationMs asc, s.finishedAt asc, s.user.id asc
-      """)
-  List<SoloAttempt> findFastestCompletedCandidates(
-      @Param("difficulty") Difficulty difficulty, Pageable pageable);
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
 
-  /** Same shape as findFastestCompletedCandidates ordered by highest cpm instead. */
+  /** Same shape as above, highest cpm instead of lowest durationMs. */
   @EntityGraph(attributePaths = "user")
-  @Query(
-      """
-      select s from SoloAttempt s
-      where s.difficulty = :difficulty
-        and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
-        and s.user.deleted = false
-      order by s.cpm desc, s.finishedAt asc, s.user.id asc
-      """)
-  List<SoloAttempt> findHighestCpmCompletedCandidates(
-      @Param("difficulty") Difficulty difficulty, Pageable pageable);
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
 }

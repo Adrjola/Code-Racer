@@ -7,10 +7,9 @@ import org.coderacer.backend.dto.FastestTimeRecord;
 import org.coderacer.backend.dto.GlobalStatisticsResponse;
 import org.coderacer.backend.dto.HighestCpmRecord;
 import org.coderacer.backend.enums.Difficulty;
+import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.repository.SoloAttemptRepository;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,15 +26,16 @@ public class GlobalStatisticsService {
   }
 
   private DifficultyGlobalStatistics forDifficulty(Difficulty difficulty) {
-    Pageable top1 = PageRequest.of(0, 1);
     FastestTimeRecord fastestTime =
-        repository.findFastestCompletedCandidates(difficulty, top1).stream()
-            .findFirst()
+        repository
+            .findFirstByDifficultyAndStateAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+                difficulty, SoloAttemptState.COMPLETED)
             .map(this::toFastestTimeRecord)
             .orElse(null);
     HighestCpmRecord highestCpm =
-        repository.findHighestCpmCompletedCandidates(difficulty, top1).stream()
-            .findFirst()
+        repository
+            .findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+                difficulty, SoloAttemptState.COMPLETED)
             .map(this::toHighestCpmRecord)
             .orElse(null);
     return new DifficultyGlobalStatistics(difficulty, fastestTime, highestCpm);
