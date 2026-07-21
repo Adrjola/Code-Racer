@@ -27,36 +27,15 @@ public class AdminUserService {
 
   @Transactional(readOnly = true)
   public Page<AdminUserResponse> list(
-      UserRole role, Boolean emailVerified, Boolean enabled, Boolean deleted, Pageable pageable) {
+      UserRole role, Boolean emailVerified, Boolean deleted, Pageable pageable) {
     return repository
-        .findAll(withFilters(role, emailVerified, enabled, deleted), pageable)
+        .findAll(withFilters(role, emailVerified, deleted), pageable)
         .map(mapper::toAdminResponse);
   }
 
   @Transactional(readOnly = true)
   public AdminUserResponse getById(UUID id) {
     return mapper.toAdminResponse(findOrThrow(id));
-  }
-
-  @Transactional
-  public AdminUserResponse disable(UUID id, UUID currentAdminId) {
-    User user = findOrThrow(id);
-    requireNotSelf(id, currentAdminId, "disable");
-    if (!user.isEnabled()) {
-      throw new ConflictException("User is already disabled", "USER_ALREADY_DISABLED");
-    }
-    user.setEnabled(false);
-    return mapper.toAdminResponse(repository.saveAndFlush(user));
-  }
-
-  @Transactional
-  public AdminUserResponse enable(UUID id) {
-    User user = findOrThrow(id);
-    if (user.isEnabled()) {
-      throw new ConflictException("User is already enabled", "USER_ALREADY_ENABLED");
-    }
-    user.setEnabled(true);
-    return mapper.toAdminResponse(repository.saveAndFlush(user));
   }
 
   @Transactional
@@ -94,7 +73,7 @@ public class AdminUserService {
   }
 
   private static Specification<User> withFilters(
-      UserRole role, Boolean emailVerified, Boolean enabled, Boolean deleted) {
+      UserRole role, Boolean emailVerified, Boolean deleted) {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
       if (role != null) {
@@ -102,9 +81,6 @@ public class AdminUserService {
       }
       if (emailVerified != null) {
         predicates.add(cb.equal(root.get("emailVerified"), emailVerified));
-      }
-      if (enabled != null) {
-        predicates.add(cb.equal(root.get("enabled"), enabled));
       }
       if (deleted != null) {
         predicates.add(cb.equal(root.get("deleted"), deleted));

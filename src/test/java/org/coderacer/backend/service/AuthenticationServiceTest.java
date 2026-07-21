@@ -159,20 +159,6 @@ class AuthenticationServiceTest {
   }
 
   @Test
-  void login_rejectsDisabledUsersAfterPasswordCheck() {
-    User disabled = verifiedUser("player");
-    disabled.setEnabled(false);
-    when(repository.findByEmailOrUsernameNormalized("player", "player"))
-        .thenReturn(Optional.of(disabled));
-
-    assertThatThrownBy(
-            () -> service.login(new LoginRequest("player", "StrongerPass123"), "127.0.0.1"))
-        .isInstanceOf(AuthenticationFailedException.class);
-    verify(loginAttemptService).recordFailure(disabled.getId().toString(), "127.0.0.1");
-    verify(passwordEncoder).matches("StrongerPass123", "hashed-password");
-  }
-
-  @Test
   void login_rejectsDeletedUsersAfterPasswordCheck() {
     User deleted = verifiedUser("player");
     deleted.setDeleted(true);

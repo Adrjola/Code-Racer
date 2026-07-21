@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import org.coderacer.backend.dto.CreateSnippetRequest;
-import org.coderacer.backend.dto.LoginRequest;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.model.Category;
@@ -169,34 +168,6 @@ class SecurityAuthorizationIntegrationTest {
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-  }
-
-  @Test
-  void disabledUserTokenCannotAccessProtectedRoute() {
-    User admin = saveUser("admin", UserRole.ADMIN);
-    String token = jwtService.createAccessToken(admin);
-    admin.setEnabled(false);
-    userRepository.saveAndFlush(admin);
-
-    ResponseEntity<String> response =
-        restTemplate.exchange(
-            "/api/admin/categories", HttpMethod.GET, bearerEntity(token), String.class);
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-  }
-
-  @Test
-  void disabledUserCannotLogIn() {
-    User user = saveUser("disabled_login", UserRole.USER);
-    user.setEnabled(false);
-    userRepository.saveAndFlush(user);
-
-    ResponseEntity<String> response =
-        restTemplate.postForEntity(
-            "/api/auth/login", new LoginRequest("disabled_login", "StrongerPass123"), String.class);
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    assertThat(response.getBody()).contains("\"code\":\"INVALID_CREDENTIALS\"");
   }
 
   @Test

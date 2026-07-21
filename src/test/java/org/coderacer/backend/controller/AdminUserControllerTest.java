@@ -40,7 +40,6 @@ class AdminUserControllerTest {
           "player@example.com",
           UserRole.USER,
           true,
-          true,
           false,
           Instant.now(),
           Instant.now());
@@ -58,8 +57,7 @@ class AdminUserControllerTest {
 
   @Test
   void list_returns200() throws Exception {
-    when(service.list(any(), any(), any(), any(), any()))
-        .thenReturn(new PageImpl<>(List.of(response)));
+    when(service.list(any(), any(), any(), any())).thenReturn(new PageImpl<>(List.of(response)));
 
     mockMvc
         .perform(get("/api/admin/users"))
@@ -70,7 +68,7 @@ class AdminUserControllerTest {
   @Test
   void list_returns400_whenBooleanParamIsInvalid() throws Exception {
     mockMvc
-        .perform(get("/api/admin/users").param("enabled", "not-a-boolean"))
+        .perform(get("/api/admin/users").param("deleted", "not-a-boolean"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
   }
@@ -83,35 +81,6 @@ class AdminUserControllerTest {
         .perform(get("/api/admin/users/" + id))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.email").value("player@example.com"));
-  }
-
-  @Test
-  void disable_returns200_andUsesCurrentAdminId() throws Exception {
-    when(service.disable(id, adminId)).thenReturn(response);
-
-    mockMvc.perform(post("/api/admin/users/" + id + "/disable")).andExpect(status().isOk());
-
-    verify(service).disable(id, adminId);
-  }
-
-  @Test
-  void disable_returns409_whenSelfProtectionTriggered() throws Exception {
-    when(service.disable(id, adminId))
-        .thenThrow(
-            new ConflictException(
-                "Admins cannot disable their own account", "SELF_ACTION_FORBIDDEN"));
-
-    mockMvc
-        .perform(post("/api/admin/users/" + id + "/disable"))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("SELF_ACTION_FORBIDDEN"));
-  }
-
-  @Test
-  void enable_returns200() throws Exception {
-    when(service.enable(id)).thenReturn(response);
-
-    mockMvc.perform(post("/api/admin/users/" + id + "/enable")).andExpect(status().isOk());
   }
 
   @Test

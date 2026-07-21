@@ -32,26 +32,14 @@ public class AdminUserController {
   public BaseResponse<PagedModel<AdminUserResponse>> list(
       @RequestParam(required = false) UserRole role,
       @RequestParam(required = false) Boolean emailVerified,
-      @RequestParam(required = false) Boolean enabled,
       @RequestParam(required = false) Boolean deleted,
       Pageable pageable) {
-    return wrap(new PagedModel<>(service.list(role, emailVerified, enabled, deleted, pageable)));
+    return wrap(new PagedModel<>(service.list(role, emailVerified, deleted, pageable)));
   }
 
   @GetMapping("/{id}")
   public BaseResponse<AdminUserResponse> get(@PathVariable UUID id) {
     return wrap(service.getById(id));
-  }
-
-  @PostMapping("/{id}/disable")
-  public BaseResponse<AdminUserResponse> disable(
-      @PathVariable UUID id, HttpServletRequest request) {
-    return wrap(service.disable(id, currentUserProvider.resolve(request)));
-  }
-
-  @PostMapping("/{id}/enable")
-  public BaseResponse<AdminUserResponse> enable(@PathVariable UUID id) {
-    return wrap(service.enable(id));
   }
 
   @DeleteMapping("/{id}")

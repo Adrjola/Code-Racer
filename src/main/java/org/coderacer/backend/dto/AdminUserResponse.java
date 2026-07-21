@@ -10,7 +10,6 @@ public record AdminUserResponse(
     String email,
     UserRole role,
     boolean emailVerified,
-    boolean enabled,
     boolean deleted,
     Instant createdAt,
     Instant updatedAt) {}

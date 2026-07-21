@@ -26,7 +26,6 @@ public class UserMapper {
         user.getEmail(),
         user.getRole(),
         user.isEmailVerified(),
-        user.isEnabled(),
         user.isDeleted(),
         user.getCreatedAt(),
         user.getUpdatedAt());

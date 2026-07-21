@@ -68,17 +68,6 @@ class JwtAccountValidatorTest {
   }
 
   @Test
-  void validate_rejectsDisabledAccounts() {
-    User disabled = user("player", UserRole.USER);
-    disabled.setEnabled(false);
-    when(repository.findByUsername("player")).thenReturn(Optional.of(disabled));
-
-    var result = validator.validate(tokenFor(disabled));
-
-    assertThat(result.hasErrors()).isTrue();
-  }
-
-  @Test
   void validate_rejectsDeletedAccounts() {
     User deleted = user("player", UserRole.USER);
     deleted.setDeleted(true);

@@ -47,7 +47,6 @@ class AdminUserServiceTest {
           "player@example.com",
           UserRole.USER,
           true,
-          true,
           false,
           Instant.now(),
           Instant.now());
@@ -60,7 +59,7 @@ class AdminUserServiceTest {
         .thenReturn(new PageImpl<>(List.of(user)));
     when(mapper.toAdminResponse(user)).thenReturn(response);
 
-    assertThat(service.list(UserRole.USER, true, true, false, pageable).getContent())
+    assertThat(service.list(UserRole.USER, true, false, pageable).getContent())
         .containsExactly(response);
   }
 
@@ -78,76 +77,6 @@ class AdminUserServiceTest {
     when(repository.findById(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.getById(id)).isInstanceOf(ResourceNotFoundException.class);
-  }
-
-  @Test
-  void disable_disablesEnabledUser() {
-    User user = new User();
-    user.setEnabled(true);
-    when(repository.findById(id)).thenReturn(Optional.of(user));
-    when(repository.saveAndFlush(user)).thenReturn(user);
-    when(mapper.toAdminResponse(user)).thenReturn(response);
-
-    service.disable(id, adminId);
-
-    assertThat(user.isEnabled()).isFalse();
-  }
-
-  @Test
-  void disable_throwsConflict_whenAlreadyDisabled() {
-    User user = new User();
-    user.setEnabled(false);
-    when(repository.findById(id)).thenReturn(Optional.of(user));
-
-    assertThatThrownBy(() -> service.disable(id, adminId))
-        .isInstanceOf(ConflictException.class)
-        .hasMessageContaining("already disabled");
-    verify(repository, never()).saveAndFlush(any());
-  }
-
-  @Test
-  void disable_throwsConflict_whenTargetingSelf() {
-    User user = new User();
-    user.setEnabled(true);
-    when(repository.findById(id)).thenReturn(Optional.of(user));
-
-    assertThatThrownBy(() -> service.disable(id, id))
-        .isInstanceOf(ConflictException.class)
-        .hasMessageContaining("own account");
-    verify(repository, never()).saveAndFlush(any());
-  }
-
-  @Test
-  void disable_throwsNotFound_whenMissing() {
-    when(repository.findById(id)).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> service.disable(id, adminId))
-        .isInstanceOf(ResourceNotFoundException.class);
-  }
-
-  @Test
-  void enable_enablesDisabledUser() {
-    User user = new User();
-    user.setEnabled(false);
-    when(repository.findById(id)).thenReturn(Optional.of(user));
-    when(repository.saveAndFlush(user)).thenReturn(user);
-    when(mapper.toAdminResponse(user)).thenReturn(response);
-
-    service.enable(id);
-
-    assertThat(user.isEnabled()).isTrue();
-  }
-
-  @Test
-  void enable_throwsConflict_whenAlreadyEnabled() {
-    User user = new User();
-    user.setEnabled(true);
-    when(repository.findById(id)).thenReturn(Optional.of(user));
-
-    assertThatThrownBy(() -> service.enable(id))
-        .isInstanceOf(ConflictException.class)
-        .hasMessageContaining("already enabled");
-    verify(repository, never()).saveAndFlush(any());
   }
 
   @Test
