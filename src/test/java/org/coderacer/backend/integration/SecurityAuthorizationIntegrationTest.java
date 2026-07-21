@@ -205,7 +205,6 @@ class SecurityAuthorizationIntegrationTest {
     user.setPasswordHash(passwordEncoder.encode("StrongerPass123"));
     user.setRole(role);
     user.setEmailVerified(true);
-    user.setEnabled(true);
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);

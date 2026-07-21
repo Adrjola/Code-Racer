@@ -61,10 +61,20 @@ The only configured frontend exclusions are:
 - `frontend/src/main.tsx`, because it is entry-point bootstrapping;
 - `frontend/src/test/**`, because it is test infrastructure;
 - colocated `.test.ts`, `.test.tsx`, `.spec.ts`, and `.spec.tsx` files;
-- generated declaration files.
+- generated declaration files;
+- `frontend/src/features/landing/RaceBot.tsx`, because it constructs and
+  drives a three.js WebGL scene directly. jsdom has no real WebGL context,
+  so everything past the renderer's construction (mesh/material setup, the
+  animation loop, hover raycasting) never executes under test and cannot be
+  meaningfully covered without mocking `three` itself, which would test the
+  mock rather than real behavior. The component still has smoke-level
+  coverage (mounts and unmounts without crashing, accepts prop changes) —
+  see `RaceBot.test.tsx`.
 
 Future exclusions must be limited to generated declarations, build
-configuration, and true entry-point boilerplate. Any new exclusion must be
+configuration, true entry-point boilerplate, or code gated behind a browser
+API jsdom does not implement (such as WebGL) where no meaningful coverage is
+possible without mocking the underlying library. Any new exclusion must be
 documented here.
 
 The shared setup resets DOM state, MSW handlers, timers, storage, and mocks

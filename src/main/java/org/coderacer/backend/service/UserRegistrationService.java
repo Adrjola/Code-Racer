@@ -64,7 +64,6 @@ public class UserRegistrationService {
     user.setPasswordHash(passwordEncoder.encode(registration.password()));
     user.setRole(role);
     user.setEmailVerified(emailVerified);
-    user.setEnabled(true);
     user.setDeleted(false);
 
     User savedUser = saveUser(user);
