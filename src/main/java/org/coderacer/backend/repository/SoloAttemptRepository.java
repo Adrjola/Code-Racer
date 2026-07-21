@@ -1,7 +1,6 @@
 package org.coderacer.backend.repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -49,18 +48,35 @@ public interface SoloAttemptRepository
   @EntityGraph(attributePaths = "codeSnippet")
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
 
-  // Finds fastest user by duration filtered by difficulty and attempt state. The underscores
-  // force explicit traversal into the "user" association instead of relying on Spring Data's
-  // greedy property-name matching to figure out where "user" ends and "enabled"/"deleted"/"id"
-  // begin.
+  /**
+   * Candidate COMPLETED attempts for a difficulty, restricted to enabled, non-deleted users,
+   * ordered so the fastest (lowest durationMs) is first; ties break by earliest finishedAt, then
+   * lowest user id. The caller passes a single-row Pageable, so only one row ever crosses the wire.
+   */
   @EntityGraph(attributePaths = "user")
-  Optional<SoloAttempt>
-      findFirstByDifficultyAndStateAndUser_EnabledTrueAndUser_DeletedFalseOrderByDurationMsAscFinishedAtAscUser_IdAsc(
-          Difficulty difficulty, SoloAttemptState state);
+  @Query(
+      """
+      select s from SoloAttempt s
+      where s.difficulty = :difficulty
+        and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
+        and s.user.enabled = true
+        and s.user.deleted = false
+      order by s.durationMs asc, s.finishedAt asc, s.user.id asc
+      """)
+  List<SoloAttempt> findFastestCompletedCandidates(
+      @Param("difficulty") Difficulty difficulty, Pageable pageable);
 
-  // Finds fastest user by cpm filtered by difficulty and attempt state
+  /** Same shape as findFastestCompletedCandidates ordered by highest cpm instead. */
   @EntityGraph(attributePaths = "user")
-  Optional<SoloAttempt>
-      findFirstByDifficultyAndStateAndUser_EnabledTrueAndUser_DeletedFalseOrderByCpmDescFinishedAtAscUser_IdAsc(
-          Difficulty difficulty, SoloAttemptState state);
+  @Query(
+      """
+      select s from SoloAttempt s
+      where s.difficulty = :difficulty
+        and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
+        and s.user.enabled = true
+        and s.user.deleted = false
+      order by s.cpm desc, s.finishedAt asc, s.user.id asc
+      """)
+  List<SoloAttempt> findHighestCpmCompletedCandidates(
+      @Param("difficulty") Difficulty difficulty, Pageable pageable);
 }
