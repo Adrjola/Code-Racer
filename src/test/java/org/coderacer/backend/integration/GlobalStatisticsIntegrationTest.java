@@ -20,7 +20,6 @@ import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.support.AbstractPostgresIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -122,21 +121,6 @@ class GlobalStatisticsIntegrationTest extends AbstractPostgresIntegrationTest {
     completed(alice, Difficulty.EASY, 20_000L, 200, now);
     deletedUser.setDeleted(true);
     userRepository.save(deletedUser);
-
-    DifficultyGlobalStatistics easy = statsByDifficulty().get(Difficulty.EASY);
-
-    assertThat(easy.fastestTime().username()).isEqualTo(alice.getUsername());
-    assertThat(easy.highestCpm().username()).isEqualTo(alice.getUsername());
-  }
-
-  @Test
-  void excludesDisabledUsersAttempts() {
-    User alice = newUser("alice");
-    User disabledUser = newUser("dave");
-    completed(disabledUser, Difficulty.EASY, 5_000L, 900, now);
-    completed(alice, Difficulty.EASY, 20_000L, 200, now);
-    ReflectionTestUtils.setField(disabledUser, "enabled", false);
-    userRepository.save(disabledUser);
 
     DifficultyGlobalStatistics easy = statsByDifficulty().get(Difficulty.EASY);
 

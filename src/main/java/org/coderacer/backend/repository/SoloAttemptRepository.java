@@ -49,9 +49,9 @@ public interface SoloAttemptRepository
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
 
   /**
-   * Candidate COMPLETED attempts for a difficulty, restricted to enabled, non-deleted users,
-   * ordered so the fastest (lowest durationMs) is first; ties break by earliest finishedAt, then
-   * lowest user id. The caller passes a single-row Pageable, so only one row ever crosses the wire.
+   * Candidate COMPLETED attempts for a difficulty, restricted to non-deleted users, ordered so the
+   * fastest (lowest durationMs) is first; ties break by earliest finishedAt, then lowest user id.
+   * The caller passes a single-row Pageable, so only one row ever crosses the wire.
    */
   @EntityGraph(attributePaths = "user")
   @Query(
@@ -59,7 +59,6 @@ public interface SoloAttemptRepository
       select s from SoloAttempt s
       where s.difficulty = :difficulty
         and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
-        and s.user.enabled = true
         and s.user.deleted = false
       order by s.durationMs asc, s.finishedAt asc, s.user.id asc
       """)
@@ -73,7 +72,6 @@ public interface SoloAttemptRepository
       select s from SoloAttempt s
       where s.difficulty = :difficulty
         and s.state = org.coderacer.backend.enums.SoloAttemptState.COMPLETED
-        and s.user.enabled = true
         and s.user.deleted = false
       order by s.cpm desc, s.finishedAt asc, s.user.id asc
       """)
