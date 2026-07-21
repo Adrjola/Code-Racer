@@ -49,7 +49,7 @@ class AuthenticationServiceTest {
   }
 
   @Test
-  void login_returnsBearerTokenForVerifiedEnabledUser() {
+  void login_returnsBearerTokenForVerifiedUser() {
     User user = verifiedUser("player");
     UserResponse userResponse =
         new UserResponse(
@@ -158,6 +158,7 @@ class AuthenticationServiceTest {
     verify(passwordEncoder).matches("StrongerPass123", "hashed-password");
   }
 
+  @Test
   void login_rejectsDeletedUsersAfterPasswordCheck() {
     User deleted = verifiedUser("player");
     deleted.setDeleted(true);

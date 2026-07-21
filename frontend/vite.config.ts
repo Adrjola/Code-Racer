@@ -36,6 +36,9 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/**/*.spec.{ts,tsx}',
         'src/**/*.d.ts',
+        // jsdom has no real WebGL context, so the three.js scene-construction
+        // and render-loop code here never executes in tests. See testing.md.
+        'src/features/landing/RaceBot.tsx',
       ],
       thresholds: {
         branches: 80,

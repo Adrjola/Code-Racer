@@ -1,2 +1,1 @@
-alter table user_account
-    drop column enabled;
+ALTER TABLE user_account DROP COLUMN enabled;

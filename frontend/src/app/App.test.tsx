@@ -36,9 +36,14 @@ function session(overrides: Partial<AuthSession> = {}): AuthSession {
   };
 }
 
+function renderAtRegister() {
+  window.history.replaceState(null, '', '/register');
+  render(<App />);
+}
+
 async function goToLogin() {
   const user = userEvent.setup();
-  render(<App />);
+  renderAtRegister();
 
   const footer = screen.getByText(/already have an account/i).closest('p')!;
   await user.click(within(footer).getByRole('button', { name: /sign in/i }));
@@ -65,8 +70,24 @@ async function submitValidLogin(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('App', () => {
-  it('renders the register page heading', () => {
+  it('renders the landing page by default and Play opens registration', async () => {
+    const user = userEvent.setup();
     render(<App />);
+
+    await user.click(
+      // LandingPage is lazy-loaded (it pulls in three.js), so give the
+      // dynamic import more room than the default timeout under load.
+      await screen.findByRole('button', { name: /play/i }, { timeout: 5000 }),
+    );
+
+    expect(
+      screen.getByRole('heading', { name: /create your account/i }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/register');
+  });
+
+  it('renders the register page heading', () => {
+    renderAtRegister();
 
     expect(
       screen.getByRole('heading', { name: /create your account/i }),
@@ -91,7 +112,7 @@ describe('App', () => {
       }),
     );
 
-    render(<App />);
+    renderAtRegister();
     await submitValidRegistration(user);
 
     expect(
@@ -129,7 +150,7 @@ describe('App', () => {
       ),
     );
 
-    render(<App />);
+    renderAtRegister();
     await submitValidRegistration(user);
     await user.click(
       await screen.findByRole('button', {
@@ -254,7 +275,7 @@ describe('App', () => {
 
   it('shows validation errors for empty and mismatched registration fields', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderAtRegister();
 
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
@@ -293,7 +314,7 @@ describe('App', () => {
       ),
     );
 
-    render(<App />);
+    renderAtRegister();
     await submitValidRegistration(user);
 
     expect(
@@ -567,7 +588,7 @@ describe('App', () => {
 
   it('toggles password visibility with the eye button', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderAtRegister();
 
     const password = screen.getByLabelText('Password');
     expect(password).toHaveAttribute('type', 'password');

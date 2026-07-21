@@ -57,6 +57,17 @@ class JwtAccountValidatorTest {
   }
 
   @Test
+  void validate_rejectsUnverifiedAccounts() {
+    User unverified = user("player", UserRole.USER);
+    unverified.setEmailVerified(false);
+    when(repository.findByUsername("player")).thenReturn(Optional.of(unverified));
+
+    var result = validator.validate(tokenFor(unverified));
+
+    assertThat(result.hasErrors()).isTrue();
+  }
+
+  @Test
   void validate_rejectsDeletedAccounts() {
     User deleted = user("player", UserRole.USER);
     deleted.setDeleted(true);
