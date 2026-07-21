@@ -63,6 +63,7 @@ function renderPage(
     onLogout: vi.fn(),
     onSelect: vi.fn(),
     onSessionExpired: vi.fn(),
+    session: session(),
     ...overrides,
   };
   render(<SoloSetupPage {...props} />);
@@ -82,10 +83,10 @@ describe('SoloSetupPage', () => {
 
     const list = await screen.findByRole('list', { name: /categories/i });
     expect(
-      within(list).getByRole('button', { name: 'JAVA' }),
+      within(list).getByRole('button', { name: /java/i }),
     ).toBeInTheDocument();
     expect(
-      within(list).getByRole('button', { name: 'SQL' }),
+      within(list).getByRole('button', { name: /sql/i }),
     ).toBeInTheDocument();
   });
 
@@ -93,11 +94,11 @@ describe('SoloSetupPage', () => {
     mockCategories([category('cat-1', 'JAVA')]);
     renderPage();
 
-    await screen.findByRole('button', { name: 'JAVA' });
+    await screen.findByRole('button', { name: /java/i });
 
-    expect(screen.getByRole('button', { name: 'EASY' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'MEDIUM' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'HARD' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /baby mode/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /tryhard/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /locked in/i })).toBeDisabled();
   });
 
   it('marks the chosen category as pressed and enables difficulty', async () => {
@@ -105,20 +106,25 @@ describe('SoloSetupPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    const java = await screen.findByRole('button', { name: 'JAVA' });
+    const java = await screen.findByRole('button', { name: /java/i });
     await user.click(java);
 
     expect(java).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'EASY' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /baby mode/i })).toBeEnabled();
   });
 
-  it('advances with the selected category and difficulty when a difficulty is picked', async () => {
+  it('does not advance until Play is clicked, then calls onSelect with the choice', async () => {
     mockCategories([category('cat-1', 'JAVA'), category('cat-2', 'SQL')]);
     const user = userEvent.setup();
     const { onSelect } = renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'SQL' }));
-    await user.click(screen.getByRole('button', { name: 'HARD' }));
+    await user.click(await screen.findByRole('button', { name: /sql/i }));
+    await user.click(screen.getByRole('button', { name: /locked in/i }));
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /play/i })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: /play/i }));
 
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith({
@@ -128,16 +134,14 @@ describe('SoloSetupPage', () => {
     });
   });
 
-  it('does not advance when a difficulty is picked without a category', async () => {
+  it('keeps Play disabled when only a difficulty is picked without a category', async () => {
     mockCategories([category('cat-1', 'JAVA')]);
-    const user = userEvent.setup();
-    const { onSelect } = renderPage();
+    renderPage();
 
-    await screen.findByRole('button', { name: 'JAVA' });
+    await screen.findByRole('button', { name: /java/i });
     // Difficulty is disabled, so a click has no effect.
-    await user.click(screen.getByRole('button', { name: 'EASY' }));
-
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /baby mode/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /play/i })).toBeDisabled();
   });
 
   it('supports selecting a category and difficulty with the keyboard', async () => {
@@ -145,12 +149,15 @@ describe('SoloSetupPage', () => {
     const user = userEvent.setup();
     const { onSelect } = renderPage();
 
-    const java = await screen.findByRole('button', { name: 'JAVA' });
+    const java = await screen.findByRole('button', { name: /java/i });
     java.focus();
     await user.keyboard('{Enter}');
     expect(java).toHaveAttribute('aria-pressed', 'true');
 
-    screen.getByRole('button', { name: 'MEDIUM' }).focus();
+    screen.getByRole('button', { name: /tryhard/i }).focus();
+    await user.keyboard('{Enter}');
+
+    screen.getByRole('button', { name: /play/i }).focus();
     await user.keyboard('{Enter}');
 
     expect(onSelect).toHaveBeenCalledWith({
@@ -192,7 +199,7 @@ describe('SoloSetupPage', () => {
     await user.click(retry);
 
     expect(
-      await screen.findByRole('button', { name: 'JAVA' }),
+      await screen.findByRole('button', { name: /java/i }),
     ).toBeInTheDocument();
   });
 
@@ -213,5 +220,28 @@ describe('SoloSetupPage', () => {
     const { onSessionExpired } = renderPage();
 
     await waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows the username and navigates to the dashboard from the logo', async () => {
+    mockCategories([category('cat-1', 'JAVA')]);
+    const user = userEvent.setup();
+    const { onGoDashboard } = renderPage();
+
+    expect(await screen.findByText('player')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
+
+    expect(onGoDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs out from the menu', async () => {
+    mockCategories([category('cat-1', 'JAVA')]);
+    const user = userEvent.setup();
+    const { onLogout } = renderPage();
+
+    await user.click(screen.getByRole('button', { name: /menu/i }));
+    await user.click(screen.getByRole('button', { name: /log out/i }));
+
+    expect(onLogout).toHaveBeenCalledTimes(1);
   });
 });
