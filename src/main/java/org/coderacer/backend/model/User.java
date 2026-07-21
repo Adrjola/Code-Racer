@@ -50,6 +50,9 @@ public class User {
   private boolean emailVerified;
 
   @Column(nullable = false)
+  private boolean enabled = true;
+
+  @Column(nullable = false)
   private boolean deleted;
 
   @Column(name = "token_valid_from", nullable = false)
@@ -59,11 +62,11 @@ public class User {
   private Instant verificationEmailResentAt;
 
   public boolean canAuthenticate() {
-    return emailVerified && !deleted;
+    return emailVerified && enabled && !deleted;
   }
 
   public boolean canVerifyEmail() {
-    return !emailVerified && !deleted;
+    return !emailVerified && enabled && !deleted;
   }
 
   public boolean canResendVerificationEmail(Instant now, Duration cooldown) {
