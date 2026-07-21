@@ -14,7 +14,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.coderacer.backend.dto.DifficultyGlobalStatistics;
 import org.coderacer.backend.dto.DifficultyStatistics;
+import org.coderacer.backend.dto.FastestTimeRecord;
+import org.coderacer.backend.dto.GlobalStatisticsResponse;
+import org.coderacer.backend.dto.HighestCpmRecord;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.SoloAttemptSnippetSummary;
@@ -32,6 +36,7 @@ import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
@@ -51,6 +56,8 @@ class SoloAttemptControllerTest {
   private final SoloAttemptService service = mock(SoloAttemptService.class);
   private final SoloAttemptHistoryService historyService = mock(SoloAttemptHistoryService.class);
   private final PersonalStatisticsService statisticsService = mock(PersonalStatisticsService.class);
+  private final GlobalStatisticsService globalStatisticsService =
+      mock(GlobalStatisticsService.class);
   private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
   private MockMvc mockMvc;
@@ -60,7 +67,12 @@ class SoloAttemptControllerTest {
     mockMvc =
         MockMvcBuilders.standaloneSetup(
                 new SoloAttemptController(
-                    service, historyService, statisticsService, currentUserProvider, mapper))
+                    service,
+                    historyService,
+                    statisticsService,
+                    globalStatisticsService,
+                    currentUserProvider,
+                    mapper))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();
@@ -385,5 +397,57 @@ class SoloAttemptControllerTest {
         .andExpect(jsonPath("$.data.difficulties[0].averageDurationMs").value(30_000))
         .andExpect(jsonPath("$.data.difficulties[0].averageCpm").value(250))
         .andExpect(jsonPath("$.data.difficulties[1].averageCpm").doesNotExist());
+  }
+
+  @Test
+  void globalStatistics_returns200WithRecordsForEachDifficulty() throws Exception {
+    Instant recordedAt = Instant.parse("2026-01-01T00:00:45Z");
+    when(globalStatisticsService.compute())
+        .thenReturn(
+            new GlobalStatisticsResponse(
+                List.of(
+                    new DifficultyGlobalStatistics(
+                        Difficulty.EASY,
+                        new FastestTimeRecord("alice", 20_000L, recordedAt),
+                        new HighestCpmRecord("bob", 500, recordedAt)),
+                    new DifficultyGlobalStatistics(Difficulty.MEDIUM, null, null),
+                    new DifficultyGlobalStatistics(Difficulty.HARD, null, null))));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/global-statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.difficulties.length()").value(3))
+        .andExpect(jsonPath("$.data.difficulties[0].difficulty").value("EASY"))
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.username").value("alice"))
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.durationMs").value(20_000))
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.username").value("bob"))
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.cpm").value(500))
+        .andExpect(jsonPath("$.data.difficulties[1].fastestTime").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[1].highestCpm").doesNotExist());
+  }
+
+  @Test
+  void globalStatistics_responseOmitsEmailAndAdminFields() throws Exception {
+    Instant recordedAt = Instant.parse("2026-01-01T00:00:45Z");
+    when(globalStatisticsService.compute())
+        .thenReturn(
+            new GlobalStatisticsResponse(
+                List.of(
+                    new DifficultyGlobalStatistics(
+                        Difficulty.EASY,
+                        new FastestTimeRecord("alice", 20_000L, recordedAt),
+                        new HighestCpmRecord("alice", 300, recordedAt)),
+                    new DifficultyGlobalStatistics(Difficulty.MEDIUM, null, null),
+                    new DifficultyGlobalStatistics(Difficulty.HARD, null, null))));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/global-statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.email").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.enabled").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.role").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.email").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.enabled").doesNotExist())
+        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.role").doesNotExist());
   }
 }
