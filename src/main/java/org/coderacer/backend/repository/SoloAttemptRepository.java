@@ -1,6 +1,7 @@
 package org.coderacer.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -49,4 +50,20 @@ public interface SoloAttemptRepository
   @Override
   @EntityGraph(attributePaths = "codeSnippet")
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
+
+  /**
+   * The single COMPLETED attempt with the lowest durationMs for a difficulty, restricted to
+   * non-deleted users. Ties break by earliest finishedAt, then lowest user id, both encoded
+   * directly in the method name's ORDER BY.
+   */
+  @EntityGraph(attributePaths = "user")
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
+
+  /** Same shape as above, highest cpm instead of lowest durationMs. */
+  @EntityGraph(attributePaths = "user")
+  Optional<SoloAttempt>
+      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+          Difficulty difficulty, SoloAttemptState state);
 }
