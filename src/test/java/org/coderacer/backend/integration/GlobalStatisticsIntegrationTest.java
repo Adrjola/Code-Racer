@@ -20,6 +20,7 @@ import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.support.AbstractPostgresIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -134,7 +135,7 @@ class GlobalStatisticsIntegrationTest extends AbstractPostgresIntegrationTest {
     User disabledUser = newUser("dave");
     completed(disabledUser, Difficulty.EASY, 5_000L, 900, now);
     completed(alice, Difficulty.EASY, 20_000L, 200, now);
-    disabledUser.setEnabled(false);
+    ReflectionTestUtils.setField(disabledUser, "enabled", false);
     userRepository.save(disabledUser);
 
     DifficultyGlobalStatistics easy = statsByDifficulty().get(Difficulty.EASY);
@@ -225,7 +226,6 @@ class GlobalStatisticsIntegrationTest extends AbstractPostgresIntegrationTest {
     user.setPasswordHash("hashed-password");
     user.setRole(UserRole.USER);
     user.setEmailVerified(true);
-    user.setEnabled(true);
     user.setDeleted(false);
     return userRepository.save(user);
   }
