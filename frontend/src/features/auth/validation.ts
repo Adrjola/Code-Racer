@@ -1,4 +1,8 @@
-import type { LoginCredentials, RegistrationValues } from './auth';
+import type {
+  LoginCredentials,
+  RegistrationValues,
+  ResetPasswordValues,
+} from './auth';
 
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
@@ -77,6 +81,19 @@ export function validateRegistration(
     email: emailError(values.email),
     password: passwordError(values.password),
     username: usernameError(values.username),
+  };
+}
+
+export function validatePasswordReset(
+  values: ResetPasswordValues,
+): FormErrors<ResetPasswordValues> {
+  return {
+    confirmPassword: confirmPasswordError(
+      values.newPassword,
+      values.confirmPassword,
+    ),
+    newPassword: passwordError(values.newPassword),
+    token: requiredError(values.token, 'Reset token'),
   };
 }
 

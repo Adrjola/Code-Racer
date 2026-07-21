@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { emailError, validateLogin, validateRegistration } from './validation';
+import {
+  emailError,
+  validateLogin,
+  validatePasswordReset,
+  validateRegistration,
+} from './validation';
 
 describe('auth validation', () => {
   it('rejects missing and malformed email addresses', () => {
@@ -25,6 +30,30 @@ describe('auth validation', () => {
       }),
     ).toMatchObject({
       confirmPassword: 'Passwords do not match',
+    });
+  });
+
+  it('validates password reset fields centrally', () => {
+    expect(
+      validatePasswordReset({
+        confirmPassword: 'DifferentPass123',
+        newPassword: 'StrongerPass123',
+        token: 'reset-token',
+      }),
+    ).toMatchObject({
+      confirmPassword: 'Passwords do not match',
+    });
+
+    expect(
+      validatePasswordReset({
+        confirmPassword: '',
+        newPassword: '',
+        token: '',
+      }),
+    ).toMatchObject({
+      confirmPassword: 'Please confirm your password',
+      newPassword: 'Password is required',
+      token: 'Reset token is required',
     });
   });
 
