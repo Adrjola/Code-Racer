@@ -91,7 +91,7 @@ public class SecurityConfig {
   @Bean
   Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
     JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    authoritiesConverter.setAuthoritiesClaimName("roles");
+    authoritiesConverter.setAuthoritiesClaimName(JwtService.ROLES_CLAIM);
     authoritiesConverter.setAuthorityPrefix("ROLE_");
 
     JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();

@@ -392,6 +392,6 @@ class SnippetServiceTest {
   }
 
   private static String sha256Hex(String value) {
-    return Sha256Hasher.hashHex(value);
+    return Sha256Hasher.hash(value);
   }
 }

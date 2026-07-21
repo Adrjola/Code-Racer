@@ -53,6 +53,12 @@ public class EmailVerificationToken {
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
+  public EmailVerificationToken(User user, String tokenHash, Instant expiresAt) {
+    this.user = user;
+    this.tokenHash = tokenHash;
+    this.expiresAt = expiresAt;
+  }
+
   public boolean isUsable(Instant now) {
     return usedAt == null && revokedAt == null && expiresAt.isAfter(now);
   }

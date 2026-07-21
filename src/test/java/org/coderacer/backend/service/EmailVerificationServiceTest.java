@@ -40,7 +40,7 @@ class EmailVerificationServiceTest {
 
   @Mock private EmailVerificationTokenRepository tokenRepository;
   @Mock private UserRepository userRepository;
-  @Mock private EmailVerificationTokenGenerator tokenGenerator;
+  @Mock private SecureTokenGenerator tokenGenerator;
   @Mock private ApplicationEventPublisher eventPublisher;
   @Mock private UserMapper userMapper;
 
@@ -81,8 +81,7 @@ class EmailVerificationServiceTest {
     verify(eventPublisher).publishEvent(eventCaptor.capture());
     EmailVerificationRequestedEvent event = eventCaptor.getValue();
     assertThat(event.email()).isEqualTo("player@example.com");
-    assertThat(event.verificationLink())
-        .isEqualTo("http://localhost:5173/verify-email?token=raw-token");
+    assertThat(event.rawToken()).isEqualTo("raw-token");
     assertThat(event.expiresAt()).isEqualTo(savedToken.getExpiresAt());
     verify(tokenRepository, never()).revokeActiveTokensForUser(any(), any());
   }
@@ -247,6 +246,6 @@ class EmailVerificationServiceTest {
   }
 
   private String hash(String rawToken) {
-    return Sha256Hasher.hashHex(rawToken);
+    return Sha256Hasher.hash(rawToken);
   }
 }

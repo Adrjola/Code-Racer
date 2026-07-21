@@ -10,7 +10,7 @@ public final class Sha256Hasher {
 
   private Sha256Hasher() {}
 
-  public static String hashHex(String value) {
+  public static String hash(String value) {
     Objects.requireNonNull(value, "value must not be null");
     try {
       byte[] digest =

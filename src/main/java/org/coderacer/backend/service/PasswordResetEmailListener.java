@@ -2,7 +2,7 @@ package org.coderacer.backend.service;
 
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
-import org.coderacer.backend.config.properties.EmailVerificationProperties;
+import org.coderacer.backend.config.properties.PasswordResetProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -13,33 +13,33 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 @RequiredArgsConstructor
-public class EmailVerificationEmailListener {
+public class PasswordResetEmailListener {
 
-  private static final Logger log = LoggerFactory.getLogger(EmailVerificationEmailListener.class);
+  private static final Logger log = LoggerFactory.getLogger(PasswordResetEmailListener.class);
   private static final int MAX_DELIVERY_ATTEMPTS = 3;
   private static final Duration RETRY_BACKOFF = Duration.ofMillis(250);
 
   private final EmailSender emailSender;
-  private final EmailVerificationProperties properties;
+  private final PasswordResetProperties properties;
 
   @Async("emailTaskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void sendVerificationEmail(EmailVerificationRequestedEvent event) {
-    EmailMessage message = verificationMessage(event);
+  public void sendPasswordResetEmail(PasswordResetRequestedEvent event) {
+    EmailMessage message = passwordResetMessage(event);
     for (int attempt = 1; attempt <= MAX_DELIVERY_ATTEMPTS; attempt++) {
       try {
         emailSender.send(message);
         if (attempt > 1) {
-          log.info("Verification email delivery succeeded on attempt {}", attempt);
+          log.info("Password reset email delivery succeeded on attempt {}", attempt);
         }
         return;
       } catch (RuntimeException ex) {
         if (attempt == MAX_DELIVERY_ATTEMPTS) {
           log.error(
-              "Verification email delivery failed after {} attempts", MAX_DELIVERY_ATTEMPTS, ex);
+              "Password reset email delivery failed after {} attempts", MAX_DELIVERY_ATTEMPTS, ex);
           return;
         }
-        log.warn("Verification email delivery failed on attempt {}; retrying", attempt);
+        log.warn("Password reset email delivery failed on attempt {}; retrying", attempt);
         if (!waitBeforeRetry()) {
           return;
         }
@@ -47,23 +47,23 @@ public class EmailVerificationEmailListener {
     }
   }
 
-  private EmailMessage verificationMessage(EmailVerificationRequestedEvent event) {
+  private EmailMessage passwordResetMessage(PasswordResetRequestedEvent event) {
     return new EmailMessage(
         event.email(),
-        "Verify your Code Racer account",
+        "Reset your Code Racer password",
         """
         Hi,
 
-        Verify your Code Racer account by opening this link:
+        Reset your Code Racer password by opening this link:
         %s
 
-        This link expires at %s UTC. If you did not create a Code Racer account, ignore this email.
+        This link expires at %s UTC. If you did not request a password reset, ignore this email.
         """
-            .formatted(verificationLink(event.rawToken()), event.expiresAt()));
+            .formatted(resetLink(event.rawToken()), event.expiresAt()));
   }
 
-  private String verificationLink(String rawToken) {
-    return UriComponentsBuilder.fromUriString(properties.verificationUrl())
+  private String resetLink(String rawToken) {
+    return UriComponentsBuilder.fromUriString(properties.resetUrl())
         .queryParam("token", rawToken)
         .build()
         .toUriString();
@@ -75,7 +75,7 @@ public class EmailVerificationEmailListener {
       return true;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      log.error("Verification email delivery retry interrupted", ex);
+      log.error("Password reset email delivery retry interrupted", ex);
       return false;
     }
   }

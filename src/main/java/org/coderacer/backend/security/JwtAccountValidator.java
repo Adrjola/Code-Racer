@@ -17,7 +17,7 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
   private static final OAuth2Error INVALID_TOKEN =
       new OAuth2Error("invalid_token", "Token is invalid or no longer active", null);
 
-  private final UserRepository repository;
+  private final UserRepository userRepository;
 
   @Override
   public OAuth2TokenValidatorResult validate(Jwt token) {
@@ -26,7 +26,7 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
       return OAuth2TokenValidatorResult.failure(INVALID_TOKEN);
     }
 
-    return repository
+    return userRepository
         .findByUsername(username)
         .filter(User::canAuthenticate)
         .filter(user -> tokenRoleMatchesUser(token, user))
@@ -36,12 +36,12 @@ public class JwtAccountValidator implements OAuth2TokenValidator<Jwt> {
   }
 
   private boolean tokenRoleMatchesUser(Jwt token, User user) {
-    List<String> roles = token.getClaimAsStringList("roles");
+    List<String> roles = token.getClaimAsStringList(JwtService.ROLES_CLAIM);
     return roles != null && roles.contains(user.getRole().name());
   }
 
   private boolean tokenValidFromMatchesUser(Jwt token, User user) {
-    Object tokenValidFrom = token.getClaims().get("tokenValidFrom");
+    Object tokenValidFrom = token.getClaims().get(JwtService.TOKEN_VALID_FROM_CLAIM);
     return tokenValidFrom instanceof Number value
         && value.longValue() == user.getTokenValidFrom().toEpochMilli();
   }

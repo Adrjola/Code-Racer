@@ -19,6 +19,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class JwtService {
 
+  static final String ROLES_CLAIM = "roles";
+  static final String TOKEN_VALID_FROM_CLAIM = "tokenValidFrom";
+
+  private static final String ISSUER = "code-racer-backend";
+  private static final String USER_ID_CLAIM = "userId";
+
   private final JwtEncoder encoder;
   private final JwtProperties properties;
   private final Clock clock;
@@ -28,13 +34,13 @@ public class JwtService {
     Instant expiresAt = issuedAt.plus(properties.accessTokenTtl());
     JwtClaimsSet claims =
         JwtClaimsSet.builder()
-            .issuer("code-racer-backend")
+            .issuer(ISSUER)
             .subject(user.getUsername())
             .issuedAt(issuedAt)
             .expiresAt(expiresAt)
-            .claim("userId", user.getId().toString())
-            .claim("roles", List.of(user.getRole().name()))
-            .claim("tokenValidFrom", user.getTokenValidFrom().toEpochMilli())
+            .claim(USER_ID_CLAIM, user.getId().toString())
+            .claim(ROLES_CLAIM, List.of(user.getRole().name()))
+            .claim(TOKEN_VALID_FROM_CLAIM, user.getTokenValidFrom().toEpochMilli())
             .build();
     JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).type("JWT").build();
     return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

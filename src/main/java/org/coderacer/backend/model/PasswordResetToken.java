@@ -53,6 +53,12 @@ public class PasswordResetToken {
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
+  public PasswordResetToken(User user, String tokenHash, Instant expiresAt) {
+    this.user = user;
+    this.tokenHash = tokenHash;
+    this.expiresAt = expiresAt;
+  }
+
   public boolean isUsable(Instant now) {
     return usedAt == null && revokedAt == null && expiresAt.isAfter(now);
   }

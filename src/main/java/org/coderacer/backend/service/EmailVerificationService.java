@@ -14,12 +14,10 @@ import org.coderacer.backend.model.EmailVerificationToken;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.EmailVerificationTokenRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.util.IdentifierNormalizer;
 import org.coderacer.backend.util.Sha256Hasher;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +25,7 @@ public class EmailVerificationService {
 
   private final EmailVerificationTokenRepository tokenRepository;
   private final UserRepository userRepository;
-  private final EmailVerificationTokenGenerator tokenGenerator;
+  private final SecureTokenGenerator tokenGenerator;
   private final EmailVerificationProperties properties;
   private final ApplicationEventPublisher eventPublisher;
   private final UserMapper userMapper;
@@ -77,7 +75,7 @@ public class EmailVerificationService {
     }
 
     return tokenRepository
-        .findByTokenHashForUpdate(Sha256Hasher.hashHex(token))
+        .findByTokenHashForUpdate(Sha256Hasher.hash(token))
         .filter(candidate -> candidate.isUsable(now))
         .orElseThrow(EmailVerificationFailedException::new);
   }
@@ -90,29 +88,16 @@ public class EmailVerificationService {
 
   private void createAndPublishToken(User user, Instant now) {
     String rawToken = tokenGenerator.generate();
-    EmailVerificationToken token = new EmailVerificationToken();
-    token.setUser(user);
-    token.setTokenHash(Sha256Hasher.hashHex(rawToken));
-    token.setExpiresAt(now.plus(properties.tokenTtl()));
+    String hashedToken = Sha256Hasher.hash(rawToken);
+    Instant expiresAt = now.plus(properties.tokenTtl());
+    EmailVerificationToken token = new EmailVerificationToken(user, hashedToken, expiresAt);
     tokenRepository.save(token);
 
     eventPublisher.publishEvent(
-        new EmailVerificationRequestedEvent(
-            user.getId(),
-            user.getEmail(),
-            user.getUsername(),
-            verificationLink(rawToken),
-            token.getExpiresAt()));
-  }
-
-  private String verificationLink(String rawToken) {
-    return UriComponentsBuilder.fromUriString(properties.verificationUrl())
-        .queryParam("token", rawToken)
-        .build()
-        .toUriString();
+        new EmailVerificationRequestedEvent(user.getEmail(), rawToken, expiresAt));
   }
 
   private String normalize(String value) {
-    return IdentifierNormalizer.normalize(value);
+    return value.trim().toLowerCase();
   }
 }

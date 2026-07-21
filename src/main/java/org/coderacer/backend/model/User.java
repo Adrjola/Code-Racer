@@ -13,7 +13,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.util.IdentifierNormalizer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
@@ -78,7 +77,11 @@ public class User {
 
   public void setUsername(String username) {
     this.username = username;
-    this.usernameNormalized = IdentifierNormalizer.normalize(username);
+    this.usernameNormalized = normalize(username);
+  }
+
+  private String normalize(String value) {
+    return value.trim().toLowerCase();
   }
 
   @CreationTimestamp

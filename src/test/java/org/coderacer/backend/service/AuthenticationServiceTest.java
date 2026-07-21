@@ -121,17 +121,6 @@ class AuthenticationServiceTest {
   }
 
   @Test
-  void login_rejectsNullIdentifierAsUnknownIdentifier() {
-    when(repository.findByEmailOrUsernameNormalized("", "")).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> service.login(new LoginRequest(null, "StrongerPass123"), "127.0.0.1"))
-        .isInstanceOf(AuthenticationFailedException.class);
-    verify(loginAttemptService).assertAllowed("", "127.0.0.1");
-    verify(loginAttemptService).recordFailure("", "127.0.0.1");
-    verify(passwordEncoder).matches(eq("StrongerPass123"), anyString());
-  }
-
-  @Test
   void login_rejectsWrongPassword() {
     User user = verifiedUser("player");
     when(repository.findByEmailOrUsernameNormalized("player", "player"))

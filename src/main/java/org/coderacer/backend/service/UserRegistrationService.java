@@ -12,7 +12,6 @@ import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.util.IdentifierNormalizer;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,7 +31,7 @@ public class UserRegistrationService {
   private static final String DUPLICATE_USER_MESSAGE =
       "A user with this email or username already exists";
 
-  private final UserRepository repository;
+  private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final UserMapper mapper;
   private final EmailVerificationService emailVerificationService;
@@ -51,7 +50,7 @@ public class UserRegistrationService {
 
   @Transactional(readOnly = true)
   public boolean adminExists() {
-    return repository.existsByRole(UserRole.ADMIN);
+    return userRepository.existsByRole(UserRole.ADMIN);
   }
 
   private UserResponse createUser(
@@ -75,7 +74,7 @@ public class UserRegistrationService {
 
   private User saveUser(User user) {
     try {
-      return repository.saveAndFlush(user);
+      return userRepository.saveAndFlush(user);
     } catch (DataIntegrityViolationException ex) {
       throw duplicateUserConflict();
     }
@@ -136,8 +135,8 @@ public class UserRegistrationService {
   }
 
   private void rejectDuplicateIdentifiers(String email, String usernameNormalized) {
-    if (repository.existsByEmail(email)
-        || repository.existsByUsernameNormalized(usernameNormalized)) {
+    if (userRepository.existsByEmail(email)
+        || userRepository.existsByUsernameNormalized(usernameNormalized)) {
       throw duplicateUserConflict();
     }
   }
@@ -147,7 +146,7 @@ public class UserRegistrationService {
   }
 
   private String normalize(String value) {
-    return IdentifierNormalizer.normalize(value);
+    return value.trim().toLowerCase();
   }
 
   private String trim(String value) {
