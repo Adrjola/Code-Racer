@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Logo from '@/components/Logo';
 import { TrophyIcon } from '@/components/icons';
 import type { AuthSession } from '@/features/auth/session';
@@ -58,11 +58,6 @@ const DIFFICULTIES: DifficultyOption[] = [
   },
 ];
 
-// Only JAVA/SQL/REST APIs/TESTING have a bespoke background glyph in Figma —
-// any other category (real backend data isn't limited to these 4) falls
-// back to the generic braces glyph rather than showing nothing. The SVGs
-// are solid-color source files (no baked-in opacity) so a single dynamic
-// opacity can drive both the checked (22%) and unchecked (8%) states.
 const CATEGORY_GLYPH: Record<string, { className: string; src: string }> = {
   JAVA: { className: 'h-12 w-[53px]', src: categoryJavaGlyph },
   'REST APIS': { className: 'h-11 w-[51px]', src: categoryRestApisGlyph },
@@ -208,6 +203,25 @@ function DifficultyCard({
   );
 }
 
+function useNaturalHeight() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      setHeight(node.offsetHeight);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return { height, ref };
+}
+
 export default function SoloSetupPage({
   onGoDashboard,
   onLogout,
@@ -224,6 +238,19 @@ export default function SoloSetupPage({
     Difficulty | undefined
   >(undefined);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const [designWidth] = useState(() => window.innerWidth);
+  const [scale, setScale] = useState(1);
+  const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
+  const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
+
+  useEffect(() => {
+    function updateScale() {
+      setScale(window.innerWidth / designWidth);
+    }
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [designWidth]);
 
   const onSessionExpiredRef = useRef(onSessionExpired);
   useEffect(() => {
@@ -280,163 +307,193 @@ export default function SoloSetupPage({
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
-      <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
-        <Logo onClick={onGoDashboard} />
-        <div className="flex items-center gap-4">
-          <span
-            aria-hidden="true"
-            className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
-          >
-            <TrophyIcon className="size-5" />
-          </span>
-          <span className="hidden h-10 items-center gap-2 rounded-[9px] border border-[rgba(244,114,182,0.2)] bg-[rgba(244,114,182,0.05)] px-3 font-mono text-[10.5px] tracking-wide sm:flex">
-            <span className="text-[#6b6f85]">USER:</span>
-            <span className="font-bold text-[#f9a8d4]">
-              {session.user.username}
-            </span>
-          </span>
-          <div className="relative">
-            <button
-              aria-expanded={isMenuOpen}
-              aria-label="Menu"
-              className="flex size-10 flex-col items-center justify-center gap-1 rounded-[9px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)]"
-              onClick={() => setIsMenuOpen((open) => !open)}
-              type="button"
-            >
-              <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
-              <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
-              <span className="h-[2px] w-[9.59px] rounded-full bg-[#c9cbe0]" />
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 top-12 z-10 flex w-40 flex-col overflow-hidden rounded-[9px] border border-white/10 bg-[#15121f] py-1 shadow-lg">
+      <div
+        className="sticky top-0 z-10 bg-surface lg:overflow-hidden lg:[height:calc(var(--solo-header-h)*var(--solo-scale))]"
+        style={
+          {
+            '--solo-header-h': `${headerHeight}px`,
+            '--solo-scale': scale,
+          } as CSSProperties
+        }
+      >
+        <div
+          className="lg:[width:var(--solo-design-w)] lg:origin-top-left lg:[transform:scale(var(--solo-scale))]"
+          ref={headerCanvasRef}
+          style={{ '--solo-design-w': `${designWidth}px` } as CSSProperties}
+        >
+          <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
+            <Logo onClick={onGoDashboard} />
+            <div className="flex items-center gap-4">
+              <span
+                aria-hidden="true"
+                className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
+              >
+                <TrophyIcon className="size-5" />
+              </span>
+              <span className="hidden h-10 items-center gap-2 rounded-[9px] border border-[rgba(244,114,182,0.2)] bg-[rgba(244,114,182,0.05)] px-3 font-mono text-[10.5px] tracking-wide sm:flex">
+                <span className="text-[#6b6f85]">USER:</span>
+                <span className="font-bold text-[#f9a8d4]">
+                  {session.user.username}
+                </span>
+              </span>
+              <div className="relative">
                 <button
-                  className="px-4 py-2 text-left text-sm font-semibold text-pink-300 hover:bg-white/5"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onLogout();
-                  }}
+                  aria-expanded={isMenuOpen}
+                  aria-label="Menu"
+                  className="flex size-10 flex-col items-center justify-center gap-1 rounded-[9px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)]"
+                  onClick={() => setIsMenuOpen((open) => !open)}
                   type="button"
                 >
-                  Log out
+                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
+                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
+                  <span className="h-[2px] w-[9.59px] rounded-full bg-[#c9cbe0]" />
+                </button>
+                {isMenuOpen && (
+                  <div className="absolute right-0 top-12 z-10 flex w-40 flex-col overflow-hidden rounded-[9px] border border-white/10 bg-[#15121f] py-1 shadow-lg">
+                    <button
+                      className="px-4 py-2 text-left text-sm font-semibold text-pink-300 hover:bg-white/5"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onLogout();
+                      }}
+                      type="button"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+        </div>
+      </div>
+
+      <div
+        className="lg:overflow-hidden lg:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
+        style={
+          {
+            '--solo-main-h': `${mainHeight}px`,
+            '--solo-scale': scale,
+          } as CSSProperties
+        }
+      >
+        <main
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:mx-0 lg:max-w-none lg:px-[80px] lg:pt-16 lg:origin-top-left lg:[width:var(--solo-design-w)] lg:[transform:scale(var(--solo-scale))]"
+          ref={mainCanvasRef}
+          style={{ '--solo-design-w': `${designWidth}px` } as CSSProperties}
+        >
+          <section aria-labelledby="category-heading">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h1
+                className="font-sans text-3xl font-bold text-white lg:text-[32px]"
+                id="category-heading"
+              >
+                Category
+              </h1>
+              <p className="font-mono text-xs text-[#a855f7]">
+                {'// PICK YOUR POISON'}
+              </p>
+            </div>
+
+            {state.status === 'loading' && (
+              <p className="mt-6 text-text-secondary" role="status">
+                Loading categories...
+              </p>
+            )}
+
+            {state.status === 'error' && (
+              <div className="mt-6" role="alert">
+                <p className="text-text-secondary">{state.message}</p>
+                <button
+                  className="mt-3 rounded-[8px] border border-pink-400/40 px-4 py-2 text-sm font-semibold text-pink-300 hover:border-pink-400"
+                  onClick={retry}
+                  type="button"
+                >
+                  Try again
                 </button>
               </div>
             )}
-          </div>
-        </div>
-      </header>
 
-      <main className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:px-[80px] lg:pt-16">
-        <section aria-labelledby="category-heading">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h1
-              className="font-sans text-3xl font-bold text-white lg:text-[32px]"
-              id="category-heading"
-            >
-              Category
-            </h1>
-            <p className="font-mono text-xs text-[#a855f7]">
-              {'// PICK YOUR POISON'}
-            </p>
-          </div>
+            {state.status === 'ready' && categories.length === 0 && (
+              <p className="mt-6 text-text-secondary" role="status">
+                No categories are available right now.
+              </p>
+            )}
 
-          {state.status === 'loading' && (
-            <p className="mt-6 text-text-secondary" role="status">
-              Loading categories...
-            </p>
-          )}
-
-          {state.status === 'error' && (
-            <div className="mt-6" role="alert">
-              <p className="text-text-secondary">{state.message}</p>
-              <button
-                className="mt-3 rounded-[8px] border border-pink-400/40 px-4 py-2 text-sm font-semibold text-pink-300 hover:border-pink-400"
-                onClick={retry}
-                type="button"
+            {state.status === 'ready' && categories.length > 0 && (
+              <ul
+                aria-label="Categories"
+                className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
               >
-                Try again
-              </button>
+                {categories.map((category) => (
+                  <CategoryCard
+                    category={category}
+                    isSelected={category.id === selectedCategoryId}
+                    key={category.id}
+                    onSelect={() => setSelectedCategoryId(category.id)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-labelledby="difficulty-heading" className="mt-8">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h2
+                className="font-sans text-3xl font-bold text-white lg:text-[32px]"
+                id="difficulty-heading"
+              >
+                Difficulty
+              </h2>
+              <p className="font-mono text-[11px] text-[#a855f7]">
+                {'// HOW HUMBLED DO YOU WANT TO BE'}
+              </p>
             </div>
-          )}
 
-          {state.status === 'ready' && categories.length === 0 && (
-            <p className="mt-6 text-text-secondary" role="status">
-              No categories are available right now.
-            </p>
-          )}
-
-          {state.status === 'ready' && categories.length > 0 && (
-            <ul
-              aria-label="Categories"
-              className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-            >
-              {categories.map((category) => (
-                <CategoryCard
-                  category={category}
-                  isSelected={category.id === selectedCategoryId}
-                  key={category.id}
-                  onSelect={() => setSelectedCategoryId(category.id)}
+            <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {DIFFICULTIES.map((option) => (
+                <DifficultyCard
+                  disabled={!selectedCategory}
+                  isSelected={option.value === selectedDifficulty}
+                  key={option.value}
+                  onSelect={() => setSelectedDifficulty(option.value)}
+                  option={option}
                 />
               ))}
             </ul>
-          )}
-        </section>
+          </section>
 
-        <section aria-labelledby="difficulty-heading" className="mt-8">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h2
-              className="font-sans text-3xl font-bold text-white lg:text-[32px]"
-              id="difficulty-heading"
+          <div className="mt-8 flex flex-wrap items-center gap-6">
+            <button
+              className="flex h-[88px] w-48 items-center justify-center gap-3 rounded-[10px] font-sans text-2xl font-bold text-white transition duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!canPlay}
+              onClick={handlePlay}
+              style={
+                canPlay
+                  ? {
+                      backgroundImage:
+                        'linear-gradient(106deg, #f472b6 0%, #a855f7 100%)',
+                      boxShadow: '0px 0px 28px -6px rgba(219,39,119,0.85)',
+                    }
+                  : { backgroundColor: 'rgba(255,255,255,0.05)' }
+              }
+              type="button"
             >
-              Difficulty
-            </h2>
-            <p className="font-mono text-[11px] text-[#a855f7]">
-              {'// HOW HUMBLED DO YOU WANT TO BE'}
-            </p>
+              <img alt="" className="h-6 w-[17px]" src={playTriangleIcon} />
+              Play
+            </button>
+
+            <div>
+              <p className="font-mono text-xs text-[#5b5f78]">LOADOUT</p>
+              <p className="font-mono text-base text-[#c9c7d6]">
+                {selectedCategory && selectedDifficultyOption
+                  ? `${selectedCategory.name.toUpperCase()} - ${selectedDifficultyOption.label}`
+                  : 'Select a category and difficulty'}
+              </p>
+            </div>
           </div>
-
-          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {DIFFICULTIES.map((option) => (
-              <DifficultyCard
-                disabled={!selectedCategory}
-                isSelected={option.value === selectedDifficulty}
-                key={option.value}
-                onSelect={() => setSelectedDifficulty(option.value)}
-                option={option}
-              />
-            ))}
-          </ul>
-        </section>
-
-        <div className="mt-8 flex flex-wrap items-center gap-6">
-          <button
-            className="flex h-[88px] w-48 items-center justify-center gap-3 rounded-[10px] font-sans text-2xl font-bold text-white transition duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={!canPlay}
-            onClick={handlePlay}
-            style={
-              canPlay
-                ? {
-                    backgroundImage:
-                      'linear-gradient(106deg, #f472b6 0%, #a855f7 100%)',
-                    boxShadow: '0px 0px 28px -6px rgba(219,39,119,0.85)',
-                  }
-                : { backgroundColor: 'rgba(255,255,255,0.05)' }
-            }
-            type="button"
-          >
-            <img alt="" className="h-6 w-[17px]" src={playTriangleIcon} />
-            Play
-          </button>
-
-          <div>
-            <p className="font-mono text-xs text-[#5b5f78]">LOADOUT</p>
-            <p className="font-mono text-base text-[#c9c7d6]">
-              {selectedCategory && selectedDifficultyOption
-                ? `${selectedCategory.name.toUpperCase()} - ${selectedDifficultyOption.label}`
-                : 'Select a category and difficulty'}
-            </p>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

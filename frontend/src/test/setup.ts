@@ -7,9 +7,6 @@ beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
 });
 
-// jsdom has no layout engine, so ResizeObserver doesn't exist there —
-// this stub lets components that use it render without crashing. Set up
-// per-test since the config's unstubGlobals option tears it down after each.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

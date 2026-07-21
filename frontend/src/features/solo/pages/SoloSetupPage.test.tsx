@@ -139,7 +139,6 @@ describe('SoloSetupPage', () => {
     renderPage();
 
     await screen.findByRole('button', { name: /java/i });
-    // Difficulty is disabled, so a click has no effect.
     expect(screen.getByRole('button', { name: /baby mode/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /play/i })).toBeDisabled();
   });

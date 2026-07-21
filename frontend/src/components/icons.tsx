@@ -63,7 +63,9 @@ export function MailIcon() {
   );
 }
 
-export function TrophyIcon({ className = 'size-5' }: { className?: string } = {}) {
+export function TrophyIcon({
+  className = 'size-5',
+}: { className?: string } = {}) {
   return (
     <span className={`relative block shrink-0 ${className}`} aria-hidden="true">
       <span className="absolute inset-[16.67%_29.17%_45.83%_29.17%]">
