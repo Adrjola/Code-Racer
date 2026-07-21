@@ -7,6 +7,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.hibernate.annotations.CreationTimestamp;
@@ -45,8 +46,8 @@ public class CodeSnippet {
   @Column(nullable = false, length = 20)
   private SnippetLifecycle lifecycle = SnippetLifecycle.ACTIVE;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "category_id", nullable = false, updatable = false)
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30, updatable = false)
   private Category category;
 
   @CreationTimestamp

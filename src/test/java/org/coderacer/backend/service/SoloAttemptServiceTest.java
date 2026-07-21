@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -21,7 +22,6 @@ import org.coderacer.backend.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.exception.SoloAttemptOwnershipException;
 import org.coderacer.backend.exception.SoloAttemptSnippetUnavailableException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -84,10 +84,7 @@ class SoloAttemptServiceTest {
   }
 
   private Category category() {
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName("Java");
-    category.setActive(true);
+    Category category = Category.JAVA;
     return category;
   }
 

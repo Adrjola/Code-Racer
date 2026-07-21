@@ -14,6 +14,7 @@ import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
 import org.coderacer.backend.dto.StartSoloAttemptResponse;
 import org.coderacer.backend.dto.SubmitProgressRequest;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
@@ -54,7 +55,7 @@ public class SoloAttemptController {
   @GetMapping
   public BaseResponse<PagedModel<SoloAttemptResultResponse>> history(
       @RequestParam(required = false) SoloAttemptState state,
-      @RequestParam(required = false) UUID categoryId,
+      @RequestParam(required = false) Category category,
       @RequestParam(required = false) Difficulty difficulty,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
           Instant startedFrom,
@@ -65,7 +66,7 @@ public class SoloAttemptController {
     UUID userId = currentUserProvider.resolve(httpRequest);
     Page<SoloAttemptResultResponse> history =
         historyService.findHistory(
-            userId, state, categoryId, difficulty, startedFrom, startedTo, pageable);
+            userId, state, category, difficulty, startedFrom, startedTo, pageable);
     return new BaseResponse<>(new PagedModel<>(history), MDC.get("correlationId"));
   }
 

@@ -9,10 +9,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
-import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -29,7 +28,6 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private UserRepository userRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private EntityManager entityManager;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
@@ -46,10 +44,7 @@ class SoloAttemptRepositoryTest extends AbstractPostgresIntegrationTest {
   }
 
   private CodeSnippet newSnippet(String source) {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.save(category);
+    Category category = Category.JAVA;
     return codeSnippetRepository.save(
         new CodeSnippet("Title", source, sha256Hex(source), Difficulty.EASY, category));
   }

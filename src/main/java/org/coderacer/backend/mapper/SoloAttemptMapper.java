@@ -23,6 +23,6 @@ public class SoloAttemptMapper {
 
   private SoloAttemptSnippetSummary toSnippetSummary(CodeSnippet snippet) {
     return new SoloAttemptSnippetSummary(
-        snippet.getId(), snippet.getTitle(), snippet.getCategory().getId());
+        snippet.getId(), snippet.getTitle(), snippet.getCategory());
   }
 }

@@ -11,15 +11,14 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.ValidationException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
@@ -36,7 +35,6 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
   @Autowired private SoloAttemptHistoryService historyService;
   @Autowired private SoloAttemptRepository attemptRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private UserRepository userRepository;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
@@ -150,7 +148,7 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
   void historyCanBeFilteredByStateDifficultyAndCategory() {
     User alice = newUser("alice");
     CodeSnippet easy = newSnippet("easy one", Difficulty.EASY);
-    CodeSnippet hard = newSnippet("hard one", Difficulty.HARD);
+    CodeSnippet hard = newSnippet("hard one", Difficulty.HARD, Category.SQL);
     completedAttempt(alice, easy, now);
     abandonedAttempt(alice, hard, now);
 
@@ -171,8 +169,7 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
 
     assertThat(
             historyService
-                .findHistory(
-                    alice.getId(), null, hard.getCategory().getId(), null, null, null, firstPage)
+                .findHistory(alice.getId(), null, hard.getCategory(), null, null, null, firstPage)
                 .getContent())
         .singleElement()
         .satisfies(r -> assertThat(r.snippet().title()).isEqualTo("hard one"));
@@ -244,10 +241,10 @@ class SoloAttemptHistoryIntegrationTest extends AbstractPostgresIntegrationTest 
   }
 
   private CodeSnippet newSnippet(String source, Difficulty difficulty) {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.save(category);
+    return newSnippet(source, difficulty, Category.JAVA);
+  }
+
+  private CodeSnippet newSnippet(String source, Difficulty difficulty, Category category) {
     return codeSnippetRepository.save(
         new CodeSnippet(source, source, sha256Hex(source), difficulty, category));
   }

@@ -22,6 +22,7 @@ import org.coderacer.backend.dto.HighestCpmRecord;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.SoloAttemptSnippetSummary;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.exception.GlobalExceptionHandler;
@@ -31,7 +32,6 @@ import org.coderacer.backend.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.exception.SoloAttemptOwnershipException;
 import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -85,10 +85,7 @@ class SoloAttemptControllerTest {
   }
 
   private CodeSnippet snippet(UUID id) {
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName("Java");
-    category.setActive(true);
+    Category category = Category.JAVA;
     CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", id);
     return snippet;
@@ -276,7 +273,7 @@ class SoloAttemptControllerTest {
     SoloAttemptResultResponse result =
         new SoloAttemptResultResponse(
             attemptId,
-            new SoloAttemptSnippetSummary(UUID.randomUUID(), "FizzBuzz", categoryId),
+            new SoloAttemptSnippetSummary(UUID.randomUUID(), "FizzBuzz", Category.JAVA),
             Difficulty.EASY,
             SoloAttemptState.COMPLETED,
             45_000L,
@@ -287,7 +284,7 @@ class SoloAttemptControllerTest {
     when(historyService.findHistory(
             eq(userId),
             eq(SoloAttemptState.COMPLETED),
-            eq(categoryId),
+            eq(Category.JAVA),
             eq(Difficulty.EASY),
             eq(Instant.parse("2026-01-01T00:00:00Z")),
             eq(Instant.parse("2026-01-02T00:00:00Z")),
@@ -298,7 +295,7 @@ class SoloAttemptControllerTest {
         .perform(
             get("/api/solo-attempts")
                 .param("state", "COMPLETED")
-                .param("categoryId", categoryId.toString())
+                .param("category", Category.JAVA.name())
                 .param("difficulty", "EASY")
                 .param("startedFrom", "2026-01-01T00:00:00Z")
                 .param("startedTo", "2026-01-02T00:00:00Z")
