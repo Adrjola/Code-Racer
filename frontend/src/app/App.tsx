@@ -21,6 +21,7 @@ import DashboardPage from '@/features/dashboard/DashboardPage';
 import type { SoloSelection } from '@/features/solo/api/soloApi';
 import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
 import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
+import StatisticsPage from '@/features/statistics/pages/StatisticsPage';
 
 // Loaded lazily so three.js — the 3D mascot's dependency — ships as its own
 // chunk and only gets downloaded when someone actually visits the landing page.
@@ -38,6 +39,7 @@ type Route =
   | 'register'
   | 'soloPreview'
   | 'soloSetup'
+  | 'statistics'
   | 'verify';
 
 type AppState = {
@@ -75,6 +77,8 @@ function routeFromPath(pathname: string): Route {
       return 'soloSetup';
     case '/solo/preview':
       return 'soloPreview';
+    case '/statistics':
+      return 'statistics';
     case '/verify-email-pending':
       return 'pending';
     case '/verify-email':
@@ -110,6 +114,8 @@ function pathFromRoute(route: Route): string {
       return '/solo/preview';
     case 'soloSetup':
       return '/solo';
+    case 'statistics':
+      return '/statistics';
     case 'verify':
       return '/verify-email';
   }
@@ -121,7 +127,8 @@ function isProtected(route: Route) {
     route === 'dashboard' ||
     route === 'playSolo' ||
     route === 'soloPreview' ||
-    route === 'soloSetup'
+    route === 'soloSetup' ||
+    route === 'statistics'
   );
 }
 
@@ -295,10 +302,21 @@ export default function App() {
         notice={dashboardNotice}
         onGoAdmin={() => navigate('admin')}
         onGoDashboard={() => navigate('dashboard')}
+        onGoStatistics={() => navigate('statistics')}
         onLogout={handleLogout}
         onPlaySolo={() => navigate('soloSetup')}
         session={session}
         view={route === 'admin' ? 'admin' : 'dashboard'}
+      />
+    );
+  }
+
+  if (session && route === 'statistics') {
+    return (
+      <StatisticsPage
+        onGoDashboard={() => navigate('dashboard')}
+        onLogout={handleLogout}
+        session={session}
       />
     );
   }

@@ -20,6 +20,7 @@ html {
   --page-scale: 1;
 
   background: #0e0c16;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -40,5 +41,14 @@ body {
   button,
   input {
     font: inherit;
+  }
+}
+
+@keyframes draw-outline {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }

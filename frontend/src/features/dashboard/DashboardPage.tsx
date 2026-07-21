@@ -8,6 +8,7 @@ type DashboardPageProps = {
   notice?: string;
   onGoAdmin: () => void;
   onGoDashboard: () => void;
+  onGoStatistics: () => void;
   onLogout: () => void;
   onPlaySolo: () => void;
   session: AuthSession;
@@ -92,6 +93,7 @@ export default function DashboardPage({
   notice,
   onGoAdmin,
   onGoDashboard,
+  onGoStatistics,
   onLogout,
   onPlaySolo,
   session,
@@ -114,6 +116,13 @@ export default function DashboardPage({
               type="button"
             >
               Dashboard
+            </button>
+            <button
+              className="text-sm font-semibold text-text-secondary hover:text-text-primary"
+              onClick={onGoStatistics}
+              type="button"
+            >
+              Statistics
             </button>
             {isAdmin && (
               <button

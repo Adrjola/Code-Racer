@@ -37,6 +37,7 @@ function renderDashboard(
     <DashboardPage
       onGoAdmin={vi.fn()}
       onGoDashboard={vi.fn()}
+      onGoStatistics={vi.fn()}
       onLogout={vi.fn()}
       onPlaySolo={overrides.onPlaySolo ?? vi.fn()}
       session={overrides.session ?? session()}
@@ -74,7 +75,8 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     renderDashboard({ onPlaySolo });
 
-    // Nav order: Dashboard, Log out, then the solo card.
+    // Nav order: Dashboard, Statistics, Log out, then the solo card.
+    await user.tab();
     await user.tab();
     await user.tab();
     await user.tab();
