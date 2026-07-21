@@ -45,7 +45,6 @@ class EmailVerificationControllerTest {
                 "speed_racer",
                 UserRole.USER,
                 true,
-                true,
                 Instant.now(),
                 Instant.now()));
 

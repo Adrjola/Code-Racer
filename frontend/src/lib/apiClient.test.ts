@@ -15,7 +15,6 @@ function storeSession(overrides: Partial<AuthSession> = {}) {
       createdAt: '2026-07-16T12:00:00Z',
       email: 'admin@example.com',
       emailVerified: true,
-      enabled: true,
       id: '019f66a0-981f-7368-aec1-4e814cc269f1',
       role: 'ADMIN',
       updatedAt: '2026-07-16T12:00:00Z',

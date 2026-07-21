@@ -45,7 +45,6 @@ class UserRegistrationControllerTest {
                 "speed_racer",
                 UserRole.USER,
                 false,
-                true,
                 Instant.now(),
                 Instant.now()));
 

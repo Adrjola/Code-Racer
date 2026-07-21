@@ -104,14 +104,7 @@ class EmailVerificationServiceTest {
     EmailVerificationToken token = usableToken(user, "raw-token");
     UserResponse response =
         new UserResponse(
-            user.getId(),
-            user.getEmail(),
-            user.getUsername(),
-            user.getRole(),
-            true,
-            true,
-            NOW,
-            NOW);
+            user.getId(), user.getEmail(), user.getUsername(), user.getRole(), true, NOW, NOW);
     when(tokenRepository.findByTokenHashForUpdate(hash("raw-token")))
         .thenReturn(Optional.of(token));
     when(userMapper.toResponse(user)).thenReturn(response);
@@ -125,9 +118,9 @@ class EmailVerificationServiceTest {
   }
 
   @Test
-  void confirm_rejectsUsersThatCannotVerifyEmail() {
+  void confirm_rejectsDeletedUsers() {
     User user = unverifiedUser();
-    user.setEnabled(false);
+    user.setDeleted(true);
     EmailVerificationToken token = usableToken(user, "raw-token");
     when(tokenRepository.findByTokenHashForUpdate(hash("raw-token")))
         .thenReturn(Optional.of(token));
@@ -248,7 +241,6 @@ class EmailVerificationServiceTest {
     user.setPasswordHash("hashed-password");
     user.setRole(UserRole.USER);
     user.setEmailVerified(false);
-    user.setEnabled(true);
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return user;

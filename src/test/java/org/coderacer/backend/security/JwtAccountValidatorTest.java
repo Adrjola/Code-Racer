@@ -57,12 +57,12 @@ class JwtAccountValidatorTest {
   }
 
   @Test
-  void validate_rejectsInactiveAccounts() {
-    User disabled = user("player", UserRole.USER);
-    disabled.setEnabled(false);
-    when(repository.findByUsername("player")).thenReturn(Optional.of(disabled));
+  void validate_rejectsUnverifiedAccounts() {
+    User unverified = user("player", UserRole.USER);
+    unverified.setEmailVerified(false);
+    when(repository.findByUsername("player")).thenReturn(Optional.of(unverified));
 
-    var result = validator.validate(tokenFor(disabled));
+    var result = validator.validate(tokenFor(unverified));
 
     assertThat(result.hasErrors()).isTrue();
   }
@@ -161,7 +161,6 @@ class JwtAccountValidatorTest {
     user.setPasswordHash("hashed-password");
     user.setRole(role);
     user.setEmailVerified(true);
-    user.setEnabled(true);
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return user;
