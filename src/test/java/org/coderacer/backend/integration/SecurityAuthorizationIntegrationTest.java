@@ -193,9 +193,7 @@ class SecurityAuthorizationIntegrationTest {
 
     ResponseEntity<String> response =
         restTemplate.postForEntity(
-            "/api/auth/login",
-            new LoginRequest("disabled_login", "StrongerPass123"),
-            String.class);
+            "/api/auth/login", new LoginRequest("disabled_login", "StrongerPass123"), String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(response.getBody()).contains("\"code\":\"INVALID_CREDENTIALS\"");
