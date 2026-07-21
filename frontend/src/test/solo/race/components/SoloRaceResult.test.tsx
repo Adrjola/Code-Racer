@@ -7,7 +7,7 @@ import type {
   SoloAttemptRankingResponse,
   SoloAttemptResultResponse,
 } from '../../../../features/solo/race/api/soloRaceApi';
-import { formatDuration } from '../../../../features/solo/race/utils/formatDuration';
+import { formatDurationPrecise } from '../../../../features/solo/race/utils/formatDuration';
 import { saveSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 
@@ -21,7 +21,7 @@ function result(
     attemptId: 'a1',
     cpm: 452,
     difficulty: 'EASY',
-    durationMs: 41_000,
+    durationMs: 41_111,
     finishedAt: '2026-07-17T12:00:41Z',
     snippet: {
       categoryId: 'c1',
@@ -49,6 +49,24 @@ function withRanking(overrides: Partial<SoloAttemptRankingResponse> = {}) {
   server.use(http.get(RANKING_URL, () => HttpResponse.json({ data: ranking })));
 }
 
+function renderResult(
+  overrides: Partial<SoloAttemptResultResponse> = {},
+  handlers: {
+    onLobby?: () => void;
+    onNewSnippet?: () => void;
+    onRaceAgain?: () => void;
+  } = {},
+) {
+  render(
+    <SoloRaceResult
+      onLobby={handlers.onLobby ?? vi.fn()}
+      onNewSnippet={handlers.onNewSnippet ?? vi.fn()}
+      onRaceAgain={handlers.onRaceAgain ?? vi.fn()}
+      result={result(overrides)}
+    />,
+  );
+}
+
 beforeEach(() => {
   saveSession({
     accessToken: 'jwt-token',
@@ -66,44 +84,41 @@ beforeEach(() => {
   });
 });
 
-describe('formatDuration', () => {
-  it('formats the server duration as m:ss', () => {
-    expect(formatDuration(45_000)).toBe('0:45');
-    expect(formatDuration(65_000)).toBe('1:05');
-    expect(formatDuration(0)).toBe('0:00');
+describe('formatDurationPrecise', () => {
+  it('keeps the milliseconds the race was decided by', () => {
+    expect(formatDurationPrecise(41_111)).toBe('0:41.111');
+    expect(formatDurationPrecise(65_007)).toBe('1:05.007');
+    expect(formatDurationPrecise(0)).toBe('0:00.000');
   });
 
   it('shows a placeholder when the attempt has no duration', () => {
-    expect(formatDuration(null)).toBe('--');
+    expect(formatDurationPrecise(null)).toBe('--');
   });
 });
 
 describe('SoloRaceResult', () => {
   it('shows the cpm the server calculated', async () => {
     withRanking();
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+    renderResult();
 
     expect(screen.getByText('452')).toBeInTheDocument();
     expect(screen.getByText('CPM')).toBeInTheDocument();
-    expect(await screen.findByText(/first completed race/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/first run on this one/),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the race time down to the millisecond', () => {
+    withRanking();
+    renderResult();
+
+    expect(screen.getByText('0:41.111')).toBeInTheDocument();
   });
 
   it('claims nothing about records or rank until the ranking has loaded', async () => {
     // Never resolves, so the screen stays in its pre-load state.
     server.use(http.get(RANKING_URL, () => new Promise(() => {})));
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+    renderResult();
 
     expect(screen.getByText('452')).toBeInTheDocument();
     expect(
@@ -111,124 +126,101 @@ describe('SoloRaceResult', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^#\d/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/first completed race/)).not.toBeInTheDocument();
   });
 
-  it('shows the global rank the server reported', async () => {
-    withRanking({ globalRank: 171 });
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+  describe('first clear of a snippet', () => {
+    it('shows the badge, the rank, and no comparisons', async () => {
+      withRanking({ attemptRank: 171, newPersonalBest: true });
+      renderResult();
 
-    expect(await screen.findByText('#171')).toBeInTheDocument();
-  });
-
-  it('shows the rank the player climbed from', async () => {
-    withRanking({ globalRank: 171, previousGlobalRank: 301 });
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
-
-    expect(await screen.findByText('#171')).toBeInTheDocument();
-    expect(screen.getByText(/previously #301/)).toBeInTheDocument();
-  });
-
-  it('celebrates beating the previous best', async () => {
-    withRanking({
-      newPersonalBest: true,
-      previousBestCpm: 431,
-      previousBestDurationMs: 47_000,
+      expect(await screen.findByText(/New personal best/i)).toBeInTheDocument();
+      expect(screen.getByText('#171')).toBeInTheDocument();
+      expect(screen.getByText('Best time')).toBeInTheDocument();
+      expect(screen.queryByText(/previously/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/your best/)).not.toBeInTheDocument();
     });
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
-
-    expect(await screen.findByText(/New personal best/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/\+21 cpm over previous best \(431\)/),
-    ).toBeInTheDocument();
-    // The older run was slower, so this race is the best time.
-    expect(screen.getByText('0:41')).toBeInTheDocument();
   });
 
-  it('keeps the earlier best time when this race was slower', async () => {
-    withRanking({
-      newPersonalBest: false,
-      previousBestCpm: 500,
-      previousBestDurationMs: 30_000,
-    });
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+  describe('new personal best', () => {
+    it('celebrates the improvement and shows what it replaced', async () => {
+      withRanking({
+        attemptRank: 171,
+        globalRank: 171,
+        newPersonalBest: true,
+        previousBestCpm: 431,
+        previousBestDurationMs: 47_000,
+        previousGlobalRank: 301,
+      });
+      renderResult();
 
-    expect(await screen.findByText('0:30')).toBeInTheDocument();
-    expect(screen.getByText(/this race 0:41/)).toBeInTheDocument();
-    expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
+      expect(await screen.findByText(/New personal best/i)).toBeInTheDocument();
+      // The delta splits the coloured number from the muted explanation.
+      expect(screen.getByText('+21 cpm')).toBeInTheDocument();
+      expect(screen.getByText('over previous best {431}')).toBeInTheDocument();
+      expect(screen.getByText('Best time')).toBeInTheDocument();
+      expect(screen.getByText('0:41.111')).toBeInTheDocument();
+      expect(screen.getByText('// previously 0:47.000')).toBeInTheDocument();
+      expect(screen.getByText('#171')).toBeInTheDocument();
+      expect(screen.getByText('// previously #301')).toBeInTheDocument();
+    });
+  });
+
+  describe('slower than the personal best', () => {
+    it('shows where this run landed and the rank the player keeps', async () => {
+      withRanking({
+        attemptRank: 301,
+        globalRank: 171,
+        newPersonalBest: false,
+        previousBestCpm: 502,
+        previousBestDurationMs: 41_000,
+        previousGlobalRank: 171,
+      });
+      renderResult({ cpm: 452, durationMs: 48_111 });
+
+      expect(await screen.findByText('#301')).toBeInTheDocument();
+      expect(screen.getByText('// your best #171')).toBeInTheDocument();
+      expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Time')).toBeInTheDocument();
+      expect(screen.getByText('0:48.111')).toBeInTheDocument();
+      expect(screen.getByText('// your best 0:41.000')).toBeInTheDocument();
+      expect(screen.getByText('-50 cpm')).toBeInTheDocument();
+      expect(screen.getByText('under your best {502}')).toBeInTheDocument();
+    });
   });
 
   it('does not claim a score for an unfinished attempt', async () => {
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result({ cpm: null, durationMs: null, state: 'ABANDONED' })}
-      />,
-    );
+    renderResult({ cpm: null, durationMs: null, state: 'ABANDONED' });
 
     expect(screen.getByText(/race abandoned - no score/)).toBeInTheDocument();
     expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByText(/did not finish/)).toBeInTheDocument(),
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0),
     );
   });
 
   it('still renders when the ranking lookup fails', async () => {
     server.use(http.get(RANKING_URL, () => HttpResponse.error()));
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+    renderResult();
 
     expect(await screen.findByText('452')).toBeInTheDocument();
     expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
   });
 
-  it('offers restarting and returning to the dashboard', async () => {
+  it('offers a new snippet, a restart, and the way back to the lobby', async () => {
     withRanking();
     const onLobby = vi.fn();
+    const onNewSnippet = vi.fn();
     const onRaceAgain = vi.fn();
-    render(
-      <SoloRaceResult
-        onLobby={onLobby}
-        onRaceAgain={onRaceAgain}
-        result={result()}
-      />,
-    );
+    renderResult({}, { onLobby, onNewSnippet, onRaceAgain });
+
+    await userEvent.click(screen.getByRole('button', { name: /new snippet/i }));
+    expect(onNewSnippet).toHaveBeenCalledOnce();
 
     await userEvent.click(screen.getByRole('button', { name: /restart/i }));
     expect(onRaceAgain).toHaveBeenCalledOnce();
 
     await userEvent.click(
-      screen.getByRole('button', { name: /back to dashboard/i }),
+      screen.getByRole('button', { name: /back to lobby/i }),
     );
     expect(onLobby).toHaveBeenCalledOnce();
   });

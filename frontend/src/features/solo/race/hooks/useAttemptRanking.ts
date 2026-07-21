@@ -33,7 +33,11 @@ export function useAttemptRanking(
           setRanking(response);
         }
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        // The screen still shows the race's own numbers without a ranking, but
+        // a silent catch makes a broken endpoint look like a slow one.
+        console.warn('Could not load the ranking for this attempt', error);
+      });
 
     return () => {
       active = false;
