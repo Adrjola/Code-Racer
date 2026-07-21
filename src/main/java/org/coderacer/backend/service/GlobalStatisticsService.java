@@ -28,13 +28,13 @@ public class GlobalStatisticsService {
   private DifficultyGlobalStatistics forDifficulty(Difficulty difficulty) {
     FastestTimeRecord fastestTime =
         repository
-            .findFirstByDifficultyAndStateAndUserEnabledTrueAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+            .findFirstByDifficultyAndStateAndUser_EnabledTrueAndUser_DeletedFalseOrderByDurationMsAscFinishedAtAscUser_IdAsc(
                 difficulty, SoloAttemptState.COMPLETED)
             .map(this::toFastestTimeRecord)
             .orElse(null);
     HighestCpmRecord highestCpm =
         repository
-            .findFirstByDifficultyAndStateAndUserEnabledTrueAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+            .findFirstByDifficultyAndStateAndUser_EnabledTrueAndUser_DeletedFalseOrderByCpmDescFinishedAtAscUser_IdAsc(
                 difficulty, SoloAttemptState.COMPLETED)
             .map(this::toHighestCpmRecord)
             .orElse(null);

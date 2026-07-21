@@ -49,15 +49,18 @@ public interface SoloAttemptRepository
   @EntityGraph(attributePaths = "codeSnippet")
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
 
-  // Finds fastest user by duration filtered by difficulty and attempt state
+  // Finds fastest user by duration filtered by difficulty and attempt state. The underscores
+  // force explicit traversal into the "user" association instead of relying on Spring Data's
+  // greedy property-name matching to figure out where "user" ends and "enabled"/"deleted"/"id"
+  // begin.
   @EntityGraph(attributePaths = "user")
   Optional<SoloAttempt>
-      findFirstByDifficultyAndStateAndUserEnabledTrueAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
+      findFirstByDifficultyAndStateAndUser_EnabledTrueAndUser_DeletedFalseOrderByDurationMsAscFinishedAtAscUser_IdAsc(
           Difficulty difficulty, SoloAttemptState state);
 
   // Finds fastest user by cpm filtered by difficulty and attempt state
   @EntityGraph(attributePaths = "user")
   Optional<SoloAttempt>
-      findFirstByDifficultyAndStateAndUserEnabledTrueAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
+      findFirstByDifficultyAndStateAndUser_EnabledTrueAndUser_DeletedFalseOrderByCpmDescFinishedAtAscUser_IdAsc(
           Difficulty difficulty, SoloAttemptState state);
 }
