@@ -44,7 +44,6 @@ class UserRegistrationIntegrationTest {
     assertThat(savedUser.getUsernameNormalized()).isEqualTo("speed_racer");
     assertThat(savedUser.getRole()).isEqualTo(UserRole.USER);
     assertThat(savedUser.isEmailVerified()).isFalse();
-    assertThat(savedUser.isEnabled()).isTrue();
     assertThat(savedUser.isDeleted()).isFalse();
     assertThat(savedUser.getPasswordHash()).isNotEqualTo("StrongerPass123");
     assertThat(passwordEncoder.matches("StrongerPass123", savedUser.getPasswordHash())).isTrue();
@@ -129,7 +128,6 @@ class UserRegistrationIntegrationTest {
     user.setPasswordHash(passwordEncoder.encode("StrongerPass123"));
     user.setRole(UserRole.USER);
     user.setEmailVerified(false);
-    user.setEnabled(true);
     user.setDeleted(false);
     return user;
   }

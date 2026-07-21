@@ -67,7 +67,6 @@ class SoloAttemptFlowIntegrationTest {
     user.setPasswordHash("hashed-password");
     user.setRole(UserRole.USER);
     user.setEmailVerified(true);
-    user.setEnabled(true);
     user.setDeleted(false);
     return userRepository.saveAndFlush(user);
   }

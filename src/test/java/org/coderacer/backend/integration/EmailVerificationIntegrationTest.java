@@ -175,7 +175,6 @@ class EmailVerificationIntegrationTest {
     user.setPasswordHash(passwordEncoder.encode("StrongerPass123"));
     user.setRole(UserRole.USER);
     user.setEmailVerified(false);
-    user.setEnabled(true);
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);
