@@ -53,7 +53,8 @@ class PasswordResetServiceTest {
             tokenRepository,
             userRepository,
             tokenGenerator,
-            new PasswordResetProperties(Duration.ofHours(1), "http://localhost:5173/reset"),
+            new PasswordResetProperties(
+                Duration.ofHours(1), Duration.ofMinutes(2), "http://localhost:5173/reset"),
             eventPublisher,
             passwordEncoder,
             Clock.fixed(NOW, ZoneOffset.UTC));
@@ -96,6 +97,22 @@ class PasswordResetServiceTest {
     assertThat(response.message())
         .isEqualTo(
             "If an account with the provided email exists, a password reset email will be sent.");
+    verify(tokenRepository, never()).save(any());
+    verify(eventPublisher, never()).publishEvent(any());
+  }
+
+  @Test
+  void requestReset_returnsNeutralResponseWithoutSendingWhenUserIsWithinCooldown() {
+    User user = verifiedUser();
+    user.markPasswordResetEmailResent(NOW.minusSeconds(30));
+    when(userRepository.findByEmailForUpdate("player@example.com")).thenReturn(Optional.of(user));
+
+    var response = service.requestReset(new ForgotPasswordRequest("player@example.com"));
+
+    assertThat(response.message())
+        .isEqualTo(
+            "If an account with the provided email exists, a password reset email will be sent.");
+    verify(tokenRepository, never()).revokeActiveTokensForUser(any(), any());
     verify(tokenRepository, never()).save(any());
     verify(eventPublisher, never()).publishEvent(any());
   }

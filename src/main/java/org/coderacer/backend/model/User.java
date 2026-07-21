@@ -57,6 +57,9 @@ public class User {
   @Column(name = "verification_email_resent_at")
   private Instant verificationEmailResentAt;
 
+  @Column(name = "password_reset_email_sent_at")
+  private Instant passwordResetEmailResentAt;
+
   public boolean canAuthenticate() {
     return emailVerified && !deleted;
   }
@@ -73,6 +76,16 @@ public class User {
 
   public void markVerificationEmailResent(Instant resentAt) {
     this.verificationEmailResentAt = resentAt;
+  }
+
+  public boolean canResendPasswordResetEmail(Instant now, Duration cooldown) {
+    return cooldown.isZero()
+        || passwordResetEmailResentAt == null
+        || !passwordResetEmailResentAt.plus(cooldown).isAfter(now);
+  }
+
+  public void markPasswordResetEmailResent(Instant resentAt) {
+    this.passwordResetEmailResentAt = resentAt;
   }
 
   public void setUsername(String username) {

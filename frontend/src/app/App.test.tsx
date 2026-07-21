@@ -373,6 +373,9 @@ describe('App', () => {
     expect(
       await screen.findByText(/password reset email will be sent/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /try again in 2:00/i }),
+    ).toBeDisabled();
   });
 
   it('resets a password from a valid reset link and returns to login', async () => {

@@ -22,7 +22,8 @@ class AccountEmailListenerTest {
           emailSender,
           new EmailVerificationProperties(
               Duration.ofHours(24), Duration.ofMinutes(2), "http://localhost:5173/verify-email"),
-          new PasswordResetProperties(Duration.ofHours(1), "http://localhost:5173/reset"));
+          new PasswordResetProperties(
+              Duration.ofHours(1), Duration.ofMinutes(2), "http://localhost:5173/reset"));
 
   @Test
   void sendVerificationEmail_buildsLinkFromRawToken() {

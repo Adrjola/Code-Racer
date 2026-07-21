@@ -39,6 +39,7 @@ public class PasswordResetService {
     userRepository
         .findByEmailForUpdate(email)
         .filter(User::canAuthenticate)
+        .filter(user -> user.canResendPasswordResetEmail(now, properties.resendCooldown()))
         .ifPresent(user -> replaceAndPublishToken(user, now));
 
     return ForgotPasswordResponse.accepted();
@@ -53,6 +54,7 @@ public class PasswordResetService {
 
   private void replaceAndPublishToken(User user, Instant now) {
     tokenRepository.revokeActiveTokensForUser(user, now);
+    user.markPasswordResetEmailResent(now);
     createAndPublishToken(user, now);
   }
 

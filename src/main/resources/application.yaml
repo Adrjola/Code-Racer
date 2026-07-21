@@ -50,6 +50,7 @@ app:
     resend-cooldown: ${APP_EMAIL_VERIFICATION_RESEND_COOLDOWN:2m}
   password-reset:
     token-ttl: ${APP_PASSWORD_RESET_TOKEN_TTL:30m}
+    resend-cooldown: ${APP_PASSWORD_RESET_RESEND_COOLDOWN:2m}
     reset-url: ${APP_PASSWORD_RESET_URL:http://localhost:5173/reset-password}
   security:
     jwt:
