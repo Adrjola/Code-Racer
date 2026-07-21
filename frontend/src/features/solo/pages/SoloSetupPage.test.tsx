@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { saveSession, type AuthSession } from '@/features/auth/session';
-import type { Category } from '@/features/solo/api/soloApi';
+import type { Category, CategoryOption } from '@/features/solo/api/soloApi';
 import { server } from '@/test/server';
 import SoloSetupPage from './SoloSetupPage';
 
@@ -26,31 +26,14 @@ function session(): AuthSession {
   };
 }
 
-function category(id: string, name: string): Category {
-  return {
-    active: true,
-    createdAt: '2026-07-01T00:00:00Z',
-    description: `${name} snippets`,
-    id,
-    name,
-    updatedAt: '2026-07-01T00:00:00Z',
-  };
+function category(value: Category, displayName: string): CategoryOption {
+  return { category: value, displayName };
 }
 
-function mockCategories(categories: Category[]) {
+function mockCategories(categories: CategoryOption[]) {
   server.use(
     http.get(`${API_URL}/api/categories`, () =>
-      HttpResponse.json({
-        data: {
-          content: categories,
-          page: {
-            number: 0,
-            size: 100,
-            totalElements: categories.length,
-            totalPages: 1,
-          },
-        },
-      }),
+      HttpResponse.json({ data: categories }),
     ),
   );
 }
@@ -76,7 +59,7 @@ beforeEach(() => {
 
 describe('SoloSetupPage', () => {
   it('shows a loading state and then the fetched categories', async () => {
-    mockCategories([category('cat-1', 'JAVA'), category('cat-2', 'SQL')]);
+    mockCategories([category('JAVA', 'Java'), category('SQL', 'SQL')]);
     renderPage();
 
     expect(screen.getByText(/loading categories/i)).toBeInTheDocument();
@@ -91,7 +74,7 @@ describe('SoloSetupPage', () => {
   });
 
   it('keeps difficulty disabled until a category is selected', async () => {
-    mockCategories([category('cat-1', 'JAVA')]);
+    mockCategories([category('JAVA', 'Java')]);
     renderPage();
 
     await screen.findByRole('button', { name: /java/i });
@@ -102,7 +85,7 @@ describe('SoloSetupPage', () => {
   });
 
   it('marks the chosen category as pressed and enables difficulty', async () => {
-    mockCategories([category('cat-1', 'JAVA')]);
+    mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
     renderPage();
 
@@ -114,7 +97,7 @@ describe('SoloSetupPage', () => {
   });
 
   it('does not advance until Play is clicked, then calls onSelect with the choice', async () => {
-    mockCategories([category('cat-1', 'JAVA'), category('cat-2', 'SQL')]);
+    mockCategories([category('JAVA', 'Java'), category('SQL', 'SQL')]);
     const user = userEvent.setup();
     const { onSelect } = renderPage();
 
@@ -128,14 +111,14 @@ describe('SoloSetupPage', () => {
 
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith({
-      categoryId: 'cat-2',
+      category: 'SQL',
       categoryName: 'SQL',
       difficulty: 'HARD',
     });
   });
 
   it('keeps Play disabled when only a difficulty is picked without a category', async () => {
-    mockCategories([category('cat-1', 'JAVA')]);
+    mockCategories([category('JAVA', 'Java')]);
     renderPage();
 
     await screen.findByRole('button', { name: /java/i });
@@ -144,7 +127,7 @@ describe('SoloSetupPage', () => {
   });
 
   it('supports selecting a category and difficulty with the keyboard', async () => {
-    mockCategories([category('cat-1', 'JAVA')]);
+    mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
     const { onSelect } = renderPage();
 
@@ -160,8 +143,8 @@ describe('SoloSetupPage', () => {
     await user.keyboard('{Enter}');
 
     expect(onSelect).toHaveBeenCalledWith({
-      categoryId: 'cat-1',
-      categoryName: 'JAVA',
+      category: 'JAVA',
+      categoryName: 'Java',
       difficulty: 'MEDIUM',
     });
   });
@@ -183,12 +166,7 @@ describe('SoloSetupPage', () => {
         if (attempts === 1) {
           return HttpResponse.error();
         }
-        return HttpResponse.json({
-          data: {
-            content: [category('cat-1', 'JAVA')],
-            page: { number: 0, size: 100, totalElements: 1, totalPages: 1 },
-          },
-        });
+        return HttpResponse.json({ data: [category('JAVA', 'Java')] });
       }),
     );
     const user = userEvent.setup();
@@ -222,7 +200,7 @@ describe('SoloSetupPage', () => {
   });
 
   it('shows the username and navigates to the dashboard from the logo', async () => {
-    mockCategories([category('cat-1', 'JAVA')]);
+    mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
     const { onGoDashboard } = renderPage();
 
@@ -234,7 +212,7 @@ describe('SoloSetupPage', () => {
   });
 
   it('logs out from the menu', async () => {
-    mockCategories([category('cat-1', 'JAVA')]);
+    mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
     const { onLogout } = renderPage();
 

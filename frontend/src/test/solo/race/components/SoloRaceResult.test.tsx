@@ -21,9 +21,7 @@ function result(
     durationMs: 41_000,
     finishedAt: '2026-07-17T12:00:41Z',
     snippet: {
-      categoryId: 'c1',
-      revisionId: 'r1',
-      revisionNumber: 1,
+      category: 'JAVA',
       snippetId: 'g1',
       title: 'FizzBuzz',
     },

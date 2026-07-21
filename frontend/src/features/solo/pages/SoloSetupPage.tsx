@@ -7,6 +7,7 @@ import {
   isSessionExpiredError,
   readableSoloError,
   type Category,
+  type CategoryOption,
   type Difficulty,
   type SoloSelection,
 } from '@/features/solo/api/soloApi';
@@ -27,7 +28,7 @@ type SoloSetupPageProps = {
 
 type CategoriesState =
   | { message: string; status: 'error' }
-  | { categories: Category[]; status: 'ready' }
+  | { categories: CategoryOption[]; status: 'ready' }
   | { status: 'loading' };
 
 type DifficultyOption = {
@@ -36,6 +37,9 @@ type DifficultyOption = {
   tone: string;
   value: Difficulty;
 };
+
+/** The layout is authored at this width and scaled to fit the window. */
+const DESIGN_WIDTH = 1920;
 
 const DIFFICULTIES: DifficultyOption[] = [
   {
@@ -58,12 +62,29 @@ const DIFFICULTIES: DifficultyOption[] = [
   },
 ];
 
-const CATEGORY_GLYPH: Record<string, { className: string; src: string }> = {
+const CATEGORY_GLYPH: Record<Category, { className: string; src: string }> = {
   JAVA: { className: 'h-12 w-[53px]', src: categoryJavaGlyph },
-  'REST APIS': { className: 'h-11 w-[51px]', src: categoryRestApisGlyph },
+  REST_APIS: { className: 'h-11 w-[51px]', src: categoryRestApisGlyph },
   SQL: { className: 'h-10 w-9', src: categorySqlGlyph },
   TESTING: { className: 'h-11 w-10', src: categoryTestingGlyph },
 };
+
+const CATEGORY_TAGLINE: Record<Category, string> = {
+  JAVA: 'public class',
+  REST_APIS: 'GET /v1',
+  SQL: 'SELECT *',
+  TESTING: '@Test',
+};
+
+/** The rule trailing each section heading, fading out the way the design draws it. */
+function HeadingRule() {
+  return (
+    <span
+      aria-hidden="true"
+      className="hidden h-px flex-1 self-center bg-gradient-to-r from-[#a855f7]/45 to-transparent lg:block lg:ml-[68px]"
+    />
+  );
+}
 
 function Checkbox({ checked, tone }: { checked: boolean; tone: string }) {
   if (!checked) {
@@ -86,13 +107,13 @@ function Checkbox({ checked, tone }: { checked: boolean; tone: string }) {
 }
 
 type CategoryCardProps = {
-  category: Category;
   isSelected: boolean;
   onSelect: () => void;
+  option: CategoryOption;
 };
 
-function CategoryCard({ category, isSelected, onSelect }: CategoryCardProps) {
-  const glyph = CATEGORY_GLYPH[category.name.toUpperCase()];
+function CategoryCard({ isSelected, onSelect, option }: CategoryCardProps) {
+  const glyph = CATEGORY_GLYPH[option.category];
 
   return (
     <li>
@@ -111,13 +132,7 @@ function CategoryCard({ category, isSelected, onSelect }: CategoryCardProps) {
           className="pointer-events-none absolute bottom-2 right-4"
           style={{ opacity: isSelected ? 0.22 : 0.08 }}
         >
-          {glyph ? (
-            <img alt="" className={glyph.className} src={glyph.src} />
-          ) : (
-            <span className="font-mono text-[56px] font-bold leading-none text-[#a855f7]">
-              {'{}'}
-            </span>
-          )}
+          <img alt="" className={glyph.className} src={glyph.src} />
         </span>
         <div className="flex items-start justify-between gap-3">
           <span
@@ -125,7 +140,7 @@ function CategoryCard({ category, isSelected, onSelect }: CategoryCardProps) {
               isSelected ? 'text-white' : 'text-[#b9a9d0]'
             }`}
           >
-            {category.name}
+            {option.displayName}
           </span>
           <Checkbox checked={isSelected} tone="#c084fc" />
         </div>
@@ -134,7 +149,7 @@ function CategoryCard({ category, isSelected, onSelect }: CategoryCardProps) {
             isSelected ? 'text-[#c084fc]' : 'text-[#5f5570]'
           }`}
         >
-          {category.description}
+          {CATEGORY_TAGLINE[option.category]}
         </span>
       </button>
     </li>
@@ -232,25 +247,23 @@ export default function SoloSetupPage({
   const [state, setState] = useState<CategoriesState>({ status: 'loading' });
   const [reloadToken, setReloadToken] = useState(0);
   const [selectedCategoryId, setSelectedCategoryId] = useState<
-    string | undefined
+    Category | undefined
   >(undefined);
   const [selectedDifficulty, setSelectedDifficulty] = useState<
     Difficulty | undefined
   >(undefined);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const [designWidth] = useState(() => window.innerWidth);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(() => window.innerWidth / DESIGN_WIDTH);
   const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
 
   useEffect(() => {
-    function updateScale() {
-      setScale(window.innerWidth / designWidth);
-    }
+    const updateScale = () => setScale(window.innerWidth / DESIGN_WIDTH);
+    updateScale();
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
-  }, [designWidth]);
+  }, []);
 
   const onSessionExpiredRef = useRef(onSessionExpired);
   useEffect(() => {
@@ -287,7 +300,7 @@ export default function SoloSetupPage({
 
   const categories = state.status === 'ready' ? state.categories : [];
   const selectedCategory = categories.find(
-    (category) => category.id === selectedCategoryId,
+    (option) => option.category === selectedCategoryId,
   );
   const selectedDifficultyOption = DIFFICULTIES.find(
     (option) => option.value === selectedDifficulty,
@@ -299,8 +312,8 @@ export default function SoloSetupPage({
       return;
     }
     onSelect({
-      categoryId: selectedCategory.id,
-      categoryName: selectedCategory.name,
+      category: selectedCategory.category,
+      categoryName: selectedCategory.displayName,
       difficulty: selectedDifficultyOption.value,
     });
   };
@@ -319,7 +332,7 @@ export default function SoloSetupPage({
         <div
           className="lg:[width:var(--solo-design-w)] lg:origin-top-left lg:[transform:scale(var(--solo-scale))]"
           ref={headerCanvasRef}
-          style={{ '--solo-design-w': `${designWidth}px` } as CSSProperties}
+          style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >
           <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
             <Logo onClick={onGoDashboard} />
@@ -378,9 +391,9 @@ export default function SoloSetupPage({
         }
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:mx-0 lg:max-w-none lg:px-[80px] lg:pt-16 lg:origin-top-left lg:[width:var(--solo-design-w)] lg:[transform:scale(var(--solo-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:mx-0 lg:max-w-none lg:px-[80px] lg:pt-[110px] lg:origin-top-left lg:[width:var(--solo-design-w)] lg:[transform:scale(var(--solo-scale))]"
           ref={mainCanvasRef}
-          style={{ '--solo-design-w': `${designWidth}px` } as CSSProperties}
+          style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >
           <section aria-labelledby="category-heading">
             <div className="flex flex-wrap items-baseline gap-3">
@@ -393,6 +406,7 @@ export default function SoloSetupPage({
               <p className="font-mono text-xs text-[#a855f7]">
                 {'// PICK YOUR POISON'}
               </p>
+              <HeadingRule />
             </div>
 
             {state.status === 'loading' && (
@@ -425,19 +439,22 @@ export default function SoloSetupPage({
                 aria-label="Categories"
                 className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
               >
-                {categories.map((category) => (
+                {categories.map((option) => (
                   <CategoryCard
-                    category={category}
-                    isSelected={category.id === selectedCategoryId}
-                    key={category.id}
-                    onSelect={() => setSelectedCategoryId(category.id)}
+                    isSelected={option.category === selectedCategoryId}
+                    key={option.category}
+                    onSelect={() => setSelectedCategoryId(option.category)}
+                    option={option}
                   />
                 ))}
               </ul>
             )}
           </section>
 
-          <section aria-labelledby="difficulty-heading" className="mt-8">
+          <section
+            aria-labelledby="difficulty-heading"
+            className="mt-10 lg:mt-[92px]"
+          >
             <div className="flex flex-wrap items-baseline gap-3">
               <h2
                 className="font-sans text-3xl font-bold text-white lg:text-[32px]"
@@ -448,9 +465,10 @@ export default function SoloSetupPage({
               <p className="font-mono text-[11px] text-[#a855f7]">
                 {'// HOW HUMBLED DO YOU WANT TO BE'}
               </p>
+              <HeadingRule />
             </div>
 
-            <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
               {DIFFICULTIES.map((option) => (
                 <DifficultyCard
                   disabled={!selectedCategory}
@@ -463,7 +481,7 @@ export default function SoloSetupPage({
             </ul>
           </section>
 
-          <div className="mt-8 flex flex-wrap items-center gap-6">
+          <div className="mt-10 flex flex-wrap items-center gap-6 lg:mt-[64px]">
             <button
               className="flex h-[88px] w-48 items-center justify-center gap-3 rounded-[10px] font-sans text-2xl font-bold text-white transition duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40"
               disabled={!canPlay}
@@ -487,7 +505,7 @@ export default function SoloSetupPage({
               <p className="font-mono text-xs text-[#5b5f78]">LOADOUT</p>
               <p className="font-mono text-base text-[#c9c7d6]">
                 {selectedCategory && selectedDifficultyOption
-                  ? `${selectedCategory.name.toUpperCase()} - ${selectedDifficultyOption.label}`
+                  ? `${selectedCategory.displayName.toUpperCase()} - ${selectedDifficultyOption.label}`
                   : 'Select a category and difficulty'}
               </p>
             </div>
