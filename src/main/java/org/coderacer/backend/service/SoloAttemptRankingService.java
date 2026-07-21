@@ -1,8 +1,10 @@
 package org.coderacer.backend.service;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -52,6 +54,14 @@ public class SoloAttemptRankingService {
             .max(Comparator.naturalOrder())
             .orElse(null);
 
+    Collection<Long> rivalBestTimes =
+        board.stream()
+            .filter(run -> !isOwnedBy(run, userId))
+            .collect(
+                Collectors.toMap(
+                    run -> run.getUser().getId(), SoloAttempt::getDurationMs, Long::min))
+            .values();
+
     boolean newPersonalBest = previousBestDurationMs == null || durationMs < previousBestDurationMs;
     long bestDurationMs = newPersonalBest ? durationMs : previousBestDurationMs;
 
@@ -60,23 +70,14 @@ public class SoloAttemptRankingService {
         newPersonalBest,
         previousBestDurationMs,
         previousBestCpm,
-        rankOf(board, userId, durationMs),
-        rankOf(board, userId, bestDurationMs),
-        previousBestDurationMs == null ? null : rankOf(board, userId, previousBestDurationMs));
+        rankOf(rivalBestTimes, durationMs),
+        rankOf(rivalBestTimes, bestDurationMs),
+        previousBestDurationMs == null ? null : rankOf(rivalBestTimes, previousBestDurationMs));
   }
 
-  /**
-   * Standard competition ranking, so tied times share a position. Other players are counted once no
-   * matter how often they raced, and the caller is skipped so their own runs never push them down.
-   */
-  private int rankOf(List<SoloAttempt> board, UUID userId, long durationMs) {
-    long playersAhead =
-        board.stream()
-            .filter(run -> !isOwnedBy(run, userId))
-            .filter(run -> run.getDurationMs() < durationMs)
-            .map(run -> run.getUser().getId())
-            .distinct()
-            .count();
+  /** Standard competition ranking, so tied times share a position. */
+  private int rankOf(Collection<Long> rivalBestTimes, long durationMs) {
+    long playersAhead = rivalBestTimes.stream().filter(best -> best < durationMs).count();
     return Math.toIntExact(playersAhead + 1);
   }
 

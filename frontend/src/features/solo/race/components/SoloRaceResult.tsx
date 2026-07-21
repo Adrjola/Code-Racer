@@ -39,7 +39,6 @@ export function SoloRaceResult({
   const cpm = result.cpm;
   const previousBestCpm = ranking?.previousBestCpm ?? null;
   const previousBestDurationMs = ranking?.previousBestDurationMs ?? null;
-  const isFirstClear = ranking !== null && previousBestDurationMs === null;
   const isNewBest = ranking?.newPersonalBest === true;
   const cpmDelta =
     cpm !== null && previousBestCpm !== null ? cpm - previousBestCpm : null;
@@ -87,7 +86,7 @@ export function SoloRaceResult({
           />
         </div>
 
-        {isFirstClear || isNewBest ? (
+        {isNewBest ? (
           <p className="absolute top-[323px] left-[667px] flex h-[32px] items-center gap-[8px] rounded-full border border-[rgb(251_191_36_/_0.45)] bg-[rgb(251_191_36_/_0.1)] px-[16px] font-mono text-[14px] leading-[18px] font-bold tracking-[0.06em] text-amber-200 uppercase">
             <StarIcon className="size-[16px] text-amber-400" />
             New personal best
