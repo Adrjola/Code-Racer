@@ -3,6 +3,7 @@ import Logo from '@/components/Logo';
 import { ChevronRightIcon, PeopleIcon, PersonIcon } from '@/components/icons';
 import AdminCatalogPage from '@/features/admin/pages/AdminCatalogPage';
 import type { AuthSession } from '@/features/auth/session';
+import { TrophyIcon } from '@/features/statistics/icons';
 
 type DashboardPageProps = {
   notice?: string;
@@ -105,24 +106,18 @@ export default function DashboardPage({
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
       <header className="border-b border-pink-400/15 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(0.875rem,1.9dvh,1.5rem)]">
         <div className="mx-auto flex w-full max-w-[100rem] flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <Logo />
+          <Logo onClick={onGoDashboard} />
           <nav
             aria-label="Primary navigation"
             className="flex flex-wrap items-center justify-start gap-3 md:justify-end"
           >
             <button
-              className="text-sm font-semibold text-text-secondary hover:text-text-primary"
-              onClick={onGoDashboard}
-              type="button"
-            >
-              Dashboard
-            </button>
-            <button
-              className="text-sm font-semibold text-text-secondary hover:text-text-primary"
+              aria-label="Statistics"
+              className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
               onClick={onGoStatistics}
               type="button"
             >
-              Statistics
+              <TrophyIcon className="size-5" />
             </button>
             {isAdmin && (
               <button

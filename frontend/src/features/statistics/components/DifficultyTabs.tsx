@@ -12,9 +12,6 @@ const DIFFICULTIES: { label: string; value: Difficulty }[] = [
   { label: 'LOCKED IN', value: 'HARD' },
 ];
 
-// "Drawing" is the moment right after a click, while the SVG outline below
-// is animating in — its own border is transparent so only the SVG line
-// shows. "Settled" is the plain CSS border once that animation finishes.
 const DRAWING_CLASSNAME: Record<Difficulty, string> = {
   EASY: 'border-transparent bg-gradient-to-b from-[#34d39933] to-[#0a091088] text-[#34d399]',
   HARD: 'border-transparent bg-gradient-to-b from-[#f472b633] to-[#0a091088] text-[#f472b6]',
@@ -35,8 +32,7 @@ const SELECTED_DOT_CLASSNAME: Record<Difficulty, string> = {
   MEDIUM: 'bg-[#fbbf24]',
 };
 
-// Same accent colors as above, as raw hex — the SVG stroke needs a literal
-// value, not a Tailwind class.
+
 const OUTLINE_HEX: Record<Difficulty, string> = {
   EASY: '#34d399',
   HARD: '#f472b6',
@@ -44,8 +40,6 @@ const OUTLINE_HEX: Record<Difficulty, string> = {
 };
 
 export function DifficultyTabs({ difficulty, onChange }: DifficultyTabsProps) {
-  // The last difficulty whose draw-in animation finished. Selecting anything
-  // else replays the animation, since it won't match until it settles again.
   const [settledDifficulty, setSettledDifficulty] = useState<Difficulty | null>(
     null,
   );

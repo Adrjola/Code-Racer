@@ -9,8 +9,8 @@ type GlobalRankingTableProps = {
 const columnsClassName =
   'grid grid-cols-[3rem_1fr_6rem_5rem] items-center gap-4';
 
-// Top 3 ranks always keep their gold/pink tier color even for the users's
-// own row. Outside the top 3 the user's row is purple instead of grey
+// Top 3 ranks always keep their gold/pink tier color even for the user's
+// own row. Outside the top 3, the user's row is purple instead of grey.
 function rowClassName(rank: number, isCurrentUser: boolean) {
   const base = `${columnsClassName} rounded-[11px] border px-6 py-5`;
 

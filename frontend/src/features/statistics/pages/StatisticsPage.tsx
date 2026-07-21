@@ -19,10 +19,6 @@ type StatisticsPageProps = {
   session: AuthSession;
 };
 
-// Measures the wrapped element's unscaled height so its sticky/flow
-// wrapper can be given an explicit height matching what the desktop
-// canvas below actually looks like once transform:scale shrinks it —
-// a transform never changes the space an element reserves in the page.
 function useNaturalHeight() {
   const ref = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
@@ -62,10 +58,6 @@ export default function StatisticsPage({
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
-      {/* Desktop (lg+) freezes this at literal Figma pixels (1920 wide) and
-          scales the whole thing to fit the viewport via CSS transform, so
-          zooming/resizing rescales the design instead of reflowing it —
-          same technique the auth pages use. Below lg it's normal fluid flow. */}
       <div
         className="sticky top-0 z-10 bg-surface lg:overflow-hidden lg:[height:calc(var(--stats-header-h)*var(--stats-scale))]"
         style={{ '--stats-header-h': `${headerHeight}px` } as CSSProperties}
@@ -74,8 +66,8 @@ export default function StatisticsPage({
           className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--stats-scale))]"
           ref={headerCanvasRef}
         >
-          <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6">
-            <Logo />
+          <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
+            <Logo onClick={onGoDashboard} />
             <div className="flex items-center gap-4">
               <span
                 aria-hidden="true"
@@ -104,16 +96,6 @@ export default function StatisticsPage({
                 {isMenuOpen && (
                   <div className="absolute right-0 top-12 z-10 flex w-40 flex-col overflow-hidden rounded-[9px] border border-white/10 bg-[#15121f] py-1 shadow-lg">
                     <button
-                      className="px-4 py-2 text-left text-sm font-semibold text-text-secondary hover:bg-white/5 hover:text-text-primary"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onGoDashboard();
-                      }}
-                      type="button"
-                    >
-                      Dashboard
-                    </button>
-                    <button
                       className="px-4 py-2 text-left text-sm font-semibold text-pink-300 hover:bg-white/5"
                       onClick={() => {
                         setIsMenuOpen(false);
@@ -136,7 +118,7 @@ export default function StatisticsPage({
         style={{ '--stats-main-h': `${mainHeight}px` } as CSSProperties}
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-16 lg:mx-0 lg:w-[1920px] lg:max-w-none lg:origin-top-left lg:[transform:scale(var(--stats-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-16 lg:mx-0 lg:w-[1920px] lg:max-w-none lg:origin-top-left lg:px-[40px] lg:[transform:scale(var(--stats-scale))]"
           ref={mainCanvasRef}
         >
           <div className="flex items-center gap-3">

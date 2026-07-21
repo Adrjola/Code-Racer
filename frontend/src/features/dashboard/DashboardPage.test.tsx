@@ -75,7 +75,7 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     renderDashboard({ onPlaySolo });
 
-    // Nav order: Dashboard, Statistics, Log out, then the solo card.
+    // Nav order: logo, statistics trophy, log out, then the solo card.
     await user.tab();
     await user.tab();
     await user.tab();
@@ -87,6 +87,54 @@ describe('DashboardPage', () => {
     await user.keyboard('{Enter}');
 
     expect(onPlaySolo).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no separate Dashboard link since this page is the dashboard', () => {
+    renderDashboard();
+
+    expect(
+      screen.queryByRole('button', { name: /^dashboard$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('goes to statistics when the trophy icon is clicked', async () => {
+    const onGoStatistics = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <DashboardPage
+        onGoAdmin={vi.fn()}
+        onGoDashboard={vi.fn()}
+        onGoStatistics={onGoStatistics}
+        onLogout={vi.fn()}
+        onPlaySolo={vi.fn()}
+        session={session()}
+        view="dashboard"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /statistics/i }));
+
+    expect(onGoStatistics).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes to the dashboard when the logo is clicked', async () => {
+    const onGoDashboard = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <DashboardPage
+        onGoAdmin={vi.fn()}
+        onGoDashboard={onGoDashboard}
+        onGoStatistics={vi.fn()}
+        onLogout={vi.fn()}
+        onPlaySolo={vi.fn()}
+        session={session()}
+        view="dashboard"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
+
+    expect(onGoDashboard).toHaveBeenCalledTimes(1);
   });
 
   it('does not affect solo when the multiplayer card is clicked', async () => {

@@ -9,7 +9,6 @@ type PersonalActivityGridProps = {
   entries: PersonalActivityEntry[];
 };
 
-// Falls back to the generic code icon for any category not listed here yet.
 const CATEGORY_ICON: Record<string, ReactNode> = {
   JAVA: (
     <span className="font-mono text-[64px] font-bold leading-none text-[#a855f714]">
@@ -42,8 +41,7 @@ function PersonalActivityCard({ entry }: { entry: PersonalActivityEntry }) {
         className="absolute left-[18px] top-0 h-[1.5px] w-[70px] bg-gradient-to-r from-transparent via-[#c084fc] to-transparent"
       />
 
-      {/* Positioned to match the Figma glyph's real ink bounds, not the
-          text-layer box, so it sits independent of the content below. */}
+
       <span
         aria-hidden="true"
         className="pointer-events-none absolute right-9 top-11"
@@ -60,8 +58,6 @@ function PersonalActivityCard({ entry }: { entry: PersonalActivityEntry }) {
         </p>
       </div>
 
-      {/* 74.8% keeps the same proportion as Figma's 582px column at any
-          card width, so the divider stays clear of the icon on the right. */}
       <div className="mt-6 h-px w-[74.8%] bg-white/10" />
 
       <div className="mt-2 flex w-[74.8%] items-center">

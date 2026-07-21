@@ -108,7 +108,7 @@ describe('StatisticsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens the menu and navigates back to the dashboard', async () => {
+  it('goes to the dashboard when the logo is clicked', async () => {
     const onGoDashboard = vi.fn();
     const user = userEvent.setup();
     render(
@@ -119,10 +119,20 @@ describe('StatisticsPage', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /menu/i }));
-    await user.click(screen.getByRole('button', { name: /dashboard/i }));
+    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
 
     expect(onGoDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it('no longer has a Dashboard item in the menu', async () => {
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('button', { name: /menu/i }));
+
+    expect(
+      screen.queryByRole('button', { name: /^dashboard$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('logs out from the menu', async () => {
