@@ -24,8 +24,6 @@ const result: SoloAttemptResultResponse = {
   finishedAt: '2026-07-17T12:00:45Z',
   snippet: {
     categoryId: 'c1',
-    revisionId: 'r1',
-    revisionNumber: 1,
     snippetId: 'g1',
     title: 'FizzBuzz',
   },

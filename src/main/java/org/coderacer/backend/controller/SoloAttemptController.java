@@ -11,6 +11,7 @@ import org.coderacer.backend.dto.GlobalStatisticsResponse;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.ProgressAckResponse;
 import org.coderacer.backend.dto.SnippetStatisticsResponse;
+import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
 import org.coderacer.backend.dto.StartSoloAttemptResponse;
@@ -25,6 +26,7 @@ import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SnippetStatisticsService;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
+import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
@@ -51,6 +53,7 @@ public class SoloAttemptController {
   private final PersonalStatisticsService statisticsService;
   private final GlobalStatisticsService globalStatisticsService;
   private final SnippetStatisticsService snippetStatisticsService;
+  private final SoloAttemptRankingService rankingService;
   private final CurrentUserProvider currentUserProvider;
   private final SoloAttemptMapper mapper;
 
@@ -132,6 +135,13 @@ public class SoloAttemptController {
     return new BaseResponse<>(
         new SnippetStatisticsResponse(snippetStatisticsService.forUser(userId)),
         MDC.get("correlationId"));
+  }
+
+  @GetMapping("/{id}/ranking")
+  public BaseResponse<SoloAttemptRankingResponse> ranking(
+      @PathVariable UUID id, HttpServletRequest httpRequest) {
+    UUID userId = currentUserProvider.resolve(httpRequest);
+    return new BaseResponse<>(rankingService.forAttempt(id, userId), MDC.get("correlationId"));
   }
 
   @GetMapping("/{id}")

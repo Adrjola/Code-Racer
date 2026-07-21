@@ -21,6 +21,7 @@ import org.coderacer.backend.dto.GlobalStatisticsResponse;
 import org.coderacer.backend.dto.HighestCpmRecord;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.SnippetStatistics;
+import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.SoloAttemptSnippetSummary;
 import org.coderacer.backend.enums.Difficulty;
@@ -42,6 +43,7 @@ import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SnippetStatisticsService;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
+import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,7 @@ class SoloAttemptControllerTest {
   private final PersonalStatisticsService statisticsService = mock(PersonalStatisticsService.class);
   private final GlobalStatisticsService globalStatisticsService =
       mock(GlobalStatisticsService.class);
+  private final SoloAttemptRankingService rankingService = mock(SoloAttemptRankingService.class);
   private final SnippetStatisticsService snippetStatisticsService =
       mock(SnippetStatisticsService.class);
   private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
@@ -76,6 +79,7 @@ class SoloAttemptControllerTest {
                     statisticsService,
                     globalStatisticsService,
                     snippetStatisticsService,
+                    rankingService,
                     currentUserProvider,
                     mapper))
             .setControllerAdvice(new GlobalExceptionHandler())
@@ -494,5 +498,37 @@ class SoloAttemptControllerTest {
         .andExpect(jsonPath("$.data.difficulties[0].highestCpm.email").doesNotExist())
         .andExpect(jsonPath("$.data.difficulties[0].highestCpm.enabled").doesNotExist())
         .andExpect(jsonPath("$.data.difficulties[0].highestCpm.role").doesNotExist());
+  }
+
+  @Test
+  void rankingReturnsTheLeaderboardContextForAnAttempt() throws Exception {
+    UUID attemptId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(rankingService.forAttempt(attemptId, userId))
+        .thenReturn(new SoloAttemptRankingResponse(attemptId, true, 47_000L, 431, 171, 171, 301));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/" + attemptId + "/ranking"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.newPersonalBest").value(true))
+        .andExpect(jsonPath("$.data.previousBestDurationMs").value(47000))
+        .andExpect(jsonPath("$.data.previousBestCpm").value(431))
+        .andExpect(jsonPath("$.data.attemptRank").value(171))
+        .andExpect(jsonPath("$.data.globalRank").value(171))
+        .andExpect(jsonPath("$.data.previousGlobalRank").value(301));
+  }
+
+  @Test
+  void rankingReturns404ForAnAttemptThatDoesNotExist() throws Exception {
+    UUID attemptId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    when(currentUserProvider.resolve(any())).thenReturn(userId);
+    when(rankingService.forAttempt(attemptId, userId))
+        .thenThrow(new SoloAttemptNotFoundException(attemptId));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/" + attemptId + "/ranking"))
+        .andExpect(status().isNotFound());
   }
 }

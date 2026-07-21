@@ -3,13 +3,16 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SoloRaceResult } from '../../../../features/solo/race/components/SoloRaceResult';
-import type { SoloAttemptResultResponse } from '../../../../features/solo/race/api/soloRaceApi';
-import { formatDuration } from '../../../../features/solo/race/utils/formatDuration';
+import type {
+  SoloAttemptRankingResponse,
+  SoloAttemptResultResponse,
+} from '../../../../features/solo/race/api/soloRaceApi';
+import { formatDurationPrecise } from '../../../../features/solo/race/utils/formatDuration';
 import { saveSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 
 const API_URL = 'http://localhost:8080';
-const HISTORY_URL = `${API_URL}/api/solo-attempts`;
+const RANKING_URL = `${API_URL}/api/solo-attempts/a1/ranking`;
 
 function result(
   overrides: Partial<SoloAttemptResultResponse> = {},
@@ -18,12 +21,10 @@ function result(
     attemptId: 'a1',
     cpm: 452,
     difficulty: 'EASY',
-    durationMs: 41_000,
+    durationMs: 41_111,
     finishedAt: '2026-07-17T12:00:41Z',
     snippet: {
       categoryId: 'c1',
-      revisionId: 'r1',
-      revisionNumber: 1,
       snippetId: 'g1',
       title: 'FizzBuzz',
     },
@@ -33,28 +34,36 @@ function result(
   };
 }
 
-/** Answers the two sorted history lookups the screen makes. */
-function withHistory(attempts: SoloAttemptResultResponse[]) {
-  server.use(
-    http.get(HISTORY_URL, ({ request }) => {
-      const sort = new URL(request.url).searchParams.get('sort') ?? '';
-      const sorted = [...attempts].sort((a, b) =>
-        sort.startsWith('cpm')
-          ? (b.cpm ?? 0) - (a.cpm ?? 0)
-          : (a.durationMs ?? 0) - (b.durationMs ?? 0),
-      );
-      return HttpResponse.json({
-        data: {
-          content: sorted.slice(0, 2),
-          page: {
-            number: 0,
-            size: 2,
-            totalElements: sorted.length,
-            totalPages: 1,
-          },
-        },
-      });
-    }),
+/** Answers the single ranking lookup the screen makes. */
+function withRanking(overrides: Partial<SoloAttemptRankingResponse> = {}) {
+  const ranking: SoloAttemptRankingResponse = {
+    attemptId: 'a1',
+    attemptRank: 171,
+    globalRank: 171,
+    newPersonalBest: true,
+    previousBestCpm: null,
+    previousBestDurationMs: null,
+    previousGlobalRank: null,
+    ...overrides,
+  };
+  server.use(http.get(RANKING_URL, () => HttpResponse.json({ data: ranking })));
+}
+
+function renderResult(
+  overrides: Partial<SoloAttemptResultResponse> = {},
+  handlers: {
+    onLobby?: () => void;
+    onNewSnippet?: () => void;
+    onRaceAgain?: () => void;
+  } = {},
+) {
+  render(
+    <SoloRaceResult
+      onLobby={handlers.onLobby ?? vi.fn()}
+      onNewSnippet={handlers.onNewSnippet ?? vi.fn()}
+      onRaceAgain={handlers.onRaceAgain ?? vi.fn()}
+      result={result(overrides)}
+    />,
   );
 }
 
@@ -75,139 +84,143 @@ beforeEach(() => {
   });
 });
 
-describe('formatDuration', () => {
-  it('formats the server duration as m:ss', () => {
-    expect(formatDuration(45_000)).toBe('0:45');
-    expect(formatDuration(65_000)).toBe('1:05');
-    expect(formatDuration(0)).toBe('0:00');
+describe('formatDurationPrecise', () => {
+  it('keeps the milliseconds the race was decided by', () => {
+    expect(formatDurationPrecise(41_111)).toBe('0:41.111');
+    expect(formatDurationPrecise(65_007)).toBe('1:05.007');
+    expect(formatDurationPrecise(0)).toBe('0:00.000');
   });
 
   it('shows a placeholder when the attempt has no duration', () => {
-    expect(formatDuration(null)).toBe('--');
+    expect(formatDurationPrecise(null)).toBe('--');
   });
 });
 
 describe('SoloRaceResult', () => {
   it('shows the cpm the server calculated', async () => {
-    withHistory([result()]);
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+    withRanking();
+    renderResult();
 
     expect(screen.getByText('452')).toBeInTheDocument();
     expect(screen.getByText('CPM')).toBeInTheDocument();
-    expect(await screen.findByText(/first completed race/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/first run on this one/),
+    ).toBeInTheDocument();
   });
 
-  it('claims nothing about records until history has loaded', async () => {
+  it('shows the race time down to the millisecond', () => {
+    withRanking();
+    renderResult();
+
+    expect(screen.getByText('0:41.111')).toBeInTheDocument();
+  });
+
+  it('claims nothing about records or rank until the ranking has loaded', async () => {
     // Never resolves, so the screen stays in its pre-load state.
-    server.use(http.get(HISTORY_URL, () => new Promise(() => {})));
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+    server.use(http.get(RANKING_URL, () => new Promise(() => {})));
+    renderResult();
 
     expect(screen.getByText('452')).toBeInTheDocument();
     expect(
       screen.getByText(/checking your previous races/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/first completed race/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^#\d/)).not.toBeInTheDocument();
   });
 
-  it('celebrates beating the previous best', async () => {
-    withHistory([
-      result(),
-      result({ attemptId: 'older', cpm: 431, durationMs: 47_000 }),
-    ]);
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+  describe('first clear of a snippet', () => {
+    it('shows the badge, the rank, and no comparisons', async () => {
+      withRanking({ attemptRank: 171, newPersonalBest: true });
+      renderResult();
 
-    expect(await screen.findByText(/New personal best/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/\+21 cpm over previous best \(431\)/),
-    ).toBeInTheDocument();
-    // The older run was slower, so this race is the best time.
-    expect(screen.getByText('0:41')).toBeInTheDocument();
+      expect(await screen.findByText(/New personal best/i)).toBeInTheDocument();
+      expect(screen.getByText('#171')).toBeInTheDocument();
+      expect(screen.getByText('Best time')).toBeInTheDocument();
+      expect(screen.queryByText(/previously/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/your best/)).not.toBeInTheDocument();
+    });
   });
 
-  it('keeps the earlier best time when this race was slower', async () => {
-    withHistory([
-      result({ durationMs: 41_000 }),
-      result({ attemptId: 'older', cpm: 500, durationMs: 30_000 }),
-    ]);
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+  describe('new personal best', () => {
+    it('celebrates the improvement and shows what it replaced', async () => {
+      withRanking({
+        attemptRank: 171,
+        globalRank: 171,
+        newPersonalBest: true,
+        previousBestCpm: 431,
+        previousBestDurationMs: 47_000,
+        previousGlobalRank: 301,
+      });
+      renderResult();
 
-    expect(await screen.findByText('0:30')).toBeInTheDocument();
-    expect(screen.getByText(/this race 0:41/)).toBeInTheDocument();
-    expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
+      expect(await screen.findByText(/New personal best/i)).toBeInTheDocument();
+      // The delta splits the coloured number from the muted explanation.
+      expect(screen.getByText('+21 cpm')).toBeInTheDocument();
+      expect(screen.getByText('over previous best {431}')).toBeInTheDocument();
+      expect(screen.getByText('Best time')).toBeInTheDocument();
+      expect(screen.getByText('0:41.111')).toBeInTheDocument();
+      expect(screen.getByText('// previously 0:47.000')).toBeInTheDocument();
+      expect(screen.getByText('#171')).toBeInTheDocument();
+      expect(screen.getByText('// previously #301')).toBeInTheDocument();
+    });
+  });
+
+  describe('slower than the personal best', () => {
+    it('shows where this run landed and the rank the player keeps', async () => {
+      withRanking({
+        attemptRank: 301,
+        globalRank: 171,
+        newPersonalBest: false,
+        previousBestCpm: 502,
+        previousBestDurationMs: 41_000,
+        previousGlobalRank: 171,
+      });
+      renderResult({ cpm: 452, durationMs: 48_111 });
+
+      expect(await screen.findByText('#301')).toBeInTheDocument();
+      expect(screen.getByText('// your best #171')).toBeInTheDocument();
+      expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Time')).toBeInTheDocument();
+      expect(screen.getByText('0:48.111')).toBeInTheDocument();
+      expect(screen.getByText('// your best 0:41.000')).toBeInTheDocument();
+      expect(screen.getByText('-50 cpm')).toBeInTheDocument();
+      expect(screen.getByText('under your best {502}')).toBeInTheDocument();
+    });
   });
 
   it('does not claim a score for an unfinished attempt', async () => {
-    withHistory([]);
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result({ cpm: null, durationMs: null, state: 'ABANDONED' })}
-      />,
-    );
+    renderResult({ cpm: null, durationMs: null, state: 'ABANDONED' });
 
     expect(screen.getByText(/race abandoned - no score/)).toBeInTheDocument();
     expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByText(/did not finish/)).toBeInTheDocument(),
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0),
     );
   });
 
-  it('still renders when the history lookup fails', async () => {
-    server.use(http.get(HISTORY_URL, () => HttpResponse.error()));
-    render(
-      <SoloRaceResult
-        onLobby={vi.fn()}
-        onRaceAgain={vi.fn()}
-        result={result()}
-      />,
-    );
+  it('still renders when the ranking lookup fails', async () => {
+    server.use(http.get(RANKING_URL, () => HttpResponse.error()));
+    renderResult();
 
     expect(await screen.findByText('452')).toBeInTheDocument();
+    expect(screen.queryByText(/New personal best/i)).not.toBeInTheDocument();
   });
 
-  it('offers restarting and returning to the dashboard', async () => {
-    withHistory([result()]);
+  it('offers a new snippet, a restart, and the way back to the lobby', async () => {
+    withRanking();
     const onLobby = vi.fn();
+    const onNewSnippet = vi.fn();
     const onRaceAgain = vi.fn();
-    render(
-      <SoloRaceResult
-        onLobby={onLobby}
-        onRaceAgain={onRaceAgain}
-        result={result()}
-      />,
-    );
+    renderResult({}, { onLobby, onNewSnippet, onRaceAgain });
+
+    await userEvent.click(screen.getByRole('button', { name: /new snippet/i }));
+    expect(onNewSnippet).toHaveBeenCalledOnce();
 
     await userEvent.click(screen.getByRole('button', { name: /restart/i }));
     expect(onRaceAgain).toHaveBeenCalledOnce();
 
     await userEvent.click(
-      screen.getByRole('button', { name: /back to dashboard/i }),
+      screen.getByRole('button', { name: /back to lobby/i }),
     );
     expect(onLobby).toHaveBeenCalledOnce();
   });
