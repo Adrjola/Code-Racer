@@ -41,7 +41,6 @@ function PersonalActivityCard({ entry }: { entry: PersonalActivityEntry }) {
         className="absolute left-[18px] top-0 h-[1.5px] w-[70px] bg-gradient-to-r from-transparent via-[#c084fc] to-transparent"
       />
 
-
       <span
         aria-hidden="true"
         className="pointer-events-none absolute right-9 top-11"

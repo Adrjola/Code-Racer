@@ -32,7 +32,6 @@ const SELECTED_DOT_CLASSNAME: Record<Difficulty, string> = {
   MEDIUM: 'bg-[#fbbf24]',
 };
 
-
 const OUTLINE_HEX: Record<Difficulty, string> = {
   EASY: '#34d399',
   HARD: '#f472b6',
