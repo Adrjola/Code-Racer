@@ -5,9 +5,11 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import Button from '@/components/Button';
 import Header from '@/components/Header';
 import { PeopleIcon, PersonIcon } from '@/components/icons';
 import SnippetsPage from '@/features/admin/pages/SnippetsPage';
+import UsersPage from '@/features/admin/users/UsersPage';
 import type { AuthSession } from '@/features/auth/session';
 
 type HomePageProps = {
@@ -146,6 +148,7 @@ export default function HomePage({
 }: HomePageProps) {
   const isAdmin = session.user.role === 'ADMIN';
   const { height, ref: canvasRef } = useNaturalHeight();
+  const [adminTab, setAdminTab] = useState<'snippets' | 'users'>('snippets');
 
   const noticeBanner = notice ? (
     <p
@@ -180,8 +183,26 @@ export default function HomePage({
               Admin
             </p>
             <h1 className="mt-2 text-3xl font-extrabold">Admin console</h1>
+            <nav aria-label="Admin sections" className="mt-4 flex gap-2">
+              <Button
+                onClick={() => setAdminTab('snippets')}
+                variant={adminTab === 'snippets' ? 'primary' : 'ghost'}
+              >
+                Snippets
+              </Button>
+              <Button
+                onClick={() => setAdminTab('users')}
+                variant={adminTab === 'users' ? 'primary' : 'ghost'}
+              >
+                Users
+              </Button>
+            </nav>
           </section>
-          <SnippetsPage />
+          {adminTab === 'snippets' ? (
+            <SnippetsPage />
+          ) : (
+            <UsersPage session={session} />
+          )}
         </main>
       </div>
     );
