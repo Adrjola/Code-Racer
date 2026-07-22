@@ -1,10 +1,7 @@
 package org.coderacer.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
@@ -23,7 +20,7 @@ class AccountEmailListenerTest {
           new EmailVerificationProperties(
               Duration.ofHours(24), Duration.ofMinutes(2), "http://localhost:5173/verify-email"),
           new PasswordResetProperties(
-              Duration.ofHours(1), Duration.ofMinutes(2), "http://localhost:5173/reset"));
+              Duration.ofMinutes(30), Duration.ofMinutes(2), "http://localhost:5173/reset"));
 
   @Test
   void sendVerificationEmail_buildsLinkFromRawToken() {
@@ -33,7 +30,8 @@ class AccountEmailListenerTest {
     verify(emailSender).send(messageCaptor.capture());
     assertThat(messageCaptor.getValue().subject()).isEqualTo("Verify your Code Racer account");
     assertThat(messageCaptor.getValue().text())
-        .contains("http://localhost:5173/verify-email?token=raw-token");
+        .contains("http://localhost:5173/verify-email?token=raw-token")
+        .contains("This link expires in 24 hours.");
   }
 
   @Test
@@ -44,20 +42,8 @@ class AccountEmailListenerTest {
     verify(emailSender).send(messageCaptor.capture());
     assertThat(messageCaptor.getValue().subject()).isEqualTo("Reset your Code Racer password");
     assertThat(messageCaptor.getValue().text())
-        .contains("http://localhost:5173/reset?token=raw-reset-token");
-  }
-
-  @Test
-  void send_retriesTransientDeliveryFailures() {
-    doThrow(new IllegalStateException("smtp unavailable"))
-        .doThrow(new IllegalStateException("smtp unavailable"))
-        .doNothing()
-        .when(emailSender)
-        .send(any(EmailMessage.class));
-
-    listener.sendVerificationEmail(verificationEvent());
-
-    verify(emailSender, times(3)).send(any(EmailMessage.class));
+        .contains("http://localhost:5173/reset?token=raw-reset-token")
+        .contains("This link expires in 30 minutes.");
   }
 
   private EmailVerificationRequestedEvent verificationEvent() {

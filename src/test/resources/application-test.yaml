@@ -16,7 +16,6 @@ app:
     allowed-origins: http://localhost:5173
   email:
     delivery:
-      mode: captured
       from: no-reply@coderacer.test
   email-verification:
     verification-url: http://localhost:5173/verify-email

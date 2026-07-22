@@ -172,8 +172,12 @@ Stop the stack and delete the local database volume:
 docker compose down -v
 ```
 
-Use volume removal only when a clean local database is intended. Never commit
-`.env`, access tokens, passwords, or other real secrets.
+Use volume removal only when a clean local database is intended. If
+`POSTGRES_DB`, `POSTGRES_USER`, or `POSTGRES_PASSWORD` changes after the
+database volume was created, recreate the volume with
+`docker compose down -v --remove-orphans`; plain `docker compose down` keeps the
+old database data and credentials. Never commit `.env`, access tokens,
+passwords, or other real secrets.
 
 ## Documentation
 
@@ -185,43 +189,33 @@ Use volume removal only when a clean local database is intended. Never commit
 
 Production deployment is handled by `.github/workflows/deploy.yml`. Pull
 requests into `main` build the Docker image without touching the server. Pushes
-to `main` and manual workflow runs from `main` deploy on the self-hosted runner
-through the `production` GitHub Environment. The deploy job builds a single
-Docker image containing the Spring Boot API and the compiled Vite frontend,
-starts PostgreSQL in a private Docker network with a persistent volume, then
-exposes only the application port.
+to `main` deploy on the self-hosted runner through the `production` GitHub
+Environment. The deploy job builds a single Docker image containing the Spring
+Boot API and the compiled Vite frontend, starts PostgreSQL in a private Docker
+network with a persistent volume, then exposes only the application port.
 
 Required `production` Environment Secrets:
 
-- `POSTGRES_DB`
-- `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
-- `MAIL_HOST`
-- `MAIL_PORT`
-- `MAIL_USERNAME`
 - `MAIL_PASSWORD`
-- `MAIL_SMTP_AUTH`
-- `MAIL_SMTP_STARTTLS_ENABLE`
-- `APP_EMAIL_DELIVERY_MODE`
-- `APP_EMAIL_FROM`
-- `APP_EMAIL_VERIFICATION_URL`
-- `APP_PASSWORD_RESET_URL`
 - `APP_JWT_SECRET`
-- `APP_JWT_ACCESS_TOKEN_TTL`
-- `ALLOWED_ORIGINS`
-- `APP_ADMIN_BOOTSTRAP_ENABLED`
-
-Optional `production` Environment Secrets:
-
-- `APP_ADMIN_EMAIL`
-- `APP_ADMIN_USERNAME`
-- `APP_ADMIN_PASSWORD`
 - `APP_AI_API_KEY`
 
 Required `production` Environment Variables:
 
-- `SERVER_PORT`
-- `APP_PUBLIC_URL`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `MAIL_HOST`
+- `MAIL_PORT`
+- `MAIL_USERNAME`
+- `MAIL_SMTP_AUTH`
+- `MAIL_SMTP_STARTTLS_ENABLE`
+- `APP_EMAIL_FROM`
+- `APP_EMAIL_VERIFICATION_URL`
+- `APP_PASSWORD_RESET_URL`
+- `APP_JWT_ACCESS_TOKEN_TTL`
+- `ALLOWED_ORIGINS`
+- `APP_ADMIN_BOOTSTRAP_ENABLED`
 - `APP_EMAIL_VERIFICATION_TOKEN_TTL`
 - `APP_EMAIL_VERIFICATION_RESEND_COOLDOWN`
 - `APP_PASSWORD_RESET_TOKEN_TTL`
@@ -229,6 +223,14 @@ Required `production` Environment Variables:
 - `APP_AI_ENABLED`
 - `APP_AI_BASE_URL`
 - `APP_AI_MODEL_ID`
+
+Admin bootstrap values are needed only while creating the first production
+admin. Email and username are Environment Variables; password is an Environment
+Secret:
+
+- `APP_ADMIN_EMAIL`
+- `APP_ADMIN_USERNAME`
+- `APP_ADMIN_PASSWORD`
 
 For the first production deploy only, set `APP_ADMIN_BOOTSTRAP_ENABLED=true`
 and provide the admin email, username, and password. After the first admin user

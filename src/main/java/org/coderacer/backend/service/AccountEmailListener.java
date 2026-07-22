@@ -4,8 +4,6 @@ import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.config.properties.EmailVerificationProperties;
 import org.coderacer.backend.config.properties.PasswordResetProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -16,10 +14,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequiredArgsConstructor
 public class AccountEmailListener {
 
-  private static final Logger log = LoggerFactory.getLogger(AccountEmailListener.class);
-  private static final int MAX_DELIVERY_ATTEMPTS = 3;
-  private static final Duration RETRY_BACKOFF = Duration.ofMillis(250);
-
   private final EmailSender emailSender;
   private final EmailVerificationProperties verificationProperties;
   private final PasswordResetProperties passwordResetProperties;
@@ -27,34 +21,13 @@ public class AccountEmailListener {
   @Async("emailTaskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void sendVerificationEmail(EmailVerificationRequestedEvent event) {
-    send(verificationMessage(event), "Verification email");
+    emailSender.send(verificationMessage(event));
   }
 
   @Async("emailTaskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void sendPasswordResetEmail(PasswordResetRequestedEvent event) {
-    send(passwordResetMessage(event), "Password reset email");
-  }
-
-  private void send(EmailMessage message, String emailType) {
-    for (int attempt = 1; attempt <= MAX_DELIVERY_ATTEMPTS; attempt++) {
-      try {
-        emailSender.send(message);
-        if (attempt > 1) {
-          log.info("{} delivery succeeded on attempt {}", emailType, attempt);
-        }
-        return;
-      } catch (RuntimeException ex) {
-        if (attempt == MAX_DELIVERY_ATTEMPTS) {
-          log.error("{} delivery failed after {} attempts", emailType, MAX_DELIVERY_ATTEMPTS, ex);
-          return;
-        }
-        log.warn("{} delivery failed on attempt {}; retrying", emailType, attempt);
-        if (!waitBeforeRetry(emailType)) {
-          return;
-        }
-      }
-    }
+    emailSender.send(passwordResetMessage(event));
   }
 
   private EmailMessage verificationMessage(EmailVerificationRequestedEvent event) {
@@ -67,11 +40,11 @@ public class AccountEmailListener {
         Verify your Code Racer account by opening this link:
         %s
 
-        This link expires at %s UTC. If you did not create a Code Racer account, ignore this email.
+        This link expires in %s. If you did not create a Code Racer account, ignore this email.
         """
             .formatted(
                 link(verificationProperties.verificationUrl(), event.rawToken()),
-                event.expiresAt()));
+                formatDuration(verificationProperties.tokenTtl())));
   }
 
   private EmailMessage passwordResetMessage(PasswordResetRequestedEvent event) {
@@ -84,10 +57,11 @@ public class AccountEmailListener {
         Reset your Code Racer password by opening this link:
         %s
 
-        This link expires at %s UTC. If you did not request a password reset, ignore this email.
+        This link expires in %s. If you did not request a password reset, ignore this email.
         """
             .formatted(
-                link(passwordResetProperties.resetUrl(), event.rawToken()), event.expiresAt()));
+                link(passwordResetProperties.resetUrl(), event.rawToken()),
+                formatDuration(passwordResetProperties.tokenTtl())));
   }
 
   private String link(String baseUrl, String rawToken) {
@@ -97,14 +71,18 @@ public class AccountEmailListener {
         .toUriString();
   }
 
-  private boolean waitBeforeRetry(String emailType) {
-    try {
-      Thread.sleep(RETRY_BACKOFF.toMillis());
-      return true;
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      log.error("{} delivery retry interrupted", emailType, ex);
-      return false;
+  private String formatDuration(Duration duration) {
+    long seconds = duration.toSeconds();
+    if (seconds < 60) {
+      return plural(seconds, "second");
     }
+    if (seconds % 3600 == 0) {
+      return plural(seconds / 3600, "hour");
+    }
+    return plural(seconds / 60, "minute");
+  }
+
+  private String plural(long value, String unit) {
+    return value + " " + unit + (value == 1 ? "" : "s");
   }
 }

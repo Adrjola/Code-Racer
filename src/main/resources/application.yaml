@@ -25,6 +25,9 @@ spring:
       ddl-auto: validate
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -42,7 +45,6 @@ app:
     allowed-origins: ${ALLOWED_ORIGINS}
   email:
     delivery:
-      mode: ${APP_EMAIL_DELIVERY_MODE}
       from: ${APP_EMAIL_FROM}
   email-verification:
     verification-url: ${APP_EMAIL_VERIFICATION_URL}
