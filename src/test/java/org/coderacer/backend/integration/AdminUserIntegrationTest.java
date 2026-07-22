@@ -6,7 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Instant;
 import java.util.UUID;
 import org.coderacer.backend.dto.AdminUserResponse;
+import org.coderacer.backend.dto.AdminUserUpdateRequest;
 import org.coderacer.backend.enums.UserRole;
+import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.SelfActionForbiddenException;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
@@ -72,6 +74,33 @@ class AdminUserIntegrationTest extends AbstractPostgresIntegrationTest {
     assertThat(restored.username()).isEqualTo(originalUsername);
     assertThat(restored.email()).isEqualTo(originalEmail);
     assertThat(restored.deleted()).isFalse();
+  }
+
+  @Test
+  void update_changesUsernameAndEmail_withoutTouchingVerificationOrRole() {
+    User user = saveUser("editable_user", UserRole.USER, true, false);
+
+    AdminUserResponse updated =
+        service.update(
+            user.getId(), new AdminUserUpdateRequest("renamed_user", "renamed@example.com"));
+
+    assertThat(updated.username()).isEqualTo("renamed_user");
+    assertThat(updated.email()).isEqualTo("renamed@example.com");
+    assertThat(updated.emailVerified()).isTrue();
+    assertThat(updated.deleted()).isFalse();
+  }
+
+  @Test
+  void update_conflictsOnEmailAlreadyUsedByAnotherUser() {
+    saveUser("taken_owner", UserRole.USER, true, false);
+    User target = saveUser("edit_target", UserRole.USER, true, false);
+
+    assertThatThrownBy(
+            () ->
+                service.update(
+                    target.getId(),
+                    new AdminUserUpdateRequest("edit_target", "taken_owner@example.com")))
+        .isInstanceOf(ConflictException.class);
   }
 
   private User saveUser(String username, UserRole role, boolean emailVerified, boolean deleted) {

@@ -24,6 +24,11 @@ export type PageRequest = {
   size?: number;
 };
 
+export type AdminUserEditValues = {
+  username: string;
+  email: string;
+};
+
 // The backend response is not trusted verbatim: only these known fields are
 // ever read off it, so an unexpected field (e.g. a token hash) can never
 // reach the UI even if the API were to start returning one.
@@ -63,6 +68,17 @@ export async function restoreUser(id: string): Promise<AdminUser> {
   const response = await apiRequest<BaseResponse<AdminUser>>(
     `/api/admin/users/${id}/restore`,
     { auth: true, method: 'POST' },
+  );
+  return toAdminUser(response.data);
+}
+
+export async function updateUser(
+  id: string,
+  values: AdminUserEditValues,
+): Promise<AdminUser> {
+  const response = await apiRequest<BaseResponse<AdminUser>>(
+    `/api/admin/users/${id}`,
+    { auth: true, body: JSON.stringify(values), method: 'PUT' },
   );
   return toAdminUser(response.data);
 }

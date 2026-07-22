@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,14 +17,17 @@ import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.enums.UserRole;
+import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.GlobalExceptionHandler;
 import org.coderacer.backend.exception.SelfActionForbiddenException;
+import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.AdminUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -107,5 +111,50 @@ class AdminUserControllerTest {
     when(service.restore(id)).thenReturn(response);
 
     mockMvc.perform(post("/api/admin/users/" + id + "/restore")).andExpect(status().isOk());
+  }
+
+  @Test
+  void update_returns200() throws Exception {
+    when(service.update(any(), any())).thenReturn(response);
+
+    mockMvc
+        .perform(
+            put("/api/admin/users/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"newname\",\"email\":\"new@example.com\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.username").value("player"));
+  }
+
+  @Test
+  void update_returns400_whenValidationFails() throws Exception {
+    doThrow(new ValidationException("Validation failed: email must not be blank"))
+        .when(service)
+        .update(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/admin/users/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"newname\",\"email\":\"\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void update_returns409_whenConflicting() throws Exception {
+    doThrow(
+            new ConflictException(
+                "A user with this email or username already exists", "USER_ALREADY_EXISTS"))
+        .when(service)
+        .update(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/admin/users/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"taken\",\"email\":\"new@example.com\"}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("USER_ALREADY_EXISTS"));
   }
 }

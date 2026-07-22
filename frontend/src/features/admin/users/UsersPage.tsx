@@ -7,12 +7,15 @@ import { EyeIcon } from '@/components/icons';
 import Modal from '@/components/Modal';
 import Pagination from '@/components/Pagination';
 import SelectField from '@/components/SelectField';
+import UserEditDialog from '@/features/admin/users/components/UserEditDialog';
 import { readableAdminError } from '@/features/admin/errors';
 import {
   deleteUser,
   listUsers,
   restoreUser,
+  updateUser,
   type AdminUser,
+  type AdminUserEditValues,
   type AdminUserFilters,
   type UserRole,
 } from '@/features/admin/users/usersApi';
@@ -20,6 +23,7 @@ import type { AuthSession } from '@/features/auth/session';
 
 type Dialog =
   | { user: AdminUser; type: 'delete' }
+  | { user: AdminUser; type: 'edit' }
   | { user: AdminUser; type: 'restore' }
   | { user: AdminUser; type: 'view' }
   | null;
@@ -164,15 +168,24 @@ export default function UsersPage({ session }: UsersPageProps) {
     });
   };
 
+  const handleEdit = (values: AdminUserEditValues) => {
+    if (dialog?.type !== 'edit') {
+      return;
+    }
+    const { user } = dialog;
+    return run(async () => {
+      await updateUser(user.id, values);
+      setNotice(`"${user.username}" was updated.`);
+    });
+  };
+
   const users = data?.content ?? [];
 
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold text-text-primary">
-            Users
-          </h2>
+          <h2 className="text-2xl font-extrabold text-text-primary">Users</h2>
           <p className="mt-1 text-sm text-text-secondary">
             Deleting a user hides their account without erasing history;
             restoring reverses it.
@@ -257,14 +270,15 @@ export default function UsersPage({ session }: UsersPageProps) {
                         <Badge tone="neutral">Admin</Badge>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-text-muted">
-                      {user.email}
-                    </p>
+                    <p className="mt-1 text-xs text-text-muted">{user.email}</p>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     <Button onClick={() => openDialog({ type: 'view', user })}>
                       <EyeIcon className="mr-2 size-4" />
                       View
+                    </Button>
+                    <Button onClick={() => openDialog({ type: 'edit', user })}>
+                      Edit
                     </Button>
                     {!user.deleted && !isSelf && (
                       <Button
@@ -328,6 +342,16 @@ export default function UsersPage({ session }: UsersPageProps) {
             </dd>
           </dl>
         </Modal>
+      )}
+
+      {dialog?.type === 'edit' && (
+        <UserEditDialog
+          error={dialogError}
+          isSubmitting={isSubmitting}
+          onCancel={closeDialog}
+          onSubmit={handleEdit}
+          user={dialog.user}
+        />
       )}
 
       {dialog?.type === 'delete' && (
