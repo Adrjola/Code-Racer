@@ -99,7 +99,7 @@ class UserRegistrationServiceTest {
   void register_rejectsValuesAboveConfiguredLengthLimits() {
     String longEmail = "a".repeat(110) + "@example.com";
     String longUsername = "u".repeat(21);
-    String longPassword = "P".repeat(17);
+    String longPassword = "P".repeat(73);
     UserRegistrationRequest request =
         new UserRegistrationRequest(longEmail, longUsername, longPassword, longPassword);
 

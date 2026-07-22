@@ -13,7 +13,7 @@ import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ class SoloAttemptRankingHttpIntegrationTest {
   @Autowired private SoloAttemptRepository attemptRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
   @Autowired private UserRepository userRepository;
-  @Autowired private JwtService jwtService;
+  @Autowired private JwtTokenService jwtTokenService;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
 
@@ -105,7 +105,7 @@ class SoloAttemptRankingHttpIntegrationTest {
 
   private ResponseEntity<String> getRanking(UUID attemptId, User caller) {
     HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(jwtService.createAccessToken(caller));
+    headers.setBearerAuth(jwtTokenService.createAccessToken(caller));
     return restTemplate.exchange(
         "/api/solo-attempts/" + attemptId + "/ranking",
         HttpMethod.GET,

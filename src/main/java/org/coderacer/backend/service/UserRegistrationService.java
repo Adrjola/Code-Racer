@@ -12,7 +12,6 @@ import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.util.IdentifierNormalizer;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserRegistrationService {
 
   static final int MIN_PASSWORD_LENGTH = 8;
-  static final int MAX_PASSWORD_LENGTH = 16;
+  static final int MAX_PASSWORD_LENGTH = 72;
 
   private static final Pattern EMAIL_PATTERN =
       Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
@@ -32,30 +31,29 @@ public class UserRegistrationService {
   private static final String DUPLICATE_USER_MESSAGE =
       "A user with this email or username already exists";
 
-  private final UserRepository repository;
+  private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final UserMapper mapper;
   private final EmailVerificationService emailVerificationService;
 
   @Transactional
   public UserResponse register(UserRegistrationRequest request) {
-    NormalizedRegistration registration = validateAndNormalize(request);
+    Registration registration = validateAndNormalize(request);
     return createUser(registration, UserRole.USER, false);
   }
 
   @Transactional
   public UserResponse createInitialAdmin(UserRegistrationRequest request) {
-    NormalizedRegistration registration = validateAndNormalize(request);
+    Registration registration = validateAndNormalize(request);
     return createUser(registration, UserRole.ADMIN, true);
   }
 
   @Transactional(readOnly = true)
   public boolean adminExists() {
-    return repository.existsByRole(UserRole.ADMIN);
+    return userRepository.existsByRole(UserRole.ADMIN);
   }
 
-  private UserResponse createUser(
-      NormalizedRegistration registration, UserRole role, boolean emailVerified) {
+  private UserResponse createUser(Registration registration, UserRole role, boolean emailVerified) {
     rejectDuplicateIdentifiers(registration.email(), registration.usernameNormalized());
 
     User user = new User();
@@ -75,13 +73,13 @@ public class UserRegistrationService {
 
   private User saveUser(User user) {
     try {
-      return repository.saveAndFlush(user);
+      return userRepository.saveAndFlush(user);
     } catch (DataIntegrityViolationException ex) {
       throw duplicateUserConflict();
     }
   }
 
-  private NormalizedRegistration validateAndNormalize(UserRegistrationRequest request) {
+  private Registration validateAndNormalize(UserRegistrationRequest request) {
     List<String> errors = new ArrayList<>();
 
     String email = normalize(request.email());
@@ -95,7 +93,7 @@ public class UserRegistrationService {
       throw new ValidationException("Registration validation failed: " + String.join("; ", errors));
     }
 
-    return new NormalizedRegistration(email, username, usernameNormalized, request.password());
+    return new Registration(email, username, usernameNormalized, request.password());
   }
 
   private void validateEmail(String email, List<String> errors) {
@@ -136,8 +134,8 @@ public class UserRegistrationService {
   }
 
   private void rejectDuplicateIdentifiers(String email, String usernameNormalized) {
-    if (repository.existsByEmail(email)
-        || repository.existsByUsernameNormalized(usernameNormalized)) {
+    if (userRepository.existsByEmail(email)
+        || userRepository.existsByUsernameNormalized(usernameNormalized)) {
       throw duplicateUserConflict();
     }
   }
@@ -147,13 +145,13 @@ public class UserRegistrationService {
   }
 
   private String normalize(String value) {
-    return IdentifierNormalizer.normalize(value);
+    return value.trim().toLowerCase();
   }
 
   private String trim(String value) {
     return value == null ? "" : value.trim();
   }
 
-  private record NormalizedRegistration(
+  private record Registration(
       String email, String username, String usernameNormalized, String password) {}
 }

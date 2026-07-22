@@ -15,6 +15,7 @@ import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import NotFoundPage from '@/features/auth/pages/NotFoundPage';
 import RegisterPage from '@/features/auth/pages/RegisterPage';
+import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
@@ -36,6 +37,7 @@ type Route =
   | 'pending'
   | 'playSolo'
   | 'register'
+  | 'resetPassword'
   | 'soloPreview'
   | 'soloSetup'
   | 'verify';
@@ -61,6 +63,8 @@ function routeFromPath(pathname: string): Route {
       return 'landing';
     case '/register':
       return 'register';
+    case '/reset-password':
+      return 'resetPassword';
     case '/admin':
       return 'admin';
     case '/dashboard':
@@ -106,6 +110,8 @@ function pathFromRoute(route: Route): string {
       return '/play/solo';
     case 'register':
       return '/register';
+    case 'resetPassword':
+      return '/reset-password';
     case 'soloPreview':
       return '/solo/preview';
     case 'soloSetup':
@@ -277,6 +283,10 @@ export default function App() {
     commitRoute('login', null, false, { loginNotice: notice });
   };
 
+  const handlePasswordResetComplete = (notice?: string) => {
+    commitRoute('login', null, false, { loginNotice: notice });
+  };
+
   const handleSessionExpired = () => {
     clearSession();
     commitRoute('login', null, true, {
@@ -364,6 +374,15 @@ export default function App() {
     return (
       <VerifyEmailPage
         onBackToLogin={handleVerificationComplete}
+        token={new URLSearchParams(window.location.search).get('token')}
+      />
+    );
+  }
+
+  if (route === 'resetPassword') {
+    return (
+      <ResetPasswordPage
+        onBackToLogin={handlePasswordResetComplete}
         token={new URLSearchParams(window.location.search).get('token')}
       />
     );

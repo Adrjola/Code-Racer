@@ -18,15 +18,15 @@ import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(
-    name = "email_verification_token",
+    name = "password_reset_token",
     indexes = {
-      @Index(name = "idx_email_verification_token_user_id", columnList = "user_id"),
-      @Index(name = "idx_email_verification_token_expires_at", columnList = "expires_at")
+      @Index(name = "idx_password_reset_token_user_id", columnList = "user_id"),
+      @Index(name = "idx_password_reset_token_expires_at", columnList = "expires_at")
     })
 @Getter
 @Setter
 @NoArgsConstructor
-public class EmailVerificationToken {
+public class PasswordResetToken {
 
   @Id
   @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
@@ -53,7 +53,7 @@ public class EmailVerificationToken {
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
-  public EmailVerificationToken(User user, String tokenHash, Instant expiresAt) {
+  public PasswordResetToken(User user, String tokenHash, Instant expiresAt) {
     this.user = user;
     this.tokenHash = tokenHash;
     this.expiresAt = expiresAt;

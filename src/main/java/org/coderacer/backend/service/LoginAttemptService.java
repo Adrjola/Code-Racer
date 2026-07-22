@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.coderacer.backend.exception.TooManyLoginAttemptsException;
-import org.coderacer.backend.util.IdentifierNormalizer;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -65,7 +64,7 @@ public class LoginAttemptService {
   }
 
   private String normalize(String value) {
-    return IdentifierNormalizer.normalize(value);
+    return value.trim().toLowerCase();
   }
 
   private String normalizeClient(String value) {

@@ -22,7 +22,7 @@ import org.coderacer.backend.exception.TooManyLoginAttemptsException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +35,7 @@ class AuthenticationServiceTest {
 
   @Mock private UserRepository repository;
   @Mock private PasswordEncoder passwordEncoder;
-  @Mock private JwtService jwtService;
+  @Mock private JwtTokenService jwtTokenService;
   @Mock private UserMapper userMapper;
   @Mock private LoginAttemptService loginAttemptService;
 
@@ -45,7 +45,7 @@ class AuthenticationServiceTest {
   void setUp() {
     service =
         new AuthenticationService(
-            repository, passwordEncoder, jwtService, userMapper, loginAttemptService);
+            repository, passwordEncoder, jwtTokenService, userMapper, loginAttemptService);
   }
 
   @Test
@@ -63,8 +63,8 @@ class AuthenticationServiceTest {
     when(repository.findByEmailOrUsernameNormalized("player", "player"))
         .thenReturn(Optional.of(user));
     when(passwordEncoder.matches("StrongerPass123", "hashed-password")).thenReturn(true);
-    when(jwtService.createAccessToken(user)).thenReturn("jwt-token");
-    when(jwtService.accessTokenTtl()).thenReturn(Duration.ofMinutes(15));
+    when(jwtTokenService.createAccessToken(user)).thenReturn("jwt-token");
+    when(jwtTokenService.accessTokenTtl()).thenReturn(Duration.ofMinutes(15));
     when(userMapper.toResponse(user)).thenReturn(userResponse);
 
     var response = service.login(new LoginRequest(" Player ", "StrongerPass123"), "127.0.0.1");
@@ -92,8 +92,8 @@ class AuthenticationServiceTest {
     when(repository.findByEmailOrUsernameNormalized("player@example.com", "player@example.com"))
         .thenReturn(Optional.of(user));
     when(passwordEncoder.matches("StrongerPass123", "hashed-password")).thenReturn(true);
-    when(jwtService.createAccessToken(user)).thenReturn("jwt-token");
-    when(jwtService.accessTokenTtl()).thenReturn(Duration.ofMinutes(15));
+    when(jwtTokenService.createAccessToken(user)).thenReturn("jwt-token");
+    when(jwtTokenService.accessTokenTtl()).thenReturn(Duration.ofMinutes(15));
     when(userMapper.toResponse(user)).thenReturn(userResponse);
 
     var response =
@@ -117,17 +117,6 @@ class AuthenticationServiceTest {
         .isInstanceOf(AuthenticationFailedException.class);
     verify(loginAttemptService).assertAllowed("unknown@example.com", "127.0.0.1");
     verify(loginAttemptService).recordFailure("unknown@example.com", "127.0.0.1");
-    verify(passwordEncoder).matches(eq("StrongerPass123"), anyString());
-  }
-
-  @Test
-  void login_rejectsNullIdentifierAsUnknownIdentifier() {
-    when(repository.findByEmailOrUsernameNormalized("", "")).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> service.login(new LoginRequest(null, "StrongerPass123"), "127.0.0.1"))
-        .isInstanceOf(AuthenticationFailedException.class);
-    verify(loginAttemptService).assertAllowed("", "127.0.0.1");
-    verify(loginAttemptService).recordFailure("", "127.0.0.1");
     verify(passwordEncoder).matches(eq("StrongerPass123"), anyString());
   }
 

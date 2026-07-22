@@ -18,7 +18,7 @@ import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.GlobalExceptionHandler;
 import org.coderacer.backend.exception.SelfActionForbiddenException;
-import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.AdminUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class AdminUserControllerTest {
 
   private final AdminUserService service = mock(AdminUserService.class);
-  private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+  private final CurrentJwtUserProvider currentJwtUserProvider = mock(CurrentJwtUserProvider.class);
   private final UUID id = UUID.randomUUID();
   private final UUID adminId = UUID.randomUUID();
   private final AdminUserResponse response =
@@ -47,9 +47,9 @@ class AdminUserControllerTest {
 
   @BeforeEach
   void setUp() {
-    when(currentUserProvider.resolve(any())).thenReturn(adminId);
+    when(currentJwtUserProvider.resolve()).thenReturn(adminId);
     mockMvc =
-        MockMvcBuilders.standaloneSetup(new AdminUserController(service, currentUserProvider))
+        MockMvcBuilders.standaloneSetup(new AdminUserController(service, currentJwtUserProvider))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();

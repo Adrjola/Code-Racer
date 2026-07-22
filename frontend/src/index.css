@@ -41,4 +41,24 @@ body {
   input {
     font: inherit;
   }
+
+  input,
+  textarea {
+    caret-color: #e7e5ef;
+  }
+
+  input::selection,
+  textarea::selection {
+    background: rgb(244 114 182 / 0.28);
+    color: #e7e5ef;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #11101a inset;
+    -webkit-text-fill-color: #e7e5ef;
+    caret-color: #e7e5ef;
+    transition: background-color 9999s ease-in-out 0s;
+  }
 }

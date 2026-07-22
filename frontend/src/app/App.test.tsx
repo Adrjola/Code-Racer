@@ -348,6 +348,118 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('requests a password reset email from the forgot password page', async () => {
+    const user = await goToLogin();
+    server.use(
+      http.post(`${API_URL}/api/auth/forgot-password`, async ({ request }) => {
+        await expect(request.json()).resolves.toMatchObject({
+          email: 'player@example.com',
+        });
+
+        return HttpResponse.json(
+          {
+            data: {
+              message:
+                'If an account with the provided email exists, a password reset email will be sent.',
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Forgot?' }));
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.click(screen.getByRole('button', { name: /send reset link/i }));
+
+    expect(
+      await screen.findByText(/password reset email will be sent/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /try again in 2:00/i }),
+    ).toBeDisabled();
+  });
+
+  it('resets a password from a valid reset link and returns to login', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '/reset-password?token=reset-token');
+    server.use(
+      http.post(`${API_URL}/api/auth/reset-password`, async ({ request }) => {
+        await expect(request.json()).resolves.toMatchObject({
+          confirmPassword: 'NewPassword123',
+          newPassword: 'NewPassword123',
+          token: 'reset-token',
+        });
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: /reset your password/i }),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('New password'), 'NewPassword123');
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'NewPassword123',
+    );
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    expect(
+      await screen.findByRole('heading', { name: /password changed/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /password has been changed/i,
+    );
+
+    await user.click(screen.getByRole('button', { name: /back to log in/i }));
+
+    expect(
+      screen.getByRole('heading', { name: /welcome back/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/password changed/i);
+  });
+
+  it('shows a safe message for invalid password reset links', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(
+      null,
+      '',
+      '/reset-password?token=expired-token',
+    );
+    server.use(
+      http.post(`${API_URL}/api/auth/reset-password`, () =>
+        HttpResponse.json(
+          {
+            code: 'PASSWORD_RESET_FAILED',
+            instance: '/api/auth/reset-password',
+            message: 'Password reset link is invalid or expired',
+            status: 400,
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText('New password'), 'NewPassword123');
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'NewPassword123',
+    );
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    expect(
+      await screen.findByText(/password reset link is invalid or expired/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /reset your password/i }),
+    ).toBeInTheDocument();
+  });
+
   it('logs in a verified user, stores the session, and logs out', async () => {
     const user = await goToLogin();
     server.use(

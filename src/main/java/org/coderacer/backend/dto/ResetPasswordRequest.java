@@ -3,8 +3,7 @@ package org.coderacer.backend.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record UserRegistrationRequest(
-    @NotBlank @Size(max = 120) String email,
-    @NotBlank @Size(max = 20) String username,
-    @NotBlank @Size(min = 8, max = 72) String password,
+public record ResetPasswordRequest(
+    @NotBlank String token,
+    @NotBlank @Size(min = 8, max = 72) String newPassword,
     @NotBlank @Size(min = 8, max = 72) String confirmPassword) {}
