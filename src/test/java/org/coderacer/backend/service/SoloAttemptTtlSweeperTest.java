@@ -51,7 +51,9 @@ class SoloAttemptTtlSweeperTest {
     lenient().when(soloAttemptRepository.findWithLockById(any())).thenAnswer(row);
     lenient().when(soloAttemptRepository.findById(any())).thenAnswer(row);
     activeAttemptStateStore = new ActiveAttemptStateStore(soloAttemptRepository);
-    sweeper = new SoloAttemptTtlSweeper(soloAttemptRepository, activeAttemptStateStore, clock);
+    sweeper =
+        new SoloAttemptTtlSweeper(
+            soloAttemptRepository, activeAttemptStateStore, new SoloAttemptStaleness(), clock);
   }
 
   private SoloAttempt newAttempt(Instant startedAt) {

@@ -3,6 +3,7 @@ package org.coderacer.backend.service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -35,6 +36,7 @@ public class SoloAttemptService {
   private final ActiveAttemptStateStore activeAttemptStateStore;
   private final SoloAttemptResultCalculator resultCalculator;
   private final SoloAttemptLifecycleService lifecycleService;
+  private final SoloAttemptStaleness staleness;
   private final Clock clock;
 
   public SoloAttemptService(
@@ -44,6 +46,7 @@ public class SoloAttemptService {
       ActiveAttemptStateStore activeAttemptStateStore,
       SoloAttemptResultCalculator resultCalculator,
       SoloAttemptLifecycleService lifecycleService,
+      SoloAttemptStaleness staleness,
       Clock clock) {
     this.soloAttemptRepository = soloAttemptRepository;
     this.userRepository = userRepository;
@@ -51,6 +54,7 @@ public class SoloAttemptService {
     this.activeAttemptStateStore = activeAttemptStateStore;
     this.resultCalculator = resultCalculator;
     this.lifecycleService = lifecycleService;
+    this.staleness = staleness;
     this.clock = clock;
   }
 
@@ -71,8 +75,11 @@ public class SoloAttemptService {
               + ")");
     }
 
-    Instant startedAt = clock.instant().plus(COUNTDOWN_DURATION);
-    SoloAttempt attempt = new SoloAttempt(user, snippet, snippet.getDifficulty(), startedAt);
+    Instant now = clock.instant();
+    releaseStaleAttempt(userId, now);
+
+    SoloAttempt attempt =
+        new SoloAttempt(user, snippet, snippet.getDifficulty(), now.plus(COUNTDOWN_DURATION));
 
     try {
       return soloAttemptRepository.saveAndFlush(attempt);
@@ -144,6 +151,28 @@ public class SoloAttemptService {
       activeAttemptStateStore.remove(attempt.getId());
       return new ProgressResult(getOwnedAttempt(attemptId, userId), canonicalCodePoints.length);
     }
+  }
+
+  /**
+   * A tab closed mid-race leaves an attempt marked live, and the one-active-attempt index then
+   * blocks every new race until the sweeper catches up - up to half an hour for one that never got
+   * past its countdown. Retiring it here closes that window, while an attempt that is genuinely
+   * still being raced is left alone and still conflicts.
+   */
+  private void releaseStaleAttempt(UUID userId, Instant now) {
+    soloAttemptRepository
+        .findFirstByUserIdAndStateIn(
+            userId, List.of(SoloAttemptState.COUNTDOWN, SoloAttemptState.ACTIVE))
+        .filter(existing -> staleness.isStale(existing, now))
+        .ifPresent(
+            existing -> {
+              if (existing.getState() == SoloAttemptState.COUNTDOWN) {
+                existing.activate();
+              }
+              existing.expire();
+              soloAttemptRepository.saveAndFlush(existing);
+              activeAttemptStateStore.remove(existing.getId());
+            });
   }
 
   @Transactional
