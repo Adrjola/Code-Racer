@@ -53,7 +53,10 @@ export default function LogoutConfirmDialog({
       >
         <div className="flex items-center justify-between gap-3 border-b border-pink-400/15 px-4 py-3.5">
           <div className="flex min-w-0 items-center gap-3">
-            <span aria-hidden="true" className="flex shrink-0 items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="flex shrink-0 items-center gap-1.5"
+            >
               <span className="size-2.5 rounded-full bg-[#FF5F57]" />
               <span className="size-2.5 rounded-full bg-[#FEBC2E]" />
               <span className="size-2.5 rounded-full bg-[#28C840]" />
@@ -63,7 +66,10 @@ export default function LogoutConfirmDialog({
             </span>
           </div>
           <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-[9.5px] font-bold uppercase tracking-wide text-pink-300">
-            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-pink-400" />
+            <span
+              aria-hidden="true"
+              className="size-1.5 shrink-0 rounded-full bg-pink-400"
+            />
             Unsaved glory
           </span>
         </div>
@@ -87,8 +93,8 @@ export default function LogoutConfirmDialog({
           </div>
 
           <p className="mt-5 rounded-xl border border-blue-400/20 bg-black/35 px-4 py-3 font-mono text-sm leading-relaxed text-text-secondary">
-            bold move logging out one race before you stopped being terrible
-            at this.
+            bold move logging out one race before you stopped being terrible at
+            this.
           </p>
 
           <div className="mt-6 flex flex-row gap-3">
