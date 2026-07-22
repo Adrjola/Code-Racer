@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.dto.ExplanationResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.AiProviderException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,21 +34,17 @@ class ExplanationServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new ExplanationService(codeSnippetRepository, aiProvider);
-  }
-
-  private Category category() {
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName("Java");
-    category.setActive(true);
-    return category;
+    service = new ExplanationService(codeSnippetRepository, Optional.of(aiProvider));
   }
 
   private CodeSnippet snippet() {
     CodeSnippet snippet =
         new CodeSnippet(
-            "Hello World", "System.out.println(\"Hello\");", "hash", Difficulty.EASY, category());
+            "Hello World",
+            "System.out.println(\"Hello\");",
+            "hash",
+            Difficulty.EASY,
+            Category.JAVA);
     ReflectionTestUtils.setField(snippet, "id", snippetId);
     return snippet;
   }

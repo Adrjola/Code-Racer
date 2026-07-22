@@ -8,6 +8,7 @@ import org.coderacer.backend.dto.ExplanationResponse;
 import org.coderacer.backend.exception.AiProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
+@ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
 public class GroqAiAdapter implements AiProvider {
 
   private static final Logger log = LoggerFactory.getLogger(GroqAiAdapter.class);

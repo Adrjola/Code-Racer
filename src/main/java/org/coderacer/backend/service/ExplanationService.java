@@ -1,5 +1,6 @@
 package org.coderacer.backend.service;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.dto.ExplanationResponse;
 import org.coderacer.backend.enums.SnippetLifecycle;
@@ -15,12 +16,17 @@ public class ExplanationService {
   private final CodeSnippetRepository codeSnippetRepository;
   private final AiProvider aiProvider;
 
-  public ExplanationService(CodeSnippetRepository codeSnippetRepository, AiProvider aiProvider) {
+  public ExplanationService(
+      CodeSnippetRepository codeSnippetRepository, Optional<AiProvider> aiProvider) {
     this.codeSnippetRepository = codeSnippetRepository;
-    this.aiProvider = aiProvider;
+    this.aiProvider = aiProvider.orElse(null);
   }
 
   public ExplanationResponse explain(UUID snippetId) {
+    if (aiProvider == null) {
+      throw AiProviderException.disabled();
+    }
+
     CodeSnippet snippet =
         codeSnippetRepository
             .findById(snippetId)
