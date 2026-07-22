@@ -273,6 +273,7 @@ describe('StatisticsPage', () => {
     render(
       <StatisticsPage
         onGoHome={vi.fn()}
+        onGoStatistics={vi.fn()}
         onLogout={vi.fn()}
         onSessionExpired={onSessionExpired}
         session={session()}
