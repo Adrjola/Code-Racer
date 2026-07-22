@@ -371,7 +371,7 @@ describe('App', () => {
     await submitValidLogin(user);
 
     expect(
-      await screen.findByRole('heading', { name: /welcome, player/i }),
+      await screen.findByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem('code-racer.auth-session')).toContain(
       'jwt-token',
@@ -435,7 +435,7 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/please log in/i);
     expect(
-      screen.queryByRole('heading', { name: /welcome, player/i }),
+      screen.queryByRole('heading', { name: /choose a race mode/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -527,7 +527,7 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, admin/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^admin$/i }));
     expect(
@@ -559,7 +559,7 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, player/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
 
     await act(async () => {
@@ -580,7 +580,7 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, player/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/admin access/i);
     await waitFor(() => expect(window.location.pathname).toBe('/dashboard'));

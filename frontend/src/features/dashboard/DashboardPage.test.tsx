@@ -54,7 +54,7 @@ describe('DashboardPage', () => {
       screen.getByRole('button', { name: /\.\/solo_race.*run/is }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /\.\/multiplayer.*run/is }),
+      screen.getByRole('button', { name: /\.\/multiplayer.*coming soon/is }),
     ).toBeInTheDocument();
   });
 
@@ -137,14 +137,17 @@ describe('DashboardPage', () => {
     expect(onGoDashboard).toHaveBeenCalledTimes(1);
   });
 
-  it('does not affect solo when the multiplayer card is clicked', async () => {
+  it('disables the multiplayer card while it is coming soon', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
     renderDashboard({ onPlaySolo });
 
-    await user.click(
-      screen.getByRole('button', { name: /\.\/multiplayer.*run/is }),
-    );
+    const multiplayer = screen.getByRole('button', {
+      name: /\.\/multiplayer.*coming soon/is,
+    });
+    expect(multiplayer).toBeDisabled();
+
+    await user.click(multiplayer);
 
     expect(onPlaySolo).not.toHaveBeenCalled();
   });

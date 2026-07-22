@@ -84,15 +84,14 @@ export function PersonIcon({ className = 'size-6' }: ModeIconProps = {}) {
       aria-hidden="true"
       className={`${className} text-white`}
       fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
       viewBox="0 0 24 24"
     >
-      <circle cx="12" cy="8" fill="currentColor" r="3.5" />
-      <path
-        d="M4.5 20c0-4.142 3.358-7 7.5-7s7.5 2.858 7.5 7"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
+      <circle cx="12" cy="8.5" r="3.25" />
+      <path d="M5.75 19a6.25 6.25 0 0 1 12.5 0" />
     </svg>
   );
 }
@@ -103,23 +102,16 @@ export function PeopleIcon({ className = 'size-6' }: ModeIconProps = {}) {
       aria-hidden="true"
       className={`${className} text-white`}
       fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
       viewBox="0 0 24 24"
     >
-      <circle cx="9" cy="8" fill="currentColor" r="3" />
-      <circle cx="16" cy="9" fill="currentColor" opacity="0.85" r="2.5" />
-      <path
-        d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
-      <path
-        d="M14.5 14.2c2.6.3 4.5 2.3 4.5 5.3"
-        opacity="0.85"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 18.75a5.5 5.5 0 0 1 11 0" />
+      <path d="M15.5 5.9a2.75 2.75 0 0 1 0 5.2" />
+      <path d="M16.75 13.4c1.9.42 3.25 2.05 3.25 4.1" />
     </svg>
   );
 }
