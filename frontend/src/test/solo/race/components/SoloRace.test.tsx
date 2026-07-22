@@ -63,18 +63,6 @@ describe('SoloRace Component', () => {
     mockGetWorldBest.mockRejectedValue(new Error('request_failed_404'));
   });
 
-  const finishStartCountdown = () => {
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-  };
-
   it('renders solo race stats row', () => {
     mockEngine(baseHookState);
 
@@ -84,7 +72,6 @@ describe('SoloRace Component', () => {
   });
 
   it('calls handleDelete on Backspace', () => {
-    vi.useFakeTimers();
     const mockHandleDelete = vi.fn();
     mockEngine({
       state: {
@@ -100,16 +87,13 @@ describe('SoloRace Component', () => {
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    finishStartCountdown();
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.keyDown(textarea, { key: 'Backspace' });
     expect(mockHandleDelete).toHaveBeenCalled();
-    vi.useRealTimers();
   });
 
   it('handles Tab like IDE indentation input', () => {
-    vi.useFakeTimers();
     const mockHandleInput = vi.fn();
     mockEngine({
       state: {
@@ -125,7 +109,6 @@ describe('SoloRace Component', () => {
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    finishStartCountdown();
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     const tabEvent = fireEvent.keyDown(textarea, { key: 'Tab' });
@@ -134,11 +117,9 @@ describe('SoloRace Component', () => {
     expect(mockHandleInput).toHaveBeenNthCalledWith(1, ' ');
     expect(mockHandleInput).toHaveBeenNthCalledWith(2, ' ');
     expect(mockHandleInput).toHaveBeenNthCalledWith(3, ' ');
-    vi.useRealTimers();
   });
 
   it('restarts race on Ctrl+Enter shortcut after race begins', () => {
-    vi.useFakeTimers();
     mockEngine(baseHookState);
     const onRestartRace = vi.fn();
 
@@ -155,11 +136,9 @@ describe('SoloRace Component', () => {
     expect(onRestartRace).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    finishStartCountdown();
     fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
 
     expect(onRestartRace).toHaveBeenCalledTimes(1);
-    vi.useRealTimers();
   });
 
   it('marks a mistake at the end of a line, where the highlight is invisible', () => {
@@ -181,7 +160,6 @@ describe('SoloRace Component', () => {
       <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
     );
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    finishStartCountdown();
 
     expect(screen.getByTestId('race-caret')).toHaveAttribute('data-error');
     expect(container.querySelector('pre')?.textContent).toBe('const\nx');
@@ -212,7 +190,6 @@ describe('SoloRace Component', () => {
   });
 
   it('leaves the active race on Escape after race begins', async () => {
-    vi.useFakeTimers();
     mockEngine(baseHookState);
     const onLobbyNavigate = vi.fn();
 
@@ -229,7 +206,6 @@ describe('SoloRace Component', () => {
     expect(onLobbyNavigate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    finishStartCountdown();
     expect(screen.queryByRole('button', { name: /start race/i })).toBeNull();
 
     await act(async () => {
@@ -245,7 +221,6 @@ describe('SoloRace Component', () => {
 
     expect(onLobbyNavigate).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /start race/i })).toBeDefined();
-    vi.useRealTimers();
   });
 
   it('stays in the race when the leave confirmation is cancelled', async () => {
@@ -263,7 +238,6 @@ describe('SoloRace Component', () => {
     const textarea = screen.getByRole('textbox', { hidden: true });
 
     fireEvent.click(screen.getByRole('button', { name: /start race/i }));
-    finishStartCountdown();
 
     await act(async () => {
       fireEvent.keyDown(textarea, { key: 'Escape' });

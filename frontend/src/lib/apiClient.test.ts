@@ -1,6 +1,10 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { apiRequest, ApiRequestError } from './apiClient';
+import {
+  apiRequest,
+  ApiRequestError,
+  isSessionExpiredError,
+} from './apiClient';
 import { saveSession, type AuthSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 
@@ -124,5 +128,26 @@ describe('apiRequest', () => {
       code: 'NETWORK_ERROR',
       message: 'Network request failed',
     });
+  });
+});
+
+describe('isSessionExpiredError', () => {
+  it('identifies session-expired errors', () => {
+    expect(
+      isSessionExpiredError(
+        new ApiRequestError('expired', 'AUTHENTICATION_REQUIRED', 401),
+      ),
+    ).toBe(true);
+    expect(
+      isSessionExpiredError(
+        new ApiRequestError('expired', 'SESSION_EXPIRED', 401),
+      ),
+    ).toBe(true);
+    expect(
+      isSessionExpiredError(
+        new ApiRequestError('other', 'NO_ELIGIBLE_SNIPPET', 404),
+      ),
+    ).toBe(false);
+    expect(isSessionExpiredError(new Error('offline'))).toBe(false);
   });
 });

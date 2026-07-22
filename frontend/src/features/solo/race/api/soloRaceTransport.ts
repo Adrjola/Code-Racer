@@ -1,9 +1,9 @@
-import { isSessionExpiredError } from '@/features/solo/api/soloApi';
 import {
   isProgressAck,
   soloRaceApi,
   type SoloAttemptResultResponse,
 } from './soloRaceApi';
+import { isSessionExpiredError } from '@/lib/apiClient';
 import type {
   ExactCodeTypingEngineTransport,
   ProgressAcknowledge,

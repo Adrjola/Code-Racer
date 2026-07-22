@@ -29,6 +29,7 @@ function updateLayoutScale() {
     `${loginCenterX}px`,
   );
   document.documentElement.style.setProperty('--page-scale', `${scale}`);
+  document.documentElement.style.setProperty('--stats-scale', `${loginScale}`);
 }
 
 updateLayoutScale();

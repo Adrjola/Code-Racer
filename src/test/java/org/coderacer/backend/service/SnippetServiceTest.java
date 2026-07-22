@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -194,12 +193,6 @@ class SnippetServiceTest {
     ArgumentCaptor<CodeSnippet> captor = ArgumentCaptor.forClass(CodeSnippet.class);
     verify(repository).saveAndFlush(captor.capture());
     return captor.getValue();
-  }
-
-  private CodeSnippet lastSavedSnippet() {
-    ArgumentCaptor<CodeSnippet> captor = ArgumentCaptor.forClass(CodeSnippet.class);
-    verify(repository, times(2)).saveAndFlush(captor.capture());
-    return captor.getAllValues().get(1);
   }
 
   private CodeSnippet existingSnippet(

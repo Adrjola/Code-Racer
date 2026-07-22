@@ -40,7 +40,9 @@ function PlayCta({
   className?: string;
 }) {
   return (
-    <div className={`flex flex-col items-start gap-3 ${className}`}>
+    <div
+      className={`relative z-20 flex flex-col items-start gap-3 ${className}`}
+    >
       <p className="font-mono text-[14px] font-bold text-pink-400">
         {'// c’mon, hit it already'}
       </p>
