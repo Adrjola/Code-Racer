@@ -41,7 +41,7 @@ class ActiveAttemptStateStoreTest {
     UUID id = UUID.randomUUID();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
-    store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now.plusSeconds(1));
+    store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now, now.plusSeconds(1));
 
     store.register(id, now.plusSeconds(2));
 
@@ -54,7 +54,8 @@ class ActiveAttemptStateStoreTest {
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     ActiveProgress progress =
-        store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now.plusSeconds(1));
+        store.applyDelta(
+            id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now, now.plusSeconds(1));
     assertThat(progress.acceptedOffset()).isEqualTo(2);
     assertThat(progress.lastSequence()).isEqualTo(1);
   }
@@ -65,9 +66,11 @@ class ActiveAttemptStateStoreTest {
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     ActiveProgress first =
-        store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now.plusSeconds(1));
+        store.applyDelta(
+            id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now, now.plusSeconds(1));
     ActiveProgress retry =
-        store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now.plusSeconds(5));
+        store.applyDelta(
+            id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now, now.plusSeconds(5));
     assertThat(retry).isEqualTo(first);
   }
 
@@ -80,7 +83,7 @@ class ActiveAttemptStateStoreTest {
         ProgressSequenceException.class,
         () ->
             store.applyDelta(
-                id, 2, CanonicalText.toCodePoints("he"), CANONICAL, now.plusSeconds(1)));
+                id, 2, CanonicalText.toCodePoints("he"), CANONICAL, now, now.plusSeconds(1)));
   }
 
   @Test
@@ -88,14 +91,18 @@ class ActiveAttemptStateStoreTest {
     UUID id = UUID.randomUUID();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
-    store.applyDelta(id, 1, CanonicalText.toCodePoints("h"), CANONICAL, now.plusSeconds(1));
-    store.applyDelta(id, 2, CanonicalText.toCodePoints("e"), CANONICAL, now.plusSeconds(2));
+    store.applyDelta(id, 1, CanonicalText.toCodePoints("h"), CANONICAL, now, now.plusSeconds(1));
+    store.applyDelta(id, 2, CanonicalText.toCodePoints("e"), CANONICAL, now, now.plusSeconds(2));
     assertThrows(
         ProgressSequenceException.class,
         () ->
             store.applyDelta(
-                id, 1, CanonicalText.toCodePoints("h"), CANONICAL, now.plusSeconds(3)));
+                id, 1, CanonicalText.toCodePoints("h"), CANONICAL, now, now.plusSeconds(3)));
   }
+
+  private static final String LONG_TEXT =
+      "public int sum(int[] numbers) { int total = 0; return total; }";
+  private static final int[] LONG_SNIPPET = CanonicalText.toCodePoints(LONG_TEXT);
 
   @Test
   void rejectsMismatchedCharacters() {
@@ -106,7 +113,7 @@ class ActiveAttemptStateStoreTest {
         ProgressMismatchException.class,
         () ->
             store.applyDelta(
-                id, 1, CanonicalText.toCodePoints("xx"), CANONICAL, now.plusSeconds(1)));
+                id, 1, CanonicalText.toCodePoints("xx"), CANONICAL, now, now.plusSeconds(1)));
   }
 
   @Test
@@ -118,7 +125,12 @@ class ActiveAttemptStateStoreTest {
         ProgressMismatchException.class,
         () ->
             store.applyDelta(
-                id, 1, CanonicalText.toCodePoints("hello world"), CANONICAL, now.plusSeconds(1)));
+                id,
+                1,
+                CanonicalText.toCodePoints("hello world"),
+                CANONICAL,
+                now,
+                now.plusSeconds(1)));
   }
 
   @Test
@@ -127,7 +139,12 @@ class ActiveAttemptStateStoreTest {
         ProgressSequenceException.class,
         () ->
             store.applyDelta(
-                UUID.randomUUID(), 1, CanonicalText.toCodePoints("h"), CANONICAL, Instant.now()));
+                UUID.randomUUID(),
+                1,
+                CanonicalText.toCodePoints("h"),
+                CANONICAL,
+                Instant.now(),
+                Instant.now()));
   }
 
   @Test
@@ -137,6 +154,26 @@ class ActiveAttemptStateStoreTest {
     store.register(id, now);
     assertThrows(
         ImplausibleRateException.class,
-        () -> store.applyDelta(id, 1, CANONICAL, CANONICAL, now.plusMillis(1)));
+        () -> store.applyDelta(id, 1, LONG_SNIPPET, LONG_SNIPPET, now, now.plusMillis(1)));
+  }
+
+  @Test
+  void acceptsBatchesThatArriveFasterThanTheyWereTyped() {
+    UUID id = UUID.randomUUID();
+    Instant startedAt = Instant.parse("2026-01-01T00:00:00Z");
+    store.register(id, startedAt);
+
+    // The client debounces, so a burst reaches the server as back-to-back full
+    // batches. Judged per delta these look like 1600 cpm and were rejected,
+    // which stranded the attempt until it expired.
+    int[] all = CanonicalText.toCodePoints(LONG_TEXT);
+    long sequence = 0;
+    for (int offset = 0; offset < all.length; offset += 8) {
+      int[] batch = java.util.Arrays.copyOfRange(all, offset, Math.min(offset + 8, all.length));
+      sequence += 1;
+      store.applyDelta(id, sequence, batch, all, startedAt, startedAt.plusMillis(300L * sequence));
+    }
+
+    assertThat(store.get(id).orElseThrow().acceptedOffset()).isEqualTo(all.length);
   }
 }

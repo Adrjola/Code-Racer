@@ -6,10 +6,17 @@ import type {
   RaceSnippet,
   ExactCodeTypingEngineTransport,
 } from '../types/race.types';
-import { codePointAt, codePointLength } from '../utils/codePointText';
+import { codePointLength } from '../utils/codePointText';
 
 const MAX_BATCH_SIZE = 8;
 const DEBOUNCE_MS = 300;
+
+/**
+ * Consecutive failed sends before the race gives up. A rejected batch is retried
+ * unchanged, so without a ceiling one permanent rejection loops forever, floods
+ * the console, and leaves the attempt to expire while the player keeps typing.
+ */
+const MAX_CONSECUTIVE_FAILURES = 4;
 
 export const defaultTransport: ExactCodeTypingEngineTransport = {
   async sendProgressBatch(batch) {
@@ -50,6 +57,8 @@ export function useExactCodeTypingEngine(
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inflightRef = useRef(false);
   const mountedRef = useRef(true);
+  const failureCountRef = useRef(0);
+  const queuedLengthRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -95,8 +104,16 @@ export function useExactCodeTypingEngine(
       if (ack.completed) {
         dispatch({ type: 'FINISH', result: ack.result });
       }
+      failureCountRef.current = 0;
       dispatch({ type: 'TRANSPORT_ONLINE' });
     } catch {
+      failureCountRef.current += 1;
+      if (failureCountRef.current >= MAX_CONSECUTIVE_FAILURES) {
+        queueRef.current = [];
+        dispatch({ type: 'EXPIRE' });
+        dispatch({ type: 'TRANSPORT_FAILURE', reason: 'progress_send_failed' });
+        return;
+      }
       queueRef.current = [...batch, ...queueRef.current];
       dispatch({ type: 'TRANSPORT_FAILURE', reason: 'progress_send_failed' });
     } finally {
@@ -151,33 +168,35 @@ export function useExactCodeTypingEngine(
     state.targetCode,
   ]);
 
-  const handleInput = useCallback(
-    (char: string) => {
-      if (state.isExpired || state.isFinished) return;
+  const handleInput = useCallback((char: string) => {
+    dispatch({ type: 'INPUT', char });
+  }, []);
 
-      /* v8 ignore next */
-      const acceptedOffset = codePointLength(state.acceptedPrefix);
-      const nextChar = codePointAt(state.targetCode, acceptedOffset);
-      const willAdvance =
-        char === nextChar &&
-        !state.hasError &&
-        codePointLength(state.currentInput) === 0;
+  // Queue whatever the reducer actually accepted rather than predicting it.
+  // Predicting duplicated the acceptance rule, and any disagreement sent the
+  // server characters it never agreed to, which it rejects as a mismatch.
+  useEffect(() => {
+    const acceptedLength = codePointLength(state.acceptedPrefix);
 
-      dispatch({ type: 'INPUT', char });
+    if (acceptedLength < queuedLengthRef.current) {
+      queuedLengthRef.current = acceptedLength;
+      return;
+    }
+    if (acceptedLength === queuedLengthRef.current) {
+      return;
+    }
 
-      if (willAdvance) {
-        const version = state.pendingVersion + 1;
-        queueRef.current.push({ value: char, version });
+    const accepted = Array.from(state.acceptedPrefix);
+    for (let index = queuedLengthRef.current; index < acceptedLength; index++) {
+      queueRef.current.push({ value: accepted[index], version: index + 1 });
+    }
+    queuedLengthRef.current = acceptedLength;
 
-        if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
-        /* v8 ignore next */
-        flushTimeoutRef.current = setTimeout(() => {
-          void flushQueue();
-        }, DEBOUNCE_MS);
-      }
-    },
-    [flushQueue, state],
-  );
+    if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+    flushTimeoutRef.current = setTimeout(() => {
+      void flushQueue();
+    }, DEBOUNCE_MS);
+  }, [flushQueue, state.acceptedPrefix]);
 
   const handleDelete = useCallback(() => {
     dispatch({ type: 'DELETE' });

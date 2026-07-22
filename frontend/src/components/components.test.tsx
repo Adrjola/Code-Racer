@@ -94,6 +94,21 @@ describe('Modal', () => {
   });
 });
 
+describe('Modal close button', () => {
+  it('closes from the visible close control, not just the backdrop', async () => {
+    const onClose = vi.fn();
+    render(
+      <Modal onClose={onClose} title="Count Vowels">
+        <p>body</p>
+      </Modal>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
 describe('ConfirmDialog', () => {
   it('confirms and cancels', async () => {
     const onCancel = vi.fn();

@@ -16,6 +16,12 @@ public class ActiveAttemptStateStore {
 
   private static final int MAX_PLAUSIBLE_CPM = 1200;
 
+  /**
+   * Characters allowed on top of the sustained budget. The client batches keystrokes and sends them
+   * a debounce apart, so a single delta always looks faster than the player actually typed.
+   */
+  private static final int BURST_ALLOWANCE = 60;
+
   private final Map<UUID, ActiveProgress> progressByAttemptId = new ConcurrentHashMap<>();
 
   public void register(UUID attemptId, Instant activatedAt) {
@@ -35,6 +41,7 @@ public class ActiveAttemptStateStore {
       long sequence,
       int[] deltaCodePoints,
       int[] canonicalCodePoints,
+      Instant startedAt,
       Instant now) {
     return progressByAttemptId.compute(
         attemptId,
@@ -52,15 +59,23 @@ public class ActiveAttemptStateStore {
           }
 
           int offset = getOffset(deltaCodePoints, canonicalCodePoints, current);
+          int totalAccepted = offset + deltaCodePoints.length;
+          requirePlausibleRate(totalAccepted, startedAt, now);
 
-          long elapsedMs = Math.max(Duration.between(current.lastActivityAt(), now).toMillis(), 1);
-          double impliedCpm = deltaCodePoints.length / (elapsedMs / 60000.0);
-          if (impliedCpm > MAX_PLAUSIBLE_CPM) {
-            throw new ImplausibleRateException("Delta implies an impossible typing rate");
-          }
-
-          return new ActiveProgress(offset + deltaCodePoints.length, sequence, now);
+          return new ActiveProgress(totalAccepted, sequence, now);
         });
+  }
+
+  /**
+   * Judges the whole run rather than one delta. Measuring a single batch against the gap since the
+   * previous one measures how the client batches, not how fast the player types.
+   */
+  private static void requirePlausibleRate(int totalAccepted, Instant startedAt, Instant now) {
+    double elapsedMinutes = Math.max(Duration.between(startedAt, now).toMillis(), 1) / 60000.0;
+    double allowed = MAX_PLAUSIBLE_CPM * elapsedMinutes + BURST_ALLOWANCE;
+    if (totalAccepted > allowed) {
+      throw new ImplausibleRateException("Progress implies an impossible typing rate");
+    }
   }
 
   private static int getOffset(

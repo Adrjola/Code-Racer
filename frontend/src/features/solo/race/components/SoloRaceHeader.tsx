@@ -7,9 +7,10 @@ import { SoloRaceHeaderActions } from './SoloRaceHeaderActions';
 const DESIGN_WIDTH = 1920;
 
 interface SoloRaceHeaderProps {
-  onRestart: () => void;
-  onLobby: () => void;
+  actionLabel: string;
   children?: ReactNode;
+  onAction: () => void;
+  onLobby: () => void;
 }
 
 /**
@@ -18,9 +19,10 @@ interface SoloRaceHeaderProps {
  * spot as on every other page.
  */
 export function SoloRaceHeader({
-  onRestart,
-  onLobby,
+  actionLabel,
   children,
+  onAction,
+  onLobby,
 }: SoloRaceHeaderProps) {
   const headerScale = useDesignScale(DESIGN_WIDTH);
 
@@ -31,7 +33,11 @@ export function SoloRaceHeader({
     >
       <div className={`${flowInnerClassName} justify-between`}>
         <Logo />
-        <SoloRaceHeaderActions onLobby={onLobby} onRestart={onRestart} />
+        <SoloRaceHeaderActions
+          actionLabel={actionLabel}
+          onAction={onAction}
+          onLobby={onLobby}
+        />
         {children}
       </div>
     </header>

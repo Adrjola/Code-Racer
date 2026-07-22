@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import Badge, { type BadgeTone } from '@/components/Badge';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { EyeIcon } from '@/components/icons';
+import Modal from '@/components/Modal';
 import Pagination from '@/components/Pagination';
 import SelectField from '@/components/SelectField';
 import {
@@ -22,7 +24,11 @@ import {
 import { readableAdminError } from '@/features/admin/errors';
 import type { Page } from '@/lib/apiClient';
 
-type Dialog = { snippet: Snippet; type: 'delete' } | { type: 'create' } | null;
+type Dialog =
+  | { snippet: Snippet; type: 'delete' }
+  | { snippet: Snippet; type: 'view' }
+  | { type: 'create' }
+  | null;
 
 const PAGE_SIZE = 10;
 
@@ -259,6 +265,10 @@ export default function SnippetsPage() {
                   </pre>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
+                  <Button onClick={() => openDialog({ snippet, type: 'view' })}>
+                    <EyeIcon className="mr-2 size-4" />
+                    View
+                  </Button>
                   {snippet.lifecycle === 'ACTIVE' && (
                     <Button
                       onClick={() => openDialog({ snippet, type: 'delete' })}
@@ -292,6 +302,18 @@ export default function SnippetsPage() {
           onCancel={() => setDialog(null)}
           onSubmit={handleSubmit}
         />
+      )}
+
+      {dialog?.type === 'view' && (
+        <Modal
+          description={`${categoryDisplayName(dialog.snippet.category)} - ${dialog.snippet.difficulty.charAt(0)}${dialog.snippet.difficulty.slice(1).toLowerCase()}`}
+          onClose={() => setDialog(null)}
+          title={dialog.snippet.title}
+        >
+          <pre className="max-h-[60dvh] overflow-auto rounded-[8px] border border-pink-400/15 bg-white/[0.02] p-4 font-mono text-xs leading-relaxed whitespace-pre text-text-secondary">
+            {dialog.snippet.source}
+          </pre>
+        </Modal>
       )}
 
       {dialog?.type === 'delete' && (

@@ -141,6 +141,54 @@ describe('SoloRace Component', () => {
     expect(onRestartRace).toHaveBeenCalledTimes(1);
   });
 
+  it('marks a mistake at the end of a line, where the highlight is invisible', () => {
+    mockEngine({
+      ...baseHookState,
+      state: {
+        ...baseHookState.state,
+        acceptedPrefix: 'const',
+        // A space typed where Enter was expected. Highlighting the newline it
+        // should have been paints nothing, so the caret has to carry the error.
+        currentInput: ' ',
+        hasError: true,
+        targetCode: 'const\nx',
+      },
+    });
+
+    vi.useFakeTimers();
+    const { container } = render(
+      <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+
+    expect(screen.getByTestId('race-caret')).toHaveAttribute('data-error');
+    expect(container.querySelector('pre')?.textContent).toBe('const\nx');
+    vi.useRealTimers();
+  });
+
+  it('marks mistakes without moving the snippet', () => {
+    mockEngine({
+      ...baseHookState,
+      state: {
+        ...baseHookState.state,
+        acceptedPrefix: 'const ',
+        currentInput: '\n\n\n',
+        hasError: true,
+        targetCode: 'const x = 1;',
+      },
+    });
+
+    const { container } = render(
+      <SoloRace snippet={mockSnippet} startedAt={startedAt} />,
+    );
+
+    // Whatever the mistake, the snippet is rendered exactly once and unchanged,
+    // so nothing shifts while errors are made and deleted.
+    expect(container.querySelector('pre')?.textContent).toBe('const x = 1;');
+    // The characters the mistakes should have been are the ones marked.
+    expect(screen.getByText('x =')).toBeInTheDocument();
+  });
+
   it('leaves the active race on Escape after race begins', async () => {
     mockEngine(baseHookState);
     const onLobbyNavigate = vi.fn();
@@ -164,8 +212,43 @@ describe('SoloRace Component', () => {
       fireEvent.keyDown(textarea, { key: 'Escape' });
     });
 
+    // Escape asks first now, so nothing is abandoned until it is confirmed.
+    expect(onLobbyNavigate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /leave race/i }));
+    });
+
     expect(onLobbyNavigate).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /start race/i })).toBeDefined();
+  });
+
+  it('stays in the race when the leave confirmation is cancelled', async () => {
+    vi.useFakeTimers();
+    mockEngine(baseHookState);
+    const onLobbyNavigate = vi.fn();
+
+    render(
+      <SoloRace
+        snippet={mockSnippet}
+        startedAt={startedAt}
+        onLobbyNavigate={onLobbyNavigate}
+      />,
+    );
+    const textarea = screen.getByRole('textbox', { hidden: true });
+
+    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: 'Escape' });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    });
+
+    expect(onLobbyNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /start race/i })).toBeNull();
+    vi.useRealTimers();
   });
 
   it('does nothing on non-tab/non-backspace key press', () => {
@@ -241,7 +324,7 @@ describe('SoloRace Component', () => {
     expect(codePreview?.className).not.toContain('blur-[2px]');
   });
 
-  it('renders incorrect input segment when currentInput exists', () => {
+  it('marks the character a mistake should have been', () => {
     mockEngine({
       ...baseHookState,
       state: {
@@ -251,7 +334,8 @@ describe('SoloRace Component', () => {
     });
 
     render(<SoloRace snippet={mockSnippet} startedAt={startedAt} />);
-    expect(screen.getByText('x')).toBeDefined();
+    // One wrong keystroke against "const x = 1;" marks the leading "c".
+    expect(screen.getByText('c')).toBeDefined();
   });
 
   it('shows 0:00 before start as fallback elapsed time', () => {

@@ -122,7 +122,12 @@ public class SoloAttemptService {
         CanonicalText.toCodePoints(CanonicalText.canonicalizeLineEndings(rawDelta));
     ActiveProgress progress =
         activeAttemptStateStore.applyDelta(
-            attempt.getId(), sequence, deltaCodePoints, canonicalCodePoints, now);
+            attempt.getId(),
+            sequence,
+            deltaCodePoints,
+            canonicalCodePoints,
+            attempt.getStartedAt(),
+            now);
 
     if (progress.acceptedOffset() < canonicalCodePoints.length) {
       return new ProgressResult(attempt, progress.acceptedOffset());
