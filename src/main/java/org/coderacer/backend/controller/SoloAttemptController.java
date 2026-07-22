@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AbandonResponse;
 import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.dto.GlobalLeaderboardResponse;
-import org.coderacer.backend.dto.GlobalStatisticsResponse;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.ProgressAckResponse;
 import org.coderacer.backend.dto.SnippetStatisticsResponse;
@@ -24,7 +23,6 @@ import org.coderacer.backend.mapper.SoloAttemptMapper;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.GlobalLeaderboardService;
-import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SnippetStatisticsService;
@@ -55,7 +53,6 @@ public class SoloAttemptController {
   private final SoloAttemptService soloAttemptService;
   private final SoloAttemptHistoryService historyService;
   private final PersonalStatisticsService statisticsService;
-  private final GlobalStatisticsService globalStatisticsService;
   private final GlobalLeaderboardService globalLeaderboardService;
   private final WorldBestService worldBestService;
   private final SnippetStatisticsService snippetStatisticsService;
@@ -124,11 +121,6 @@ public class SoloAttemptController {
   public BaseResponse<PersonalStatisticsResponse> statistics() {
     UUID userId = currentJwtUserProvider.resolve();
     return new BaseResponse<>(statisticsService.forUser(userId), MDC.get("correlationId"));
-  }
-
-  @GetMapping("/global-statistics")
-  public BaseResponse<GlobalStatisticsResponse> globalStatistics() {
-    return new BaseResponse<>(globalStatisticsService.compute(), MDC.get("correlationId"));
   }
 
   @GetMapping("/global-leaderboard")
