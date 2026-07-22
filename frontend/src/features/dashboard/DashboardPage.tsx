@@ -115,7 +115,7 @@ export default function DashboardPage({
               onClick={onGoDashboard}
               type="button"
             >
-              Dashboard
+              Homepage
             </button>
             {isAdmin && (
               <button
