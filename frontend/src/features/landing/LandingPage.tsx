@@ -77,7 +77,7 @@ export default function LandingPage({ onPlay }: LandingPageProps) {
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-surface font-sans text-text-primary">
       <div className="relative lg:h-[100dvh] lg:overflow-hidden">
-        <div className="lg:absolute lg:left-1/2 lg:top-0 lg:h-[1080px] lg:w-[1920px] lg:origin-top lg:[transform:translateX(-50%)_scale(var(--landing-scale))]">
+        <div className="lg:absolute lg:left-1/2 lg:top-0 lg:h-[1080px] lg:w-[1920px] lg:origin-top lg:[transform:translateX(-50%)_scale(var(--canvas-scale))]">
           <AnimatedBackground />
 
           <h1 className="sr-only">

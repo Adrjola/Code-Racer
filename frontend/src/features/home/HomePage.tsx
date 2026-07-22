@@ -191,14 +191,14 @@ export default function HomePage({
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
       {header}
       {/* From lg up the content is laid out on a fixed 1920px canvas and scaled
-          by --stats-scale (innerWidth / 1920, set in main.tsx), so the page
+          by --canvas-scale (innerWidth / 1920, set in main.tsx), so the page
           looks identical at any width or zoom. Below lg it flows fluidly. */}
       <div
-        className="lg:overflow-hidden lg:[height:calc(var(--home-canvas-h)*var(--stats-scale))]"
+        className="lg:overflow-hidden lg:[height:calc(var(--home-canvas-h)*var(--canvas-scale))]"
         style={{ '--home-canvas-h': `${height}px` } as CSSProperties}
       >
         <div
-          className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--stats-scale))]"
+          className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--canvas-scale))]"
           ref={canvasRef}
         >
           <main className="w-full py-[clamp(2rem,5dvh,3.5rem)] lg:py-14">

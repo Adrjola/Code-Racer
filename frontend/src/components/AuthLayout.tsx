@@ -1,4 +1,4 @@
-import type { CSSProperties, FormEvent, ReactNode } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import Header from './Header';
 
 type AuthLayoutProps = {
@@ -17,7 +17,7 @@ const pageClassName = 'min-h-[100dvh] overflow-x-hidden bg-surface font-sans';
 const canvasClassName = 'lg:relative lg:h-[100dvh] lg:overflow-hidden';
 
 const mainClassName =
-  'lg:absolute lg:left-1/2 lg:top-0 lg:w-[1920px] lg:min-h-0 lg:origin-top lg:[height:calc(100dvh/var(--auth-canvas-scale))] lg:[transform:translateX(-50%)_scale(var(--auth-canvas-scale))]';
+  'lg:absolute lg:left-1/2 lg:top-0 lg:w-[1920px] lg:min-h-0 lg:origin-top lg:[height:calc(100dvh/var(--canvas-scale))] lg:[transform:translateX(-50%)_scale(var(--canvas-scale))]';
 
 const formWrapperClassName =
   'flex justify-center px-4 pb-6 pt-8 md:min-h-[100dvh] md:items-center md:px-[clamp(1rem,3vw,2.5rem)] md:pb-[clamp(1.75rem,5dvh,3.5rem)] md:pt-[clamp(5.5rem,10dvh,8rem)] lg:contents';
@@ -43,16 +43,7 @@ export default function AuthLayout({
 
   return (
     <div className={pageClassName}>
-      <div
-        className={canvasClassName}
-        style={
-          {
-            '--auth-canvas-scale': isLogin
-              ? 'var(--auth-login-scale)'
-              : 'var(--auth-scale)',
-          } as CSSProperties
-        }
-      >
+      <div className={canvasClassName}>
         <main className={mainClassName}>
           <Header layout="overlay" variant="minimal" />
 

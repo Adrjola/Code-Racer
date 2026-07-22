@@ -135,19 +135,21 @@ export default function StatisticsPage({
 
   return (
     <div className="min-h-[100dvh] bg-surface pb-16 font-sans text-text-primary lg:pb-24">
-      <Header
-        onGoDashboard={onGoHome}
-        onGoStatistics={onGoStatistics}
-        onLogout={onLogout}
-        username={session.user.username}
-      />
+      <div className="sticky top-0 z-10 bg-surface">
+        <Header
+          onGoDashboard={onGoHome}
+          onGoStatistics={onGoStatistics}
+          onLogout={onLogout}
+          username={session.user.username}
+        />
+      </div>
 
       <div
-        className="lg:overflow-hidden lg:[height:calc(var(--stats-main-h)*var(--stats-scale))]"
+        className="lg:overflow-hidden lg:[height:calc(var(--stats-main-h)*var(--canvas-scale))]"
         style={{ '--stats-main-h': `${mainHeight}px` } as CSSProperties}
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-16 lg:mx-0 lg:w-[1920px] lg:max-w-none lg:origin-top-left lg:px-[40px] lg:[transform:scale(var(--stats-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-16 lg:mx-0 lg:w-[1920px] lg:max-w-none lg:origin-top-left lg:px-[40px] lg:[transform:scale(var(--canvas-scale))]"
           ref={mainCanvasRef}
         >
           <div className="flex items-center gap-3">
