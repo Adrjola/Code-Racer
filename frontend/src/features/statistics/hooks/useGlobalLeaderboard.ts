@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isSessionExpiredError } from '@/lib/apiClient';
 import type { Difficulty } from '@/features/solo/api/soloApi';
-import { statisticsApi, type GlobalLeaderboardEntry } from '../api/statisticsApi';
+import {
+  statisticsApi,
+  type GlobalLeaderboardEntry,
+} from '../api/statisticsApi';
 
 export type GlobalLeaderboardStatus = 'error' | 'loading' | 'success';
 

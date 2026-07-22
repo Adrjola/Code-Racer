@@ -132,9 +132,9 @@ describe('toGlobalRankingEntries', () => {
       { cpm: 200, durationMs: 30_000, rank: 3, username: 'carol' },
     ];
 
-    expect(toGlobalRankingEntries(entries).map((entry) => entry.rank)).toEqual(
-      [1, 1, 3],
-    );
+    expect(toGlobalRankingEntries(entries).map((entry) => entry.rank)).toEqual([
+      1, 1, 3,
+    ]);
     expect(
       toGlobalRankingEntries(entries).map((entry) => entry.username),
     ).toEqual(['alice', 'bob', 'carol']);

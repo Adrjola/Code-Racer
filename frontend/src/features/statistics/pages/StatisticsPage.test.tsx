@@ -80,17 +80,20 @@ function mockGlobalLeaderboard(
   },
 ) {
   server.use(
-    http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, ({ request }) => {
-      const difficulty = new URL(request.url).searchParams.get(
-        'difficulty',
-      ) as Difficulty | null;
-      return HttpResponse.json({
-        data: {
-          difficulty,
-          entries: (difficulty && byDifficulty[difficulty]) ?? [],
-        },
-      });
-    }),
+    http.get(
+      `${API_URL}/api/solo-attempts/global-leaderboard`,
+      ({ request }) => {
+        const difficulty = new URL(request.url).searchParams.get(
+          'difficulty',
+        ) as Difficulty | null;
+        return HttpResponse.json({
+          data: {
+            difficulty,
+            entries: (difficulty && byDifficulty[difficulty]) ?? [],
+          },
+        });
+      },
+    ),
   );
 }
 
@@ -209,9 +212,7 @@ describe('StatisticsPage', () => {
     );
     renderStatistics();
 
-    expect(
-      screen.getByText(/loading global rankings/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/loading global rankings/i)).toBeInTheDocument();
   });
 
   it('shows a placeholder when a difficulty has no ranking data yet', async () => {
@@ -283,11 +284,16 @@ describe('StatisticsPage', () => {
   it('refetches the global leaderboard when the difficulty changes', async () => {
     const requestedDifficulties: (string | null)[] = [];
     server.use(
-      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, ({ request }) => {
-        const difficulty = new URL(request.url).searchParams.get('difficulty');
-        requestedDifficulties.push(difficulty);
-        return HttpResponse.json({ data: { difficulty, entries: [] } });
-      }),
+      http.get(
+        `${API_URL}/api/solo-attempts/global-leaderboard`,
+        ({ request }) => {
+          const difficulty = new URL(request.url).searchParams.get(
+            'difficulty',
+          );
+          requestedDifficulties.push(difficulty);
+          return HttpResponse.json({ data: { difficulty, entries: [] } });
+        },
+      ),
     );
     const user = userEvent.setup();
     renderStatistics();

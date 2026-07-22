@@ -98,18 +98,21 @@ describe('statisticsApi.getGlobalLeaderboard', () => {
     saveSession(session());
     let requestUrl: URL | undefined;
     server.use(
-      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, ({ request }) => {
-        requestUrl = new URL(request.url);
-        return HttpResponse.json({
-          data: {
-            difficulty: 'EASY',
-            entries: [
-              { cpm: 600, durationMs: 17_000, rank: 1, username: 'zoomer' },
-              { cpm: 500, durationMs: 18_000, rank: 2, username: 'racer' },
-            ],
-          },
-        });
-      }),
+      http.get(
+        `${API_URL}/api/solo-attempts/global-leaderboard`,
+        ({ request }) => {
+          requestUrl = new URL(request.url);
+          return HttpResponse.json({
+            data: {
+              difficulty: 'EASY',
+              entries: [
+                { cpm: 600, durationMs: 17_000, rank: 1, username: 'zoomer' },
+                { cpm: 500, durationMs: 18_000, rank: 2, username: 'racer' },
+              ],
+            },
+          });
+        },
+      ),
     );
 
     const entries = await statisticsApi.getGlobalLeaderboard('EASY');

@@ -475,7 +475,10 @@ export function SoloRace({
 
           {!hasRaceStarted && (
             <div className="w-full max-w-[487px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
-              <SoloRaceWorldBest onStartRace={startRace} snippetId={snippet.id} />
+              <SoloRaceWorldBest
+                onStartRace={startRace}
+                snippetId={snippet.id}
+              />
             </div>
           )}
 
