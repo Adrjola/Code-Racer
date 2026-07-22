@@ -6,7 +6,6 @@ import { server } from '@/test/server';
 import {
   fetchCategories,
   fetchRandomSnippet,
-  isSessionExpiredError,
   readableSoloError,
   startSoloAttempt,
   type CategoryOption,
@@ -154,19 +153,5 @@ describe('soloApi', () => {
     ).toMatch(/session has expired/i);
     expect(readableSoloError(new ApiRequestError('boom'))).toBe('boom');
     expect(readableSoloError(new Error('offline'))).toMatch(/cannot reach/i);
-  });
-
-  it('identifies session-expired errors', () => {
-    expect(
-      isSessionExpiredError(
-        new ApiRequestError('expired', 'AUTHENTICATION_REQUIRED', 401),
-      ),
-    ).toBe(true);
-    expect(
-      isSessionExpiredError(
-        new ApiRequestError('other', 'NO_ELIGIBLE_SNIPPET', 404),
-      ),
-    ).toBe(false);
-    expect(isSessionExpiredError(new Error('offline'))).toBe(false);
   });
 });

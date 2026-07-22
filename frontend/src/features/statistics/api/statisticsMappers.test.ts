@@ -75,6 +75,7 @@ describe('toPersonalActivityEntries', () => {
         category: 'JAVA',
         cpm: 452,
         relativeTime: '5 min ago',
+        snippetId: 'snippet-1',
         snippetName: 'Two Sum',
         time: '0:41.201',
       },

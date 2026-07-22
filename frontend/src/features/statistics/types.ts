@@ -11,6 +11,7 @@ export type PersonalActivityEntry = {
   category: string;
   cpm: number;
   relativeTime: string;
+  snippetId: string;
   snippetName: string;
   time: string;
 };

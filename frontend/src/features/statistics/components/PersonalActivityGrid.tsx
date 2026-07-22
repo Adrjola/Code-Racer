@@ -95,11 +95,8 @@ export function PersonalActivityGrid({ entries }: PersonalActivityGridProps) {
         aria-label="Recent activity"
         className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-[108px]"
       >
-        {entries.map((entry, index) => (
-          <PersonalActivityCard
-            entry={entry}
-            key={`${entry.snippetName}-${index}`}
-          />
+        {entries.map((entry) => (
+          <PersonalActivityCard entry={entry} key={entry.snippetId} />
         ))}
       </ul>
     </div>

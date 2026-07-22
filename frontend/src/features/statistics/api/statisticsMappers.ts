@@ -37,6 +37,7 @@ export function toPersonalActivityEntries(
     category: snippet.categoryName.toUpperCase(),
     cpm: snippet.bestCpm,
     relativeTime: formatRelativeTime(snippet.bestFinishedAt, now),
+    snippetId: snippet.snippetId,
     snippetName: snippet.snippetTitle,
     time: formatDuration(snippet.bestDurationMs),
   }));

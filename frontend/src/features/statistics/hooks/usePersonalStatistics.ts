@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { isSessionExpiredError } from '@/features/solo/api/soloApi';
+import { isSessionExpiredError } from '@/lib/apiClient';
 import {
   statisticsApi,
   type DifficultyStatistics,

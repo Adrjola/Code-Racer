@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Logo from '@/components/Logo';
 import { TrophyIcon } from '@/components/icons';
 import type { AuthSession } from '@/features/auth/session';
+import { isSessionExpiredError } from '@/lib/apiClient';
 import {
   fetchCategories,
-  isSessionExpiredError,
   readableSoloError,
   type Category,
   type CategoryOption,
