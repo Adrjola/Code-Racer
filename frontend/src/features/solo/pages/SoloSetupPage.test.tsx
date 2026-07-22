@@ -63,6 +63,7 @@ function renderPage(
     onLogout: vi.fn(),
     onSelect: vi.fn(),
     onSessionExpired: vi.fn(),
+    session: session(),
     ...overrides,
   };
   render(<SoloSetupPage {...props} />);
