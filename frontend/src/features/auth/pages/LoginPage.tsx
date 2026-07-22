@@ -95,7 +95,7 @@ export default function LoginPage({
         icon={<LockIcon />}
         id="login-password"
         label="Password"
-        maxLength={16}
+        maxLength={72}
         onChange={setValue('password')}
         placeholder="**********"
         type="password"

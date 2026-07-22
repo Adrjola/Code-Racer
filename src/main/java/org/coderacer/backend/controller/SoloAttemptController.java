@@ -1,6 +1,5 @@
 package org.coderacer.backend.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.UUID;
@@ -16,11 +15,12 @@ import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
 import org.coderacer.backend.dto.StartSoloAttemptResponse;
 import org.coderacer.backend.dto.SubmitProgressRequest;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
 import org.coderacer.backend.model.SoloAttempt;
-import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
@@ -54,31 +54,30 @@ public class SoloAttemptController {
   private final GlobalStatisticsService globalStatisticsService;
   private final SnippetStatisticsService snippetStatisticsService;
   private final SoloAttemptRankingService rankingService;
-  private final CurrentUserProvider currentUserProvider;
+  private final CurrentJwtUserProvider currentJwtUserProvider;
   private final SoloAttemptMapper mapper;
 
   @GetMapping
   public BaseResponse<PagedModel<SoloAttemptResultResponse>> history(
       @RequestParam(required = false) SoloAttemptState state,
-      @RequestParam(required = false) UUID categoryId,
+      @RequestParam(required = false) Category category,
       @RequestParam(required = false) Difficulty difficulty,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
           Instant startedFrom,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
           Instant startedTo,
-      Pageable pageable,
-      HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+      Pageable pageable) {
+    UUID userId = currentJwtUserProvider.resolve();
     Page<SoloAttemptResultResponse> history =
         historyService.findHistory(
-            userId, state, categoryId, difficulty, startedFrom, startedTo, pageable);
+            userId, state, category, difficulty, startedFrom, startedTo, pageable);
     return new BaseResponse<>(new PagedModel<>(history), MDC.get("correlationId"));
   }
 
   @PostMapping
   public ResponseEntity<BaseResponse<StartSoloAttemptResponse>> start(
-      @Valid @RequestBody StartSoloAttemptRequest request, HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+      @Valid @RequestBody StartSoloAttemptRequest request) {
+    UUID userId = currentJwtUserProvider.resolve();
     SoloAttempt attempt = soloAttemptService.start(userId, request.codeSnippetId());
     StartSoloAttemptResponse response =
         new StartSoloAttemptResponse(
@@ -92,10 +91,8 @@ public class SoloAttemptController {
 
   @PostMapping("/{id}/progress")
   public ResponseEntity<BaseResponse<?>> submitProgress(
-      @PathVariable UUID id,
-      @Valid @RequestBody SubmitProgressRequest request,
-      HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+      @PathVariable UUID id, @Valid @RequestBody SubmitProgressRequest request) {
+    UUID userId = currentJwtUserProvider.resolve();
     ProgressResult result =
         soloAttemptService.submitProgress(id, userId, request.sequence(), request.characters());
 
@@ -110,17 +107,16 @@ public class SoloAttemptController {
   }
 
   @PostMapping("/{id}/abandon")
-  public ResponseEntity<BaseResponse<AbandonResponse>> abandon(
-      @PathVariable UUID id, HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+  public ResponseEntity<BaseResponse<AbandonResponse>> abandon(@PathVariable UUID id) {
+    UUID userId = currentJwtUserProvider.resolve();
     SoloAttempt attempt = soloAttemptService.abandon(id, userId);
     AbandonResponse response = new AbandonResponse(attempt.getId(), attempt.getState());
     return ResponseEntity.ok(new BaseResponse<>(response, MDC.get("correlationId")));
   }
 
   @GetMapping("/statistics")
-  public BaseResponse<PersonalStatisticsResponse> statistics(HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+  public BaseResponse<PersonalStatisticsResponse> statistics() {
+    UUID userId = currentJwtUserProvider.resolve();
     return new BaseResponse<>(statisticsService.forUser(userId), MDC.get("correlationId"));
   }
 
@@ -130,23 +126,22 @@ public class SoloAttemptController {
   }
 
   @GetMapping("/snippet-statistics")
-  public BaseResponse<SnippetStatisticsResponse> snippetStatistics(HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+  public BaseResponse<SnippetStatisticsResponse> snippetStatistics() {
+    UUID userId = currentJwtUserProvider.resolve();
     return new BaseResponse<>(
         new SnippetStatisticsResponse(snippetStatisticsService.forUser(userId)),
         MDC.get("correlationId"));
   }
 
   @GetMapping("/{id}/ranking")
-  public BaseResponse<SoloAttemptRankingResponse> ranking(
-      @PathVariable UUID id, HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+  public BaseResponse<SoloAttemptRankingResponse> ranking(@PathVariable UUID id) {
+    UUID userId = currentJwtUserProvider.resolve();
     return new BaseResponse<>(rankingService.forAttempt(id, userId), MDC.get("correlationId"));
   }
 
   @GetMapping("/{id}")
-  public BaseResponse<?> getById(@PathVariable UUID id, HttpServletRequest httpRequest) {
-    UUID userId = currentUserProvider.resolve(httpRequest);
+  public BaseResponse<?> getById(@PathVariable UUID id) {
+    UUID userId = currentJwtUserProvider.resolve();
     SoloAttempt attempt = soloAttemptService.getById(id, userId);
     return new BaseResponse<>(mapper.toResultResponse(attempt), MDC.get("correlationId"));
   }

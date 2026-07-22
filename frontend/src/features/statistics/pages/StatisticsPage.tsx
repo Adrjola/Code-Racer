@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Logo from '@/components/Logo';
+import { TrophyIcon } from '@/components/icons';
 import type { AuthSession } from '@/features/auth/session';
 import type { Difficulty } from '@/features/solo/api/soloApi';
 import {
@@ -13,11 +14,10 @@ import { GlobalRankingTable } from '../components/GlobalRankingTable';
 import { PersonalActivityGrid } from '../components/PersonalActivityGrid';
 import { PersonalStatsSummaryGrid } from '../components/PersonalStatsSummaryGrid';
 import { ViewTabs } from '../components/ViewTabs';
-import { TrophyIcon } from '../icons';
 import type { StatsView } from '../types';
 
 type StatisticsPageProps = {
-  onGoDashboard: () => void;
+  onGoHome: () => void;
   onLogout: () => void;
   onSessionExpired: () => void;
   session: AuthSession;
@@ -58,7 +58,7 @@ function useNaturalHeight() {
 }
 
 export default function StatisticsPage({
-  onGoDashboard,
+  onGoHome,
   onLogout,
   onSessionExpired,
   session,
@@ -115,7 +115,7 @@ export default function StatisticsPage({
           ref={headerCanvasRef}
         >
           <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
-            <Logo onClick={onGoDashboard} />
+            <Logo onClick={onGoHome} />
             <div className="flex items-center gap-4">
               <span
                 aria-hidden="true"

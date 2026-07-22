@@ -6,13 +6,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.SnippetStatistics;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
@@ -29,7 +28,6 @@ class SnippetStatisticsIntegrationTest {
   @Autowired private SnippetStatisticsService statisticsService;
   @Autowired private SoloAttemptRepository attemptRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private UserRepository userRepository;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
@@ -37,7 +35,7 @@ class SnippetStatisticsIntegrationTest {
   @Test
   void returnsOneEntryPerSnippetUsingItsFastestCompletedAttempt() {
     User alice = newUser("alice");
-    CodeSnippet twoSum = newSnippet("Two Sum", "JAVA", Difficulty.EASY);
+    CodeSnippet twoSum = newSnippet("Two Sum", Category.JAVA, Difficulty.EASY);
     completed(alice, twoSum, 45_000L, 400, now);
     completed(alice, twoSum, 41_000L, 452, now.plusSeconds(60));
 
@@ -45,7 +43,7 @@ class SnippetStatisticsIntegrationTest {
 
     assertThat(stats).hasSize(1);
     assertThat(stats.getFirst().snippetTitle()).isEqualTo("Two Sum");
-    assertThat(stats.getFirst().categoryName()).startsWith("JAVA");
+    assertThat(stats.getFirst().categoryName()).isEqualTo(Category.JAVA.getDisplayName());
     assertThat(stats.getFirst().bestDurationMs()).isEqualTo(41_000L);
     assertThat(stats.getFirst().bestCpm()).isEqualTo(452);
   }
@@ -53,8 +51,8 @@ class SnippetStatisticsIntegrationTest {
   @Test
   void ordersSnippetsByMostRecentlySetBestFirst() {
     User alice = newUser("alice");
-    CodeSnippet twoSum = newSnippet("Two Sum", "JAVA", Difficulty.EASY);
-    CodeSnippet groupByCount = newSnippet("Group By Count", "SQL", Difficulty.MEDIUM);
+    CodeSnippet twoSum = newSnippet("Two Sum", Category.JAVA, Difficulty.EASY);
+    CodeSnippet groupByCount = newSnippet("Group By Count", Category.SQL, Difficulty.MEDIUM);
     completed(alice, twoSum, 41_000L, 452, now);
     completed(alice, groupByCount, 50_000L, 300, now.plusSeconds(7_200));
 
@@ -75,7 +73,7 @@ class SnippetStatisticsIntegrationTest {
   @Test
   void excludesAttemptsOnSoftDeletedSnippets() {
     User alice = newUser("alice");
-    CodeSnippet deleted = newSnippet("Retired Snippet", "JAVA", Difficulty.EASY);
+    CodeSnippet deleted = newSnippet("Retired Snippet", Category.JAVA, Difficulty.EASY);
     completed(alice, deleted, 41_000L, 452, now);
     deleted.softDelete();
     codeSnippetRepository.save(deleted);
@@ -86,7 +84,7 @@ class SnippetStatisticsIntegrationTest {
   @Test
   void excludesAbandonedAttempts() {
     User alice = newUser("alice");
-    CodeSnippet snippet = newSnippet("Two Sum", "JAVA", Difficulty.EASY);
+    CodeSnippet snippet = newSnippet("Two Sum", Category.JAVA, Difficulty.EASY);
     SoloAttempt abandoned = new SoloAttempt(alice, snippet, Difficulty.EASY, now);
     abandoned.abandon();
     attemptRepository.save(abandoned);
@@ -98,7 +96,7 @@ class SnippetStatisticsIntegrationTest {
   void excludesOtherUsersAttempts() {
     User alice = newUser("alice");
     User bob = newUser("bob");
-    CodeSnippet snippet = newSnippet("Two Sum", "JAVA", Difficulty.EASY);
+    CodeSnippet snippet = newSnippet("Two Sum", Category.JAVA, Difficulty.EASY);
     completed(bob, snippet, 20_000L, 999, now);
 
     assertThat(statisticsService.forUser(alice.getId())).isEmpty();
@@ -112,11 +110,7 @@ class SnippetStatisticsIntegrationTest {
     attemptRepository.save(attempt);
   }
 
-  private CodeSnippet newSnippet(String title, String categoryName, Difficulty difficulty) {
-    Category category = new Category();
-    category.setName(categoryName + " " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.save(category);
+  private CodeSnippet newSnippet(String title, Category category, Difficulty difficulty) {
     String source = UUID.randomUUID().toString();
     return codeSnippetRepository.save(
         new CodeSnippet(title, source, sha256Hex(source), difficulty, category));

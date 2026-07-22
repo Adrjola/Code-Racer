@@ -202,6 +202,6 @@ class EmailVerificationIntegrationTest {
   }
 
   private String hash(String rawToken) {
-    return Sha256Hasher.hashHex(rawToken);
+    return Sha256Hasher.hash(rawToken);
   }
 }

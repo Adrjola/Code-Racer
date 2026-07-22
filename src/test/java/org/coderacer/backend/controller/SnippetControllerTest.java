@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.SnippetResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.GlobalExceptionHandler;
@@ -31,7 +32,6 @@ class SnippetControllerTest {
 
   private final SnippetService service = mock(SnippetService.class);
   private final UUID id = UUID.randomUUID();
-  private final UUID categoryId = UUID.randomUUID();
   private final SnippetResponse response =
       new SnippetResponse(
           UUID.randomUUID(),
@@ -39,7 +39,7 @@ class SnippetControllerTest {
           "code",
           Difficulty.EASY,
           SnippetLifecycle.ACTIVE,
-          UUID.randomUUID(),
+          Category.JAVA,
           Instant.now(),
           Instant.now());
   private MockMvc mockMvc;
@@ -75,8 +75,8 @@ class SnippetControllerTest {
             post("/api/admin/snippets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"title\":\"\",\"source\":\"code\",\"difficulty\":\"EASY\",\"categoryId\":\""
-                        + categoryId
+                    "{\"title\":\"\",\"source\":\"code\",\"difficulty\":\"EASY\",\"category\":\""
+                        + Category.JAVA.name()
                         + "\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
@@ -89,8 +89,8 @@ class SnippetControllerTest {
             post("/api/admin/snippets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"categoryId\":\""
-                        + categoryId
+                    "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"category\":\""
+                        + Category.JAVA.name()
                         + "\"}"))
         .andExpect(status().isBadRequest());
   }
@@ -104,13 +104,13 @@ class SnippetControllerTest {
 
   @Test
   void list_returns200_andPassesFilters() throws Exception {
-    when(service.list(eq(categoryId), eq(Difficulty.HARD), eq(SnippetLifecycle.ACTIVE), any()))
+    when(service.list(eq(Category.JAVA), eq(Difficulty.HARD), eq(SnippetLifecycle.ACTIVE), any()))
         .thenReturn(new PageImpl<>(List.of(response)));
 
     mockMvc
         .perform(
             get("/api/admin/snippets")
-                .param("categoryId", categoryId.toString())
+                .param("category", Category.JAVA.name())
                 .param("difficulty", "HARD")
                 .param("lifecycle", "ACTIVE"))
         .andExpect(status().isOk())
@@ -126,12 +126,13 @@ class SnippetControllerTest {
 
   @Test
   void random_returns200_andPassesExclusion() throws Exception {
-    when(service.randomEligible(eq(categoryId), eq(Difficulty.EASY), eq(id))).thenReturn(response);
+    when(service.randomEligible(eq(Category.JAVA), eq(Difficulty.EASY), eq(id)))
+        .thenReturn(response);
 
     mockMvc
         .perform(
             get("/api/snippets/random")
-                .param("categoryId", categoryId.toString())
+                .param("category", Category.JAVA.name())
                 .param("difficulty", "EASY")
                 .param("excludeId", id.toString()))
         .andExpect(status().isOk())
@@ -139,8 +140,8 @@ class SnippetControllerTest {
   }
 
   private String createBody() {
-    return "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"difficulty\":\"EASY\",\"categoryId\":\""
-        + categoryId
+    return "{\"title\":\"FizzBuzz\",\"source\":\"code\",\"difficulty\":\"EASY\",\"category\":\""
+        + Category.JAVA.name()
         + "\"}";
   }
 }

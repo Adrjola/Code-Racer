@@ -73,8 +73,11 @@ public interface SoloAttemptRepository
       findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
           Difficulty difficulty, SoloAttemptState state);
 
-  /** Every completed attempt of one user across all difficulties. */
-  @EntityGraph(attributePaths = "codeSnippet.category")
+  /**
+   * Every completed attempt of one user across all difficulties. No entity graph is needed here:
+   * codeSnippet is EAGER on SoloAttempt, and its category is a plain enum column, not a lazy
+   * association.
+   */
   List<SoloAttempt> findByUserIdAndStateAndCodeSnippetLifecycleNot(
       UUID userId, SoloAttemptState state, SnippetLifecycle lifecycle);
 }

@@ -69,7 +69,7 @@ function mockSnippetStatistics(snippets: SnippetStatistics[]) {
 function renderStatistics(overrides: Partial<{ session: AuthSession }> = {}) {
   return render(
     <StatisticsPage
-      onGoDashboard={vi.fn()}
+      onGoHome={vi.fn()}
       onLogout={vi.fn()}
       onSessionExpired={vi.fn()}
       session={overrides.session ?? session()}
@@ -248,7 +248,7 @@ describe('StatisticsPage', () => {
     const onSessionExpired = vi.fn();
     render(
       <StatisticsPage
-        onGoDashboard={vi.fn()}
+        onGoHome={vi.fn()}
         onLogout={vi.fn()}
         onSessionExpired={onSessionExpired}
         session={session()}
@@ -288,31 +288,31 @@ describe('StatisticsPage', () => {
     expect(window.location.search).toContain('difficulty=HARD');
   });
 
-  it('goes to the dashboard when the logo is clicked', async () => {
-    const onGoDashboard = vi.fn();
+  it('goes to the homepage when the logo is clicked', async () => {
+    const onGoHome = vi.fn();
     const user = userEvent.setup();
     render(
       <StatisticsPage
-        onGoDashboard={onGoDashboard}
+        onGoHome={onGoHome}
         onLogout={vi.fn()}
         onSessionExpired={vi.fn()}
         session={session()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
+    await user.click(screen.getByRole('button', { name: /go to homepage/i }));
 
-    expect(onGoDashboard).toHaveBeenCalledTimes(1);
+    expect(onGoHome).toHaveBeenCalledTimes(1);
   });
 
-  it('no longer has a Dashboard item in the menu', async () => {
+  it('no longer has a Homepage item in the menu', async () => {
     const user = userEvent.setup();
     renderStatistics();
 
     await user.click(screen.getByRole('button', { name: /menu/i }));
 
     expect(
-      screen.queryByRole('button', { name: /^dashboard$/i }),
+      screen.queryByRole('button', { name: /^homepage$/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -321,7 +321,7 @@ describe('StatisticsPage', () => {
     const user = userEvent.setup();
     render(
       <StatisticsPage
-        onGoDashboard={vi.fn()}
+        onGoHome={vi.fn()}
         onLogout={onLogout}
         onSessionExpired={vi.fn()}
         session={session()}

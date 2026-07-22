@@ -2,19 +2,24 @@ package org.coderacer.backend.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import org.coderacer.backend.dto.CreateSnippetRequest;
+import org.coderacer.backend.dto.ResetPasswordRequest;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
+import org.coderacer.backend.model.PasswordResetToken;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
+import org.coderacer.backend.repository.PasswordResetTokenRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
+import org.coderacer.backend.service.PasswordResetService;
 import org.coderacer.backend.service.SnippetService;
 import org.coderacer.backend.service.TokenInvalidationService;
 import org.coderacer.backend.support.IntegrationTest;
+import org.coderacer.backend.util.Sha256Hasher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,24 +37,25 @@ class SecurityAuthorizationIntegrationTest {
 
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private UserRepository userRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private CodeSnippetRepository snippetRepository;
+  @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
   @Autowired private SnippetService snippetService;
+  @Autowired private PasswordResetService passwordResetService;
   @Autowired private PasswordEncoder passwordEncoder;
-  @Autowired private JwtService jwtService;
+  @Autowired private JwtTokenService jwtTokenService;
   @Autowired private TokenInvalidationService tokenInvalidationService;
 
   @BeforeEach
   void setUp() {
     snippetRepository.deleteAll();
-    categoryRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
     userRepository.deleteAll();
   }
 
   @AfterEach
   void tearDown() {
     snippetRepository.deleteAll();
-    categoryRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
     userRepository.deleteAll();
   }
 
@@ -61,23 +67,23 @@ class SecurityAuthorizationIntegrationTest {
   }
 
   @Test
-  void adminCategoryRouteRequiresAuthentication() {
+  void adminSnippetsRouteRequiresAuthentication() {
     ResponseEntity<String> response =
-        restTemplate.getForEntity("/api/admin/categories", String.class);
+        restTemplate.getForEntity("/api/admin/snippets", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(response.getBody()).contains("\"code\":\"AUTHENTICATION_REQUIRED\"");
   }
 
   @Test
-  void userTokenCannotAccessAdminCategoryRoute() {
+  void userTokenCannotAccessAdminSnippetsRoute() {
     User user = saveUser("player", UserRole.USER);
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -85,14 +91,14 @@ class SecurityAuthorizationIntegrationTest {
   }
 
   @Test
-  void adminTokenCanAccessAdminCategoryRoute() {
+  void adminTokenCanAccessAdminSnippetsRoute() {
     User admin = saveUser("admin", UserRole.ADMIN);
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -110,15 +116,14 @@ class SecurityAuthorizationIntegrationTest {
   @Test
   void userTokenCanAccessRandomSnippetRoute() {
     User user = saveUser("snippet_player", UserRole.USER);
-    Category category = saveCategory("Java snippets");
     snippetService.create(
-        new CreateSnippetRequest("FizzBuzz", "class Main {}", Difficulty.EASY, category.getId()));
+        new CreateSnippetRequest("FizzBuzz", "class Main {}", Difficulty.EASY, Category.JAVA));
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/snippets/random?categoryId=" + category.getId() + "&difficulty=EASY",
+            "/api/snippets/random?category=" + Category.JAVA + "&difficulty=EASY",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -133,7 +138,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -148,7 +153,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -162,9 +167,9 @@ class SecurityAuthorizationIntegrationTest {
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -178,7 +183,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/users",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(user)),
+            bearerEntity(jwtTokenService.createAccessToken(user)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -193,7 +198,7 @@ class SecurityAuthorizationIntegrationTest {
         restTemplate.exchange(
             "/api/admin/users",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(admin)),
+            bearerEntity(jwtTokenService.createAccessToken(admin)),
             String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -207,19 +212,45 @@ class SecurityAuthorizationIntegrationTest {
   @Test
   void oldTokenCannotAccessProtectedRouteAfterTokenInvalidation() {
     User admin = saveUser("admin", UserRole.ADMIN);
-    String oldToken = jwtService.createAccessToken(admin);
+    String oldToken = jwtTokenService.createAccessToken(admin);
 
     tokenInvalidationService.invalidateTokensForPasswordReset(admin.getId());
 
     ResponseEntity<String> oldTokenResponse =
         restTemplate.exchange(
-            "/api/admin/categories", HttpMethod.GET, bearerEntity(oldToken), String.class);
+            "/api/admin/snippets", HttpMethod.GET, bearerEntity(oldToken), String.class);
     User refreshedAdmin = userRepository.findById(admin.getId()).orElseThrow();
     ResponseEntity<String> newTokenResponse =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
-            bearerEntity(jwtService.createAccessToken(refreshedAdmin)),
+            bearerEntity(jwtTokenService.createAccessToken(refreshedAdmin)),
+            String.class);
+
+    assertThat(oldTokenResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(newTokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  void oldTokenCannotAccessProtectedRouteAfterPasswordReset() {
+    User admin = saveUser("reset_admin", UserRole.ADMIN);
+    String oldToken = jwtTokenService.createAccessToken(admin);
+    passwordResetTokenRepository.saveAndFlush(
+        new PasswordResetToken(
+            admin, Sha256Hasher.hash("raw-reset-token"), Instant.now().plus(Duration.ofHours(1))));
+
+    passwordResetService.resetPassword(
+        new ResetPasswordRequest("raw-reset-token", "NewPassword123", "NewPassword123"));
+
+    ResponseEntity<String> oldTokenResponse =
+        restTemplate.exchange(
+            "/api/admin/snippets", HttpMethod.GET, bearerEntity(oldToken), String.class);
+    User refreshedAdmin = userRepository.findById(admin.getId()).orElseThrow();
+    ResponseEntity<String> newTokenResponse =
+        restTemplate.exchange(
+            "/api/admin/snippets",
+            HttpMethod.GET,
+            bearerEntity(jwtTokenService.createAccessToken(refreshedAdmin)),
             String.class);
 
     assertThat(oldTokenResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -242,12 +273,5 @@ class SecurityAuthorizationIntegrationTest {
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);
-  }
-
-  private Category saveCategory(String name) {
-    Category category = new Category();
-    category.setName(name);
-    category.setDescription(name + " exercises");
-    return categoryRepository.saveAndFlush(category);
   }
 }

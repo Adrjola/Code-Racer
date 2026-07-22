@@ -52,7 +52,7 @@ public class SnippetStatisticsService {
     return new SnippetStatistics(
         snippet.getId(),
         snippet.getTitle(),
-        snippet.getCategory().getName(),
+        snippet.getCategory().getDisplayName(),
         attempt.getDifficulty(),
         attempt.getDurationMs(),
         attempt.getCpm(),

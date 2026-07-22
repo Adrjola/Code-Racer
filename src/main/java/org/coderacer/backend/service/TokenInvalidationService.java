@@ -14,19 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TokenInvalidationService {
 
-  private final UserRepository repository;
+  private final UserRepository userRepository;
   private final Clock clock;
 
   @Transactional
   public Instant invalidateTokensForPasswordReset(UUID userId) {
     User user =
-        repository
+        userRepository
             .findById(userId)
             .orElseThrow(
                 () -> new ResourceNotFoundException("User with id " + userId + " not found"));
     Instant tokenValidFrom = Instant.now(clock);
     user.setTokenValidFrom(tokenValidFrom);
-    repository.save(user);
+    userRepository.save(user);
     return tokenValidFrom;
   }
 }

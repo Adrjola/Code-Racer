@@ -1,38 +1,6 @@
-import trophyBase from '@/assets/icons/trophy-base.svg';
-import trophyCup from '@/assets/icons/trophy-cup.svg';
-import trophyHandles from '@/assets/icons/trophy-handles.svg';
-
 type IconProps = {
   className?: string;
 };
-
-export function TrophyIcon({ className = 'size-5' }: IconProps = {}) {
-  return (
-    <span className={`relative block shrink-0 ${className}`} aria-hidden="true">
-      <span className="absolute inset-[16.67%_29.17%_45.83%_29.17%]">
-        <img
-          alt=""
-          className="absolute inset-[-8.33%_-7.5%] block max-w-none size-full"
-          src={trophyCup}
-        />
-      </span>
-      <span className="absolute inset-[20.83%_16.67%_58.33%_16.67%]">
-        <img
-          alt=""
-          className="absolute inset-[-15%_-4.69%] block max-w-none size-full"
-          src={trophyHandles}
-        />
-      </span>
-      <span className="absolute inset-[56.25%_33.33%_16.67%_33.33%]">
-        <img
-          alt=""
-          className="absolute inset-[-11.54%_-9.38%] block max-w-none size-full"
-          src={trophyBase}
-        />
-      </span>
-    </span>
-  );
-}
 
 export function GlobeIcon({ className = 'size-3' }: IconProps = {}) {
   return (

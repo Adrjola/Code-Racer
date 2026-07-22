@@ -9,10 +9,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.SnippetStatistics;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -61,7 +61,7 @@ class SnippetStatisticsServiceTest {
 
   @Test
   void keepsTheFastestAttemptWhenTheSameSnippetWasRacedMultipleTimes() {
-    CodeSnippet snippet = snippet("Two Sum", "JAVA", Difficulty.EASY);
+    CodeSnippet snippet = snippet("Two Sum", Category.JAVA, Difficulty.EASY);
     SoloAttempt slower = attempt(snippet, 45_000L, 400, now);
     SoloAttempt faster = attempt(snippet, 41_000L, 452, now.plusSeconds(60));
     when(repository.findByUserIdAndStateAndCodeSnippetLifecycleNot(any(), any(), any()))
@@ -76,7 +76,7 @@ class SnippetStatisticsServiceTest {
 
   @Test
   void breaksDurationTiesByTheEarlierFinish() {
-    CodeSnippet snippet = snippet("Two Sum", "JAVA", Difficulty.EASY);
+    CodeSnippet snippet = snippet("Two Sum", Category.JAVA, Difficulty.EASY);
     SoloAttempt earlier = attempt(snippet, 41_000L, 452, now);
     SoloAttempt later = attempt(snippet, 41_000L, 452, now.plusSeconds(60));
     when(repository.findByUserIdAndStateAndCodeSnippetLifecycleNot(any(), any(), any()))
@@ -90,8 +90,8 @@ class SnippetStatisticsServiceTest {
 
   @Test
   void includesOneEntryPerSnippetSortedByMostRecentBestFirst() {
-    CodeSnippet twoSum = snippet("Two Sum", "JAVA", Difficulty.EASY);
-    CodeSnippet groupByCount = snippet("Group By Count", "SQL", Difficulty.MEDIUM);
+    CodeSnippet twoSum = snippet("Two Sum", Category.JAVA, Difficulty.EASY);
+    CodeSnippet groupByCount = snippet("Group By Count", Category.SQL, Difficulty.MEDIUM);
     SoloAttempt olderBest = attempt(twoSum, 41_000L, 452, now);
     SoloAttempt recentBest = attempt(groupByCount, 50_000L, 300, now.plusSeconds(7200));
     when(repository.findByUserIdAndStateAndCodeSnippetLifecycleNot(any(), any(), any()))
@@ -106,7 +106,7 @@ class SnippetStatisticsServiceTest {
 
   @Test
   void mapsSnippetAndCategoryDetailsOntoEachEntry() {
-    CodeSnippet snippet = snippet("Two Sum", "JAVA", Difficulty.HARD);
+    CodeSnippet snippet = snippet("Two Sum", Category.JAVA, Difficulty.HARD);
     SoloAttempt run = attempt(snippet, 41_000L, 452, now);
     when(repository.findByUserIdAndStateAndCodeSnippetLifecycleNot(any(), any(), any()))
         .thenReturn(List.of(run));
@@ -115,15 +115,11 @@ class SnippetStatisticsServiceTest {
 
     assertThat(stats.snippetId()).isEqualTo(snippet.getId());
     assertThat(stats.snippetTitle()).isEqualTo("Two Sum");
-    assertThat(stats.categoryName()).isEqualTo("JAVA");
+    assertThat(stats.categoryName()).isEqualTo(Category.JAVA.getDisplayName());
     assertThat(stats.difficulty()).isEqualTo(Difficulty.HARD);
   }
 
-  private CodeSnippet snippet(String title, String categoryName, Difficulty difficulty) {
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName(categoryName);
-    category.setActive(true);
+  private CodeSnippet snippet(String title, Category category, Difficulty difficulty) {
     CodeSnippet snippet = new CodeSnippet(title, "source", "hash", difficulty, category);
     ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
     return snippet;

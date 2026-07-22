@@ -7,15 +7,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.CreateSnippetRequest;
 import org.coderacer.backend.dto.SnippetResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
 import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.SnippetMapper;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.util.Sha256Hasher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,7 +36,6 @@ public class SnippetService {
   private static final int MAX_SOURCE_LENGTH = 10000;
 
   private final CodeSnippetRepository repository;
-  private final CategoryRepository categoryRepository;
   private final SnippetMapper mapper;
 
   @Transactional
@@ -46,11 +44,14 @@ public class SnippetService {
     validateLengths(request.title(), canonicalSource);
     String contentHash = hash(canonicalSource);
     requireNoDuplicateActiveContent(contentHash);
-    Category category = requireAvailableCategory(request.categoryId());
 
     CodeSnippet snippet =
         new CodeSnippet(
-            request.title(), canonicalSource, contentHash, request.difficulty(), category);
+            request.title(),
+            canonicalSource,
+            contentHash,
+            request.difficulty(),
+            request.category());
     return saveAndMap(snippet);
   }
 
@@ -71,25 +72,26 @@ public class SnippetService {
 
   @Transactional(readOnly = true)
   public Page<SnippetResponse> list(
-      UUID categoryId, Difficulty difficulty, SnippetLifecycle lifecycle, Pageable pageable) {
-    return repository.search(categoryId, difficulty, lifecycle, pageable).map(mapper::toResponse);
+      Category category, Difficulty difficulty, SnippetLifecycle lifecycle, Pageable pageable) {
+    return repository.search(category, difficulty, lifecycle, pageable).map(mapper::toResponse);
   }
 
   @Transactional(readOnly = true)
-  public SnippetResponse randomEligible(UUID categoryId, Difficulty difficulty, UUID excludeId) {
+  public SnippetResponse randomEligible(Category category, Difficulty difficulty, UUID excludeId) {
     String excludeContentHash =
         excludeId == null
             ? null
             : repository.findById(excludeId).map(CodeSnippet::getContentHash).orElse(null);
 
+    String categoryName = category == null ? null : category.name();
     String difficultyName = difficulty == null ? null : difficulty.name();
     double selectionKey = ThreadLocalRandom.current().nextDouble();
     return repository
-        .findFirstEligibleAtOrAfter(categoryId, difficultyName, excludeContentHash, selectionKey)
+        .findFirstEligibleAtOrAfter(categoryName, difficultyName, excludeContentHash, selectionKey)
         .or(
             () ->
                 repository.findFirstEligibleBefore(
-                    categoryId, difficultyName, excludeContentHash, selectionKey))
+                    categoryName, difficultyName, excludeContentHash, selectionKey))
         .map(mapper::toResponse)
         .orElseThrow(this::noEligibleSnippet);
   }
@@ -98,20 +100,6 @@ public class SnippetService {
     if (repository.existsByContentHashAndLifecycle(contentHash, SnippetLifecycle.ACTIVE)) {
       throw duplicateContentConflict();
     }
-  }
-
-  private Category requireAvailableCategory(UUID categoryId) {
-    Category category =
-        categoryRepository
-            .findById(categoryId)
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException("Category with id " + categoryId + " not found"));
-    if (!category.isActive()) {
-      throw new ConflictException(
-          "Category '" + category.getName() + "' is not available", "CATEGORY_UNAVAILABLE");
-    }
-    return category;
   }
 
   private CodeSnippet findOrThrow(UUID id) {
@@ -165,7 +153,7 @@ public class SnippetService {
   }
 
   private static String hash(String canonicalSource) {
-    return Sha256Hasher.hashHex(canonicalSource);
+    return Sha256Hasher.hash(canonicalSource);
   }
 
   private static int codePointLength(String text) {

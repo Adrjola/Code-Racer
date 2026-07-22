@@ -1,11 +1,15 @@
-import type { LoginCredentials, RegistrationValues } from './auth';
+import type {
+  LoginCredentials,
+  RegistrationValues,
+  ResetPasswordValues,
+} from './auth';
 
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 const USERNAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{2,19}$/;
 const MIN_PASSWORD_LENGTH = 8;
-const MAX_PASSWORD_LENGTH = 16;
+const MAX_PASSWORD_LENGTH = 72;
 
 function requiredError(value: string, fieldName: string): string | undefined {
   return value.trim() ? undefined : `${fieldName} is required`;
@@ -77,6 +81,19 @@ export function validateRegistration(
     email: emailError(values.email),
     password: passwordError(values.password),
     username: usernameError(values.username),
+  };
+}
+
+export function validatePasswordReset(
+  values: ResetPasswordValues,
+): FormErrors<ResetPasswordValues> {
+  return {
+    confirmPassword: confirmPasswordError(
+      values.newPassword,
+      values.confirmPassword,
+    ),
+    newPassword: passwordError(values.newPassword),
+    token: requiredError(values.token, 'Reset token'),
   };
 }
 

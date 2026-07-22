@@ -14,17 +14,16 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.support.MutableClock;
 import org.junit.jupiter.api.Test;
@@ -55,10 +54,9 @@ class SoloAttemptFlowIntegrationTest {
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private UserRepository userRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private MutableClock clock;
-  @Autowired private JwtService jwtService;
+  @Autowired private JwtTokenService jwtTokenService;
 
   private User newUser(String username) {
     User user = new User();
@@ -72,10 +70,7 @@ class SoloAttemptFlowIntegrationTest {
   }
 
   private CodeSnippet newSnippet(String content) {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.saveAndFlush(category);
+    Category category = Category.JAVA;
     return codeSnippetRepository.saveAndFlush(
         new CodeSnippet(
             "Title", content, sha256Hex(content + UUID.randomUUID()), Difficulty.EASY, category));
@@ -105,7 +100,7 @@ class SoloAttemptFlowIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("X-User-Id", spoofedHeaderUser.getId().toString());
-    headers.setBearerAuth(jwtService.createAccessToken(tokenUser));
+    headers.setBearerAuth(jwtTokenService.createAccessToken(tokenUser));
     return headers;
   }
 

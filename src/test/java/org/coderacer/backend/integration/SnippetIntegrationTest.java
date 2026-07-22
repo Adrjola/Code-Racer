@@ -3,16 +3,14 @@ package org.coderacer.backend.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.UUID;
 import org.coderacer.backend.dto.CreateSnippetRequest;
 import org.coderacer.backend.dto.SnippetResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.service.SnippetService;
 import org.coderacer.backend.support.AbstractPostgresIntegrationTest;
@@ -26,18 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
 
   @Autowired private SnippetService service;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private CodeSnippetRepository snippetRepository;
 
-  private Category category;
-  private UUID categoryId;
-
+  // The seeded catalog shares the JAVA category with everything these tests
+  // create, so it has to be cleared or it turns up in random selection.
   @BeforeEach
-  void setUp() {
-    category = new Category();
-    category.setName("Java " + UUID.randomUUID());
-    category.setDescription("Java exercises");
-    categoryId = categoryRepository.saveAndFlush(category).getId();
+  void clearSeededSnippets() {
+    snippetRepository.deleteAll();
   }
 
   @Test
@@ -45,7 +38,7 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
     SnippetResponse created =
         service.create(
             new CreateSnippetRequest(
-                "FizzBuzz", "line1\r\nline2\rline3", Difficulty.EASY, categoryId));
+                "FizzBuzz", "line1\r\nline2\rline3", Difficulty.EASY, Category.JAVA));
 
     assertThat(created.id()).isNotNull();
     assertThat(created.lifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
@@ -56,11 +49,11 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
   @Test
   void refreshExcludesTheContentThePlayerAlreadyHas() {
     SnippetResponse first =
-        service.create(new CreateSnippetRequest("A", "aaa", Difficulty.EASY, categoryId));
+        service.create(new CreateSnippetRequest("A", "aaa", Difficulty.EASY, Category.JAVA));
     SnippetResponse other =
-        service.create(new CreateSnippetRequest("B", "bbb", Difficulty.EASY, categoryId));
+        service.create(new CreateSnippetRequest("B", "bbb", Difficulty.EASY, Category.JAVA));
 
-    SnippetResponse refreshed = service.randomEligible(categoryId, Difficulty.EASY, first.id());
+    SnippetResponse refreshed = service.randomEligible(Category.JAVA, Difficulty.EASY, first.id());
 
     assertThat(refreshed.id()).isEqualTo(other.id());
   }
@@ -68,22 +61,22 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
   @Test
   void deletedSnippetsNeverEnterSelection() {
     SnippetResponse created =
-        service.create(new CreateSnippetRequest("A", "aaa", Difficulty.EASY, categoryId));
+        service.create(new CreateSnippetRequest("A", "aaa", Difficulty.EASY, Category.JAVA));
 
     service.delete(created.id());
 
-    assertThatThrownBy(() -> service.randomEligible(categoryId, Difficulty.EASY, null))
+    assertThatThrownBy(() -> service.randomEligible(Category.JAVA, Difficulty.EASY, null))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
   @Test
   void duplicateActiveContentIsRejected() {
-    service.create(new CreateSnippetRequest("A", "same source", Difficulty.EASY, categoryId));
+    service.create(new CreateSnippetRequest("A", "same source", Difficulty.EASY, Category.JAVA));
 
     assertThatThrownBy(
             () ->
                 service.create(
-                    new CreateSnippetRequest("B", "same source", Difficulty.MEDIUM, categoryId)))
+                    new CreateSnippetRequest("B", "same source", Difficulty.MEDIUM, Category.JAVA)))
         .isInstanceOf(ConflictException.class);
   }
 
@@ -91,9 +84,9 @@ class SnippetIntegrationTest extends AbstractPostgresIntegrationTest {
   void databaseRejectsDuplicateActiveContentHash() {
     String contentHash = "a".repeat(64);
     CodeSnippet first =
-        new CodeSnippet("A", "first source", contentHash, Difficulty.EASY, category);
+        new CodeSnippet("A", "first source", contentHash, Difficulty.EASY, Category.JAVA);
     CodeSnippet duplicate =
-        new CodeSnippet("B", "second source", contentHash, Difficulty.MEDIUM, category);
+        new CodeSnippet("B", "second source", contentHash, Difficulty.MEDIUM, Category.JAVA);
 
     snippetRepository.saveAndFlush(first);
 

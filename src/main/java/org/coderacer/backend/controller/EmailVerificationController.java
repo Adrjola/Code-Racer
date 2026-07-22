@@ -10,10 +10,10 @@ import org.coderacer.backend.dto.UserResponse;
 import org.coderacer.backend.service.EmailVerificationService;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,13 +26,17 @@ public class EmailVerificationController {
   @PostMapping("/confirm")
   public BaseResponse<UserResponse> confirm(
       @Valid @RequestBody EmailVerificationConfirmRequest request) {
-    return new BaseResponse<>(service.confirm(request), MDC.get("correlationId"));
+    return wrap(service.confirm(request));
   }
 
   @PostMapping("/resend")
-  public ResponseEntity<BaseResponse<EmailVerificationResendResponse>> resend(
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  public BaseResponse<EmailVerificationResendResponse> resend(
       @Valid @RequestBody EmailVerificationResendRequest request) {
-    return ResponseEntity.status(HttpStatus.ACCEPTED)
-        .body(new BaseResponse<>(service.resend(request), MDC.get("correlationId")));
+    return wrap(service.resend(request));
+  }
+
+  private <T> BaseResponse<T> wrap(T data) {
+    return new BaseResponse<>(data, MDC.get("correlationId"));
   }
 }

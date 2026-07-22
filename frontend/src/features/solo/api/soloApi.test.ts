@@ -9,7 +9,7 @@ import {
   isSessionExpiredError,
   readableSoloError,
   startSoloAttempt,
-  type Category,
+  type CategoryOption,
   type SnippetPreview,
 } from './soloApi';
 
@@ -32,17 +32,13 @@ function session(): AuthSession {
   };
 }
 
-const category: Category = {
-  active: true,
-  createdAt: '2026-07-01T00:00:00Z',
-  description: 'Loops, arrays, and basics',
-  id: 'cat-1',
-  name: 'Fundamentals',
-  updatedAt: '2026-07-01T00:00:00Z',
+const category: CategoryOption = {
+  category: 'JAVA',
+  displayName: 'Java',
 };
 
 const snippet: SnippetPreview = {
-  categoryId: 'cat-1',
+  category: 'JAVA',
   createdAt: '2026-07-01T00:00:00Z',
   difficulty: 'EASY',
   id: 'snippet-1',
@@ -53,15 +49,10 @@ const snippet: SnippetPreview = {
 };
 
 describe('soloApi', () => {
-  it('fetches active categories from the paged response', async () => {
+  it('fetches the fixed category list', async () => {
     server.use(
       http.get(`${API_URL}/api/categories`, () =>
-        HttpResponse.json({
-          data: {
-            content: [category],
-            page: { number: 0, size: 100, totalElements: 1, totalPages: 1 },
-          },
-        }),
+        HttpResponse.json({ data: [category] }),
       ),
     );
 
@@ -85,7 +76,7 @@ describe('soloApi', () => {
     saveSession(session());
 
     const result = await fetchRandomSnippet({
-      categoryId: 'cat-1',
+      category: 'JAVA',
       difficulty: 'EASY',
       excludeId: 'snippet-0',
     });
@@ -93,7 +84,7 @@ describe('soloApi', () => {
     expect(result).toEqual(snippet);
     expect(captured.auth).toBe('Bearer jwt-token');
     const params = new URL(captured.url).searchParams;
-    expect(params.get('categoryId')).toBe('cat-1');
+    expect(params.get('category')).toBe('JAVA');
     expect(params.get('difficulty')).toBe('EASY');
     expect(params.get('excludeId')).toBe('snippet-0');
   });

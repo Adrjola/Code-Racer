@@ -27,7 +27,7 @@ function session(): AuthSession {
 
 function snippet(overrides: Partial<SnippetPreview> = {}): SnippetPreview {
   return {
-    categoryId: 'cat-1',
+    category: 'JAVA',
     createdAt: '2026-07-01T00:00:00Z',
     difficulty: 'EASY',
     id: 'snippet-1',
@@ -66,13 +66,13 @@ describe('useSoloPreview', () => {
     );
 
     const { result } = renderHook(() =>
-      useSoloPreview({ categoryId: 'cat-1', difficulty: 'EASY' }),
+      useSoloPreview({ category: 'JAVA', difficulty: 'EASY' }),
     );
 
     await waitFor(() =>
       expect(result.current.snippetPhase.phase).toBe('ready'),
     );
-    expect(new URL(urls[0]).searchParams.get('categoryId')).toBe('cat-1');
+    expect(new URL(urls[0]).searchParams.get('category')).toBe('JAVA');
     expect(new URL(urls[0]).searchParams.get('difficulty')).toBe('EASY');
     expect(startCalls).toBe(0);
   });

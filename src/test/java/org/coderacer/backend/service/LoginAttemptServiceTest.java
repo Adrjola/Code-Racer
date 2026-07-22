@@ -68,10 +68,10 @@ class LoginAttemptServiceTest {
   }
 
   @Test
-  void nullUsernameAndBlankClientAddressResolveToTheSameAttemptKey() {
-    recordFailures(5, null, null);
+  void identifierWhitespaceAndCaseResolveToTheSameAttemptKey() {
+    recordFailures(5, " Player ", "127.0.0.1");
 
-    assertThatThrownBy(() -> service.assertAllowed("", "  "))
+    assertThatThrownBy(() -> service.assertAllowed("player", "127.0.0.1"))
         .isInstanceOf(TooManyLoginAttemptsException.class);
   }
 

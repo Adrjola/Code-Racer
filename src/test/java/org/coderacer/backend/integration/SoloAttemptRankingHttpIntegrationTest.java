@@ -4,17 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,9 +33,8 @@ class SoloAttemptRankingHttpIntegrationTest {
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private SoloAttemptRepository attemptRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private UserRepository userRepository;
-  @Autowired private JwtService jwtService;
+  @Autowired private JwtTokenService jwtTokenService;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
 
@@ -45,7 +43,6 @@ class SoloAttemptRankingHttpIntegrationTest {
   void reset() {
     attemptRepository.deleteAll();
     codeSnippetRepository.deleteAll();
-    categoryRepository.deleteAll();
     userRepository.deleteAll();
   }
 
@@ -108,7 +105,7 @@ class SoloAttemptRankingHttpIntegrationTest {
 
   private ResponseEntity<String> getRanking(UUID attemptId, User caller) {
     HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(jwtService.createAccessToken(caller));
+    headers.setBearerAuth(jwtTokenService.createAccessToken(caller));
     return restTemplate.exchange(
         "/api/solo-attempts/" + attemptId + "/ranking",
         HttpMethod.GET,
@@ -124,13 +121,9 @@ class SoloAttemptRankingHttpIntegrationTest {
   }
 
   private CodeSnippet saveSnippet() {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.saveAndFlush(category);
     String source = UUID.randomUUID().toString();
     return codeSnippetRepository.saveAndFlush(
-        new CodeSnippet(source, source, sha256Hex(source), Difficulty.EASY, category));
+        new CodeSnippet(source, source, sha256Hex(source), Difficulty.EASY, Category.JAVA));
   }
 
   private String sha256Hex(String value) {
