@@ -280,7 +280,7 @@ export function SoloRace({
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#08051A] text-slate-50">
+    <div className="min-h-screen w-full bg-[#08051A] text-slate-50 lg:flex lg:h-[100dvh] lg:min-h-0 lg:flex-col lg:overflow-hidden">
       <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
 
       {isLeaveConfirmOpen && (
@@ -295,10 +295,10 @@ export function SoloRace({
       )}
 
       <div
-        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10"
+        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10 lg:min-h-0 lg:flex-1"
         onClick={focusInput}
       >
-        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:min-h-[980px] lg:gap-0">
+        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:h-full lg:gap-0">
           <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
             <SoloRaceStatsRow
               cpm={cpm}
@@ -361,7 +361,7 @@ export function SoloRace({
             </div>
           )}
 
-          <div className="w-full lg:absolute lg:left-1/2 lg:top-[802px] lg:w-auto lg:-translate-x-1/2">
+          <div className="w-full lg:absolute lg:bottom-[18px] lg:left-1/2 lg:w-auto lg:-translate-x-1/2">
             <SoloRaceKeyboardHints />
           </div>
         </div>
