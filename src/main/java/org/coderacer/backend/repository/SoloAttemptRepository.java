@@ -31,8 +31,14 @@ public interface SoloAttemptRepository
 
   List<SoloAttempt> findByStateIn(List<SoloAttemptState> states);
 
-  /** The single live attempt the one-active-attempt index allows a user to have. */
-  Optional<SoloAttempt> findFirstByUserIdAndStateIn(UUID userId, List<SoloAttemptState> states);
+  /**
+   * The single live attempt the one-active-attempt index allows a user to have, locked for the
+   * caller's transaction. Starting a race retires a stale one through this row, so it has to be
+   * serialised against a concurrent start or the TTL sweeper the same way every other write is.
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<SoloAttempt> findFirstWithLockByUserIdAndStateIn(
+      UUID userId, List<SoloAttemptState> states);
 
   /**
    * Locks one attempt row for the caller's transaction. Live progress updates read, check and write

@@ -149,6 +149,11 @@ export function useExactCodeTypingEngine(
           MAX_RETRY_DELAY_MS,
         );
       } else {
+        // A rejection is a fresh, reachable "no", not a continuation of an
+        // outage, so drop back to the fast cadence rather than retrying the
+        // remaining rejections on a backoff an earlier network blip inflated.
+        unreachableSinceRef.current = null;
+        retryDelayRef.current = DEBOUNCE_MS;
         failureCountRef.current += 1;
         if (failureCountRef.current >= MAX_CONSECUTIVE_FAILURES) {
           giveUp();
