@@ -2,10 +2,12 @@ package org.coderacer.backend.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.dto.ForgotPasswordRequest;
 import org.coderacer.backend.dto.ForgotPasswordResponse;
 import org.coderacer.backend.dto.ResetPasswordRequest;
 import org.coderacer.backend.service.PasswordResetService;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,8 +24,9 @@ public class PasswordResetController {
 
   @PostMapping("/forgot-password")
   @ResponseStatus(HttpStatus.ACCEPTED)
-  public ForgotPasswordResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-    return passwordResetService.requestReset(request);
+  public BaseResponse<ForgotPasswordResponse> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequest request) {
+    return new BaseResponse<>(passwordResetService.requestReset(request), MDC.get("correlationId"));
   }
 
   @PostMapping("/reset-password")

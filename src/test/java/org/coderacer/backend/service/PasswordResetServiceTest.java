@@ -129,6 +129,7 @@ class PasswordResetServiceTest {
         new ResetPasswordRequest(" raw-reset-token ", "NewPassword123", "NewPassword123"));
 
     assertThat(user.getPasswordHash()).isEqualTo("encoded-password");
+    assertThat(user.getTokenValidFrom()).isEqualTo(NOW);
     assertThat(token.getUsedAt()).isEqualTo(NOW);
     verify(tokenRepository).revokeOtherActiveTokensForUser(user, token.getId(), NOW);
   }

@@ -2,19 +2,25 @@ package org.coderacer.backend.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import org.coderacer.backend.dto.CreateSnippetRequest;
+import org.coderacer.backend.dto.ResetPasswordRequest;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.model.Category;
+import org.coderacer.backend.model.PasswordResetToken;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
+import org.coderacer.backend.repository.PasswordResetTokenRepository;
 import org.coderacer.backend.repository.UserRepository;
 import org.coderacer.backend.security.JwtTokenService;
+import org.coderacer.backend.service.PasswordResetService;
 import org.coderacer.backend.service.SnippetService;
 import org.coderacer.backend.service.TokenInvalidationService;
 import org.coderacer.backend.support.IntegrationTest;
+import org.coderacer.backend.util.Sha256Hasher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +40,9 @@ class SecurityAuthorizationIntegrationTest {
   @Autowired private UserRepository userRepository;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private CodeSnippetRepository snippetRepository;
+  @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
   @Autowired private SnippetService snippetService;
+  @Autowired private PasswordResetService passwordResetService;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private JwtTokenService jwtTokenService;
   @Autowired private TokenInvalidationService tokenInvalidationService;
@@ -43,6 +51,7 @@ class SecurityAuthorizationIntegrationTest {
   void setUp() {
     snippetRepository.deleteAll();
     categoryRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
     userRepository.deleteAll();
   }
 
@@ -50,6 +59,7 @@ class SecurityAuthorizationIntegrationTest {
   void tearDown() {
     snippetRepository.deleteAll();
     categoryRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
     userRepository.deleteAll();
   }
 
@@ -210,6 +220,32 @@ class SecurityAuthorizationIntegrationTest {
     String oldToken = jwtTokenService.createAccessToken(admin);
 
     tokenInvalidationService.invalidateTokensForPasswordReset(admin.getId());
+
+    ResponseEntity<String> oldTokenResponse =
+        restTemplate.exchange(
+            "/api/admin/categories", HttpMethod.GET, bearerEntity(oldToken), String.class);
+    User refreshedAdmin = userRepository.findById(admin.getId()).orElseThrow();
+    ResponseEntity<String> newTokenResponse =
+        restTemplate.exchange(
+            "/api/admin/categories",
+            HttpMethod.GET,
+            bearerEntity(jwtTokenService.createAccessToken(refreshedAdmin)),
+            String.class);
+
+    assertThat(oldTokenResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(newTokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  void oldTokenCannotAccessProtectedRouteAfterPasswordReset() {
+    User admin = saveUser("reset_admin", UserRole.ADMIN);
+    String oldToken = jwtTokenService.createAccessToken(admin);
+    passwordResetTokenRepository.saveAndFlush(
+        new PasswordResetToken(
+            admin, Sha256Hasher.hash("raw-reset-token"), Instant.now().plus(Duration.ofHours(1))));
+
+    passwordResetService.resetPassword(
+        new ResetPasswordRequest("raw-reset-token", "NewPassword123", "NewPassword123"));
 
     ResponseEntity<String> oldTokenResponse =
         restTemplate.exchange(
