@@ -144,17 +144,34 @@ const BUBBLE_PATH =
 
 type BenjiTerminalProps = {
   className?: string;
+  bubblePath?: string;
+  bubbleViewBox?: string;
+  baseLines?: Line[];
+  nagLines?: Line[];
+  onClick?: () => void;
 };
 
-export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
+export type { Line as BenjiLine, Segment as BenjiSegment };
+
+export default function BenjiTerminal({
+  className = '',
+  bubblePath,
+  bubbleViewBox,
+  baseLines,
+  nagLines,
+  onClick,
+}: BenjiTerminalProps) {
+  const effectiveBase = baseLines ?? BASE_LINES;
+  const effectiveNag = nagLines ?? NAG_LINES;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = prefersReducedMotion();
   const [completed, setCompleted] = useState<Line[]>(() =>
-    prefersReducedMotion() ? BASE_LINES : [],
+    reducedMotion ? effectiveBase : [],
   );
   const [partial, setPartial] = useState<Segment[]>([]);
 
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    if (reducedMotion) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
@@ -162,11 +179,12 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
     let index = 0;
     let charCount = 0;
     const history: Line[] = [];
+    let initialized = false;
 
     const currentLine = (): Line =>
       phase === 'base'
-        ? BASE_LINES[index]
-        : NAG_LINES[index % NAG_LINES.length];
+        ? effectiveBase[index]
+        : effectiveNag[index % effectiveNag.length];
 
     const commitLine = () => {
       history.push(currentLine());
@@ -177,7 +195,7 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
       charCount = 0;
       if (phase === 'base') {
         index += 1;
-        if (index >= BASE_LINES.length) {
+        if (index >= effectiveBase.length) {
           phase = 'nag';
           index = 0;
         }
@@ -189,6 +207,13 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
 
     const step = () => {
       if (cancelled) return;
+
+      if (!initialized) {
+        initialized = true;
+        setCompleted([]);
+        setPartial([]);
+      }
+
       const line = currentLine();
       const total = lineLength(line);
 
@@ -213,7 +238,7 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, []);
+  }, [effectiveBase, effectiveNag, reducedMotion]);
 
   // If someone scrolls up to reread something stop auto-scrolling so we
   // don't yank them back down, resume once they scroll near the bottom again
@@ -228,7 +253,21 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
 
   return (
     <div
-      className={`relative h-[calc(clamp(180px,24dvh,300px)_+_16px)] lg:h-[466px] ${className}`}
+      className={`relative h-[calc(clamp(180px,24dvh,300px)_+_16px)] lg:h-[466px] ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      aria-label={onClick ? 'Click Benji to explain the code' : undefined}
     >
       <style>
         {`
@@ -245,10 +284,10 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
         className="absolute inset-0 h-full w-full"
         preserveAspectRatio="none"
         style={{ filter: 'drop-shadow(0 26px 54px rgba(219,39,119,0.35))' }}
-        viewBox="78 48 624 468"
+        viewBox={bubbleViewBox ?? '78 48 624 468'}
       >
         <path
-          d={BUBBLE_PATH}
+          d={bubblePath ?? BUBBLE_PATH}
           fill="#0a0812"
           fillOpacity="0.96"
           stroke="rgba(244,114,182,0.22)"
@@ -273,7 +312,7 @@ export default function BenjiTerminal({ className = '' }: BenjiTerminalProps) {
           ref={scrollRef}
           className="benji-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6"
         >
-          <pre className="font-mono text-[clamp(12px,1.05vw,17px)] leading-[1.7]">
+          <pre className="font-mono text-[clamp(12px,1.05vw,17px)] leading-[1.7] whitespace-pre-wrap break-words">
             <code>
               {completed.map((line, i) => (
                 <span key={i}>
