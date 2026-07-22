@@ -52,6 +52,11 @@ app:
     token-ttl: ${APP_PASSWORD_RESET_TOKEN_TTL:30m}
     resend-cooldown: ${APP_PASSWORD_RESET_RESEND_COOLDOWN:2m}
     reset-url: ${APP_PASSWORD_RESET_URL:http://localhost:5173/reset-password}
+  ai:
+    enabled: ${APP_AI_ENABLED:false}
+    api-key: ${APP_AI_API_KEY:}
+    base-url: ${APP_AI_BASE_URL:https://api.groq.com/openai}
+    model-id: ${APP_AI_MODEL_ID:meta-llama/llama-4-scout-17b-16e-instruct}
   security:
     jwt:
       secret: ${APP_JWT_SECRET:}
