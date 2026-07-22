@@ -3,6 +3,7 @@ package org.coderacer.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,7 +57,10 @@ class SoloAttemptServiceTest {
 
   @BeforeEach
   void setUp() {
-    activeAttemptStateStore = new ActiveAttemptStateStore();
+    lenient()
+        .when(soloAttemptRepository.findWithLockById(any()))
+        .thenAnswer(invocation -> soloAttemptRepository.findById(invocation.getArgument(0)));
+    activeAttemptStateStore = new ActiveAttemptStateStore(soloAttemptRepository);
     resultCalculator = new SoloAttemptResultCalculator();
     lifecycleService = new SoloAttemptLifecycleService(soloAttemptRepository);
     clock = Clock.fixed(now, ZoneOffset.UTC);
