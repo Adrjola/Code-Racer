@@ -4,7 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-class FrontendController {
+public class FrontendController {
 
   @GetMapping({
     "/admin",
@@ -20,7 +20,7 @@ class FrontendController {
     "/verify-email",
     "/verify-email-pending"
   })
-  String forwardFrontendRoutes() {
+  public String forwardFrontendRoutes() {
     return "forward:/index.html";
   }
 }

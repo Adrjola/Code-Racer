@@ -9,6 +9,7 @@ individually or compete with friends in private code-typing races.
 - `frontend/` - React and TypeScript web application
 - `docs/` - team workflow and testing documentation
 - `compose.yaml` - local PostgreSQL, Mailpit, backend, and frontend orchestration
+- `compose.prod.yaml` - production app and PostgreSQL orchestration
 
 The backend is built from the repository root with Gradle. The frontend is a
 separate npm application under `frontend/`.
@@ -43,6 +44,7 @@ separate npm application under `frontend/`.
 |-- .env.example
 |-- build.gradle
 |-- compose.yaml
+|-- compose.prod.yaml
 |-- Dockerfile
 |-- gradlew
 |-- gradlew.bat
@@ -187,12 +189,13 @@ passwords, or other real secrets.
 
 ## Deployment
 
-Production deployment is handled by `.github/workflows/deploy.yml`. Pull
-requests into `main` build the Docker image without touching the server. Pushes
-to `main` deploy on the self-hosted runner through the `production` GitHub
-Environment. The deploy job builds a single Docker image containing the Spring
-Boot API and the compiled Vite frontend, starts PostgreSQL in a private Docker
-network with a persistent volume, then exposes only the application port.
+Production deployment is handled by `.github/workflows/deploy.yml` and
+`compose.prod.yaml`. Pull requests into `main` build the Docker image without
+touching the server. Pushes to `main` deploy on the self-hosted runner through
+the `production` GitHub Environment. The workflow builds a single Docker image
+containing the Spring Boot API and the compiled Vite frontend, then starts the
+production Compose stack. `compose.prod.yaml` owns the app/PostgreSQL service
+definitions, persistent database volume, health checks, and host port mapping.
 
 Required `production` Environment Secrets:
 

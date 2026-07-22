@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: deploy-${{ github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   docker-build-check:
@@ -33,11 +33,8 @@ jobs:
     environment:
       name: production
     env:
-      APP_CONTAINER_NAME: code-racer-app
       APP_IMAGE_NAME: code-racer-app
-      APP_NETWORK_NAME: code-racer-net
-      DB_CONTAINER_NAME: code-racer-postgres
-      DB_VOLUME_NAME: code-racer-postgres-data
+      APP_IMAGE_TAG: ${{ github.sha }}
       POSTGRES_DB: ${{ vars.POSTGRES_DB }}
       POSTGRES_USER: ${{ vars.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -100,6 +97,10 @@ jobs:
             APP_AI_MODEL_ID
           )
 
+          if [ "$APP_ADMIN_BOOTSTRAP_ENABLED" = "true" ]; then
+            REQUIRED_VARS+=(APP_ADMIN_EMAIL APP_ADMIN_USERNAME APP_ADMIN_PASSWORD)
+          fi
+
           MISSING=0
           for VAR_NAME in "${REQUIRED_VARS[@]}"; do
             if [ -z "${!VAR_NAME}" ]; then
@@ -116,116 +117,40 @@ jobs:
         shell: bash
         run: |
           docker build --pull \
-            -t "$APP_IMAGE_NAME:$GITHUB_SHA" \
+            -t "$APP_IMAGE_NAME:$APP_IMAGE_TAG" \
             -t "$APP_IMAGE_NAME:latest" \
             .
 
-      - name: Prepare private Docker network
+      - name: Validate Compose configuration
+        shell: bash
+        run: docker compose -f compose.prod.yaml config --quiet
+
+      - name: Remove legacy non-Compose containers
         shell: bash
         run: |
-          docker network inspect "$APP_NETWORK_NAME" >/dev/null 2>&1 || \
-            docker network create "$APP_NETWORK_NAME"
-
-      - name: Start PostgreSQL container
-        shell: bash
-        run: |
-          docker volume create "$DB_VOLUME_NAME" >/dev/null
-
-          if docker ps -a --format '{{.Names}}' | grep -qx "$DB_CONTAINER_NAME"; then
-            docker start "$DB_CONTAINER_NAME" >/dev/null || true
-          else
-            docker run -d \
-              --name "$DB_CONTAINER_NAME" \
-              --network "$APP_NETWORK_NAME" \
-              --restart unless-stopped \
-              -v "$DB_VOLUME_NAME:/var/lib/postgresql/data" \
-              -e POSTGRES_DB \
-              -e POSTGRES_USER \
-              -e POSTGRES_PASSWORD \
-              postgres:17-alpine
-          fi
-
-          if ! docker inspect "$DB_CONTAINER_NAME" --format '{{json .NetworkSettings.Networks}}' | grep -q "\"$APP_NETWORK_NAME\""; then
-            docker network connect "$APP_NETWORK_NAME" "$DB_CONTAINER_NAME"
-          fi
-
-      - name: Wait for PostgreSQL
-        shell: bash
-        run: |
-          for i in {1..30}; do
-            if docker exec "$DB_CONTAINER_NAME" pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"; then
-              echo "PostgreSQL is ready"
-              exit 0
+          for CONTAINER_NAME in code-racer-app code-racer-postgres; do
+            if ! docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER_NAME"; then
+              continue
             fi
 
-            echo "Attempt $i: waiting for PostgreSQL..."
-            sleep 2
+            COMPOSE_PROJECT=$(docker inspect "$CONTAINER_NAME" \
+              --format '{{ index .Config.Labels "com.docker.compose.project" }}' 2>/dev/null || true)
+
+            if [ -z "$COMPOSE_PROJECT" ] || [ "$COMPOSE_PROJECT" = "<no value>" ]; then
+              docker rm -f "$CONTAINER_NAME" >/dev/null
+            fi
           done
 
-          echo "::error::PostgreSQL did not become ready"
-          docker logs "$DB_CONTAINER_NAME" || true
-          exit 1
-
-      - name: Stop existing application
+      - name: Deploy with Docker Compose
         shell: bash
-        run: |
-          docker rm -f "$APP_CONTAINER_NAME" >/dev/null 2>&1 || true
-          sleep 2
-
-      - name: Start application container
-        shell: bash
-        run: |
-          docker run -d \
-            --name "$APP_CONTAINER_NAME" \
-            --network "$APP_NETWORK_NAME" \
-            --restart unless-stopped \
-            -p 3600:8080 \
-            -e SPRING_PROFILES_ACTIVE=prod \
-            -e POSTGRES_HOST="$DB_CONTAINER_NAME" \
-            -e POSTGRES_PORT=5432 \
-            -e POSTGRES_DB \
-            -e POSTGRES_USER \
-            -e POSTGRES_PASSWORD \
-            -e MAIL_HOST \
-            -e MAIL_PORT \
-            -e MAIL_USERNAME \
-            -e MAIL_PASSWORD \
-            -e MAIL_SMTP_AUTH \
-            -e MAIL_SMTP_STARTTLS_ENABLE \
-            -e APP_EMAIL_FROM \
-            -e APP_EMAIL_VERIFICATION_URL \
-            -e APP_EMAIL_VERIFICATION_TOKEN_TTL \
-            -e APP_EMAIL_VERIFICATION_RESEND_COOLDOWN \
-            -e APP_PASSWORD_RESET_URL \
-            -e APP_PASSWORD_RESET_TOKEN_TTL \
-            -e APP_PASSWORD_RESET_RESEND_COOLDOWN \
-            -e APP_JWT_SECRET \
-            -e APP_JWT_ACCESS_TOKEN_TTL \
-            -e ALLOWED_ORIGINS \
-            -e APP_ADMIN_BOOTSTRAP_ENABLED \
-            -e APP_ADMIN_EMAIL \
-            -e APP_ADMIN_USERNAME \
-            -e APP_ADMIN_PASSWORD \
-            -e APP_AI_ENABLED \
-            -e APP_AI_API_KEY \
-            -e APP_AI_BASE_URL \
-            -e APP_AI_MODEL_ID \
-            "$APP_IMAGE_NAME:$GITHUB_SHA"
-
-          echo "Application container started on public port 3600"
-          docker ps --filter "name=$APP_CONTAINER_NAME"
+        run: docker compose -f compose.prod.yaml up -d --remove-orphans
 
       - name: Verify deployment
         shell: bash
         run: |
           for i in {1..30}; do
-            if ! docker ps --format '{{.Names}}' | grep -qx "$APP_CONTAINER_NAME"; then
-              echo "::error::Application container is not running"
-              docker logs "$APP_CONTAINER_NAME" || true
-              exit 1
-            fi
-
-            if docker exec "$APP_CONTAINER_NAME" curl --fail --silent http://localhost:8080/actuator/health >/dev/null; then
+            if docker compose -f compose.prod.yaml exec -T app \
+              curl --fail --silent http://localhost:8080/actuator/health >/dev/null; then
               echo "Application health check passed"
               exit 0
             fi
@@ -235,10 +160,11 @@ jobs:
           done
 
           echo "::error::Application health check did not pass"
-          docker logs "$APP_CONTAINER_NAME" || true
+          docker compose -f compose.prod.yaml ps || true
+          docker compose -f compose.prod.yaml logs --tail 120 || true
           exit 1
 
       - name: Display application logs
         if: always()
         shell: bash
-        run: docker logs --tail 80 "$APP_CONTAINER_NAME" || true
+        run: docker compose -f compose.prod.yaml logs --tail 80 app || true
