@@ -246,7 +246,7 @@ export default function SoloSetupPage({
 }: SoloSetupPageProps) {
   const [state, setState] = useState<CategoriesState>({ status: 'loading' });
   const [reloadToken, setReloadToken] = useState(0);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<
+  const [selectedCategory, setSelectedCategory] = useState<
     Category | undefined
   >(undefined);
   const [selectedDifficulty, setSelectedDifficulty] = useState<
@@ -299,21 +299,21 @@ export default function SoloSetupPage({
   };
 
   const categories = state.status === 'ready' ? state.categories : [];
-  const selectedCategory = categories.find(
-    (option) => option.category === selectedCategoryId,
+  const selectedCategoryOption = categories.find(
+    (option) => option.category === selectedCategory,
   );
   const selectedDifficultyOption = DIFFICULTIES.find(
     (option) => option.value === selectedDifficulty,
   );
-  const canPlay = Boolean(selectedCategory && selectedDifficultyOption);
+  const canPlay = Boolean(selectedCategoryOption && selectedDifficultyOption);
 
   const handlePlay = () => {
-    if (!selectedCategory || !selectedDifficultyOption) {
+    if (!selectedCategoryOption || !selectedDifficultyOption) {
       return;
     }
     onSelect({
-      category: selectedCategory.category,
-      categoryName: selectedCategory.displayName,
+      category: selectedCategoryOption.category,
+      categoryName: selectedCategoryOption.displayName,
       difficulty: selectedDifficultyOption.value,
     });
   };
@@ -321,7 +321,7 @@ export default function SoloSetupPage({
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
       <div
-        className="sticky top-0 z-10 bg-surface lg:overflow-hidden lg:[height:calc(var(--solo-header-h)*var(--solo-scale))]"
+        className="sticky top-0 z-10 bg-surface 2xl:overflow-hidden 2xl:[height:calc(var(--solo-header-h)*var(--solo-scale))]"
         style={
           {
             '--solo-header-h': `${headerHeight}px`,
@@ -330,7 +330,7 @@ export default function SoloSetupPage({
         }
       >
         <div
-          className="lg:[width:var(--solo-design-w)] lg:origin-top-left lg:[transform:scale(var(--solo-scale))]"
+          className="2xl:[width:var(--solo-design-w)] 2xl:origin-top-left 2xl:[transform:scale(var(--solo-scale))]"
           ref={headerCanvasRef}
           style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >
@@ -382,7 +382,7 @@ export default function SoloSetupPage({
       </div>
 
       <div
-        className="lg:overflow-hidden lg:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
+        className="2xl:overflow-hidden 2xl:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
         style={
           {
             '--solo-main-h': `${mainHeight}px`,
@@ -391,7 +391,7 @@ export default function SoloSetupPage({
         }
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:mx-0 lg:max-w-none lg:px-[80px] lg:pt-[110px] lg:origin-top-left lg:[width:var(--solo-design-w)] lg:[transform:scale(var(--solo-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:pt-12 2xl:mx-0 2xl:max-w-none 2xl:px-[80px] 2xl:pt-[110px] 2xl:origin-top-left 2xl:[width:var(--solo-design-w)] 2xl:[transform:scale(var(--solo-scale))]"
           ref={mainCanvasRef}
           style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >
@@ -441,9 +441,9 @@ export default function SoloSetupPage({
               >
                 {categories.map((option) => (
                   <CategoryCard
-                    isSelected={option.category === selectedCategoryId}
+                    isSelected={option.category === selectedCategory}
                     key={option.category}
-                    onSelect={() => setSelectedCategoryId(option.category)}
+                    onSelect={() => setSelectedCategory(option.category)}
                     option={option}
                   />
                 ))}
@@ -471,7 +471,7 @@ export default function SoloSetupPage({
             <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
               {DIFFICULTIES.map((option) => (
                 <DifficultyCard
-                  disabled={!selectedCategory}
+                  disabled={!selectedCategoryOption}
                   isSelected={option.value === selectedDifficulty}
                   key={option.value}
                   onSelect={() => setSelectedDifficulty(option.value)}
@@ -504,8 +504,8 @@ export default function SoloSetupPage({
             <div>
               <p className="font-mono text-xs text-[#5b5f78]">LOADOUT</p>
               <p className="font-mono text-base text-[#c9c7d6]">
-                {selectedCategory && selectedDifficultyOption
-                  ? `${selectedCategory.displayName.toUpperCase()} - ${selectedDifficultyOption.label}`
+                {selectedCategoryOption && selectedDifficultyOption
+                  ? `${selectedCategoryOption.displayName.toUpperCase()} - ${selectedDifficultyOption.label}`
                   : 'Select a category and difficulty'}
               </p>
             </div>
