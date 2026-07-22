@@ -495,7 +495,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /log out/i }));
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', {
-        name: /log out/i,
+        name: /flee in shame/i,
       }),
     );
     expect(
@@ -615,7 +615,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /log out/i }));
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', {
-        name: /log out/i,
+        name: /flee in shame/i,
       }),
     );
     expect(screen.getByRole('status')).toHaveTextContent(/logged out/i);

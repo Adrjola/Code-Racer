@@ -43,6 +43,7 @@ function renderPage(
 ) {
   const props = {
     onGoHome: vi.fn(),
+    onGoStatistics: vi.fn(),
     onLogout: vi.fn(),
     onSelect: vi.fn(),
     onSessionExpired: vi.fn(),
@@ -211,13 +212,13 @@ describe('SoloSetupPage', () => {
     expect(onGoHome).toHaveBeenCalledTimes(1);
   });
 
-  it('logs out from the menu', async () => {
+  it('logs out after confirming in the dialog', async () => {
     mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
     const { onLogout } = renderPage();
 
-    await user.click(screen.getByRole('button', { name: /menu/i }));
     await user.click(screen.getByRole('button', { name: /log out/i }));
+    await user.click(screen.getByRole('button', { name: /flee in shame/i }));
 
     expect(onLogout).toHaveBeenCalledTimes(1);
   });

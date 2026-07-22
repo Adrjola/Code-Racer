@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import Logo from '@/components/Logo';
+import Header from '@/components/Header';
 import { TrophyIcon } from '@/components/icons';
 import type { AuthSession } from '@/features/auth/session';
 import type { Difficulty } from '@/features/solo/api/soloApi';
 import {
+  toGlobalRankingEntries,
   toPersonalActivityEntries,
   toPersonalActivityEntriesFromHistory,
   toPersonalStatsSummary,
 } from '../api/statisticsMappers';
-import { getMockGlobalRanking } from '../data/mockGlobalRanking';
+import { useGlobalLeaderboard } from '../hooks/useGlobalLeaderboard';
 import { usePersonalStatistics } from '../hooks/usePersonalStatistics';
 import { useSnippetHistory } from '../hooks/useSnippetHistory';
 import { DifficultyTabs } from '../components/DifficultyTabs';
@@ -21,6 +22,7 @@ import type { SnippetView, StatsView } from '../types';
 
 type StatisticsPageProps = {
   onGoHome: () => void;
+  onGoStatistics: () => void;
   onLogout: () => void;
   onSessionExpired: () => void;
   session: AuthSession;
@@ -70,6 +72,7 @@ function useNaturalHeight() {
 
 export default function StatisticsPage({
   onGoHome,
+  onGoStatistics,
   onLogout,
   onSessionExpired,
   session,
@@ -83,8 +86,6 @@ export default function StatisticsPage({
   const [snippetView, setSnippetView] = useState<SnippetView>(() =>
     readSnippetView(new URLSearchParams(window.location.search)),
   );
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
   const {
     personalStats,
@@ -92,6 +93,11 @@ export default function StatisticsPage({
     snippetStats,
     status: personalStatus,
   } = usePersonalStatistics(onSessionExpired);
+  const {
+    entries: globalEntries,
+    retry: retryGlobalLeaderboard,
+    status: globalStatus,
+  } = useGlobalLeaderboard(difficulty, onSessionExpired);
   const isHistory = snippetView === 'HISTORY';
   const {
     entries: historyEntries,
@@ -115,7 +121,9 @@ export default function StatisticsPage({
   }, [difficulty, snippetView, view]);
 
   const ranking =
-    view === 'GLOBAL' ? getMockGlobalRanking(difficulty) : undefined;
+    view === 'GLOBAL' && globalStatus === 'success'
+      ? toGlobalRankingEntries(globalEntries)
+      : undefined;
   const activity =
     view !== 'PERSONAL' || personalStatus !== 'success'
       ? []
@@ -135,67 +143,21 @@ export default function StatisticsPage({
 
   return (
     <div className="min-h-[100dvh] bg-surface pb-16 font-sans text-text-primary lg:pb-24">
-      <div
-        className="sticky top-0 z-10 bg-surface lg:overflow-hidden lg:[height:calc(var(--stats-header-h)*var(--stats-scale))]"
-        style={{ '--stats-header-h': `${headerHeight}px` } as CSSProperties}
-      >
-        <div
-          className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--stats-scale))]"
-          ref={headerCanvasRef}
-        >
-          <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
-            <Logo onClick={onGoHome} />
-            <div className="flex items-center gap-4">
-              <span
-                aria-hidden="true"
-                className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
-              >
-                <TrophyIcon className="size-5" />
-              </span>
-              <span className="hidden h-10 items-center gap-2 rounded-[9px] border border-[rgba(244,114,182,0.2)] bg-[rgba(244,114,182,0.05)] px-3 font-mono text-[10.5px] tracking-wide sm:flex">
-                <span className="text-[#6b6f85]">USER:</span>
-                <span className="font-bold text-[#f9a8d4]">
-                  {session.user.username}
-                </span>
-              </span>
-              <div className="relative">
-                <button
-                  aria-expanded={isMenuOpen}
-                  aria-label="Menu"
-                  className="flex size-10 flex-col items-center justify-center gap-1 rounded-[9px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)]"
-                  onClick={() => setIsMenuOpen((open) => !open)}
-                  type="button"
-                >
-                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
-                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
-                  <span className="h-[2px] w-[9.59px] rounded-full bg-[#c9cbe0]" />
-                </button>
-                {isMenuOpen && (
-                  <div className="absolute right-0 top-12 z-10 flex w-40 flex-col overflow-hidden rounded-[9px] border border-white/10 bg-[#15121f] py-1 shadow-lg">
-                    <button
-                      className="px-4 py-2 text-left text-sm font-semibold text-pink-300 hover:bg-white/5"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onLogout();
-                      }}
-                      type="button"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </header>
-        </div>
+      <div className="sticky top-0 z-10 bg-surface">
+        <Header
+          onGoDashboard={onGoHome}
+          onGoStatistics={onGoStatistics}
+          onLogout={onLogout}
+          username={session.user.username}
+        />
       </div>
 
       <div
-        className="lg:overflow-hidden lg:[height:calc(var(--stats-main-h)*var(--stats-scale))]"
+        className="lg:overflow-hidden lg:[height:calc(var(--stats-main-h)*var(--canvas-scale))]"
         style={{ '--stats-main-h': `${mainHeight}px` } as CSSProperties}
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-16 lg:mx-0 lg:w-[1920px] lg:max-w-none lg:origin-top-left lg:px-[40px] lg:[transform:scale(var(--stats-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-16 lg:mx-0 lg:w-[1920px] lg:max-w-none lg:origin-top-left lg:px-[40px] lg:[transform:scale(var(--canvas-scale))]"
           ref={mainCanvasRef}
         >
           <div className="flex items-center gap-3">
@@ -219,14 +181,36 @@ export default function StatisticsPage({
             <DifficultyTabs difficulty={difficulty} onChange={setDifficulty} />
           </section>
 
-          {view === 'GLOBAL' && ranking && (
+          {view === 'GLOBAL' && globalStatus === 'loading' && (
+            <p className="text-text-muted" role="status">
+              Loading global rankings…
+            </p>
+          )}
+
+          {view === 'GLOBAL' && globalStatus === 'error' && (
+            <div className="flex flex-col items-start gap-3" role="alert">
+              <p className="text-text-muted">
+                Couldn&apos;t load global rankings. Check your connection and
+                try again.
+              </p>
+              <button
+                className="rounded-[9px] border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[12px] font-bold tracking-wide text-text-primary hover:border-white/20"
+                onClick={retryGlobalLeaderboard}
+                type="button"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {view === 'GLOBAL' && ranking && ranking.length > 0 && (
             <GlobalRankingTable
               currentUsername={session.user.username}
               entries={ranking}
             />
           )}
 
-          {view === 'GLOBAL' && !ranking && (
+          {view === 'GLOBAL' && ranking && ranking.length === 0 && (
             <p className="text-text-muted" role="status">
               No global rankings yet for this difficulty.
             </p>

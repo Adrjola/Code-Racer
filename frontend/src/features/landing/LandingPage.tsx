@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import Logo from '@/components/Logo';
+import Header from '@/components/Header';
 import AnimatedBackground from './AnimatedBackground';
 import BenjiTerminal from './BenjiTerminal';
 import RaceBot from './RaceBot';
@@ -75,42 +75,40 @@ export default function LandingPage({ onPlay }: LandingPageProps) {
   }, []);
 
   return (
-    <div className="relative min-h-[100dvh] overflow-x-hidden bg-surface font-sans text-text-primary lg:h-[100dvh] lg:min-h-0 lg:w-screen lg:overflow-hidden">
-      {/* From the lg breakpoint up this becomes the 1920x1080 frame
-       */}
-      <div className="lg:absolute lg:left-0 lg:top-0 lg:h-[1080px] lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--auth-login-scale))]">
-        <AnimatedBackground />
+    <div className="min-h-[100dvh] overflow-x-hidden bg-surface font-sans text-text-primary">
+      <div className="relative lg:h-[100dvh] lg:overflow-hidden">
+        <div className="lg:absolute lg:left-1/2 lg:top-0 lg:h-[1080px] lg:w-[1920px] lg:origin-top lg:[transform:translateX(-50%)_scale(var(--canvas-scale))]">
+          <AnimatedBackground />
 
-        <h1 className="sr-only">
-          Code Racer — practice Java syntax in real-time typing races
-        </h1>
+          <h1 className="sr-only">
+            Code Racer — practice Java syntax in real-time typing races
+          </h1>
 
-        {/* This wrapper only exists to stack things vertically on mobile
-         */}
-        <div className="relative z-10 flex min-h-[100dvh] flex-col px-5 pb-3 pt-3 lg:contents">
-          <div className="relative z-20 lg:absolute lg:left-10 lg:top-6">
-            <Logo />
-          </div>
+          <div className="relative z-10 flex min-h-[100dvh] flex-col px-5 pb-3 pt-3 lg:contents lg:min-h-0">
+            <Header layout="overlay" variant="minimal" />
 
-          <div className="flex flex-1 flex-col items-center justify-end gap-[clamp(0.5rem,1.5dvh,1rem)] py-3 lg:contents">
-            <BenjiTerminal className="w-full max-w-[520px] lg:absolute lg:left-[42px] lg:top-[250px] lg:w-[600px] lg:max-w-none" />
+            <div className="flex flex-1 flex-col items-center justify-end gap-[clamp(0.5rem,1.5dvh,1rem)] py-3 lg:contents">
+              <BenjiTerminal className="w-full max-w-[520px] lg:absolute lg:left-[42px] lg:top-[250px] lg:w-[600px] lg:max-w-none" />
 
-            <PlayCta
-              playRef={playRef}
-              onPlay={onPlay}
-              className="lg:absolute lg:left-[1432px] lg:top-[479px] lg:w-[252px]"
-            />
-
-            <div className="relative h-[clamp(240px,42dvh,350px)] w-full max-w-[380px] lg:absolute lg:left-[390px] lg:top-[-45px] lg:h-[1742px] lg:w-[1235px] lg:max-w-none">
-              <div className="pointer-events-none absolute left-1/2 top-1/2 h-[240px] w-[240px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-pink-500/20 blur-[110px] lg:h-[420px] lg:w-[420px] lg:blur-[130px]" />
-              <RaceBot
-                pointTargetRef={playRef}
-                cameraPosition={
-                  isDesktop ? CAMERA_POSITION : MOBILE_CAMERA_POSITION
-                }
-                cameraTarget={isDesktop ? CAMERA_TARGET : MOBILE_CAMERA_TARGET}
-                className="h-full w-full"
+              <PlayCta
+                playRef={playRef}
+                onPlay={onPlay}
+                className="lg:absolute lg:left-[1432px] lg:top-[479px] lg:w-[252px]"
               />
+
+              <div className="relative h-[clamp(240px,42dvh,350px)] w-full max-w-[380px] lg:absolute lg:left-[390px] lg:top-[-45px] lg:h-[1742px] lg:w-[1235px] lg:max-w-none">
+                <div className="pointer-events-none absolute left-1/2 top-1/2 h-[240px] w-[240px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-pink-500/20 blur-[110px] lg:h-[420px] lg:w-[420px] lg:blur-[130px]" />
+                <RaceBot
+                  pointTargetRef={playRef}
+                  cameraPosition={
+                    isDesktop ? CAMERA_POSITION : MOBILE_CAMERA_POSITION
+                  }
+                  cameraTarget={
+                    isDesktop ? CAMERA_TARGET : MOBILE_CAMERA_TARGET
+                  }
+                  className="h-full w-full"
+                />
+              </div>
             </div>
           </div>
         </div>
