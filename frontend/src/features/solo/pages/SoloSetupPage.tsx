@@ -10,6 +10,7 @@ import {
   type Difficulty,
   type SoloSelection,
 } from '@/features/solo/api/soloApi';
+import { useDesignScale } from '@/hooks/useDesignScale';
 import categoryJavaGlyph from '@/assets/icons/category-java-glyph.svg';
 import categoryRestApisGlyph from '@/assets/icons/category-rest-apis-glyph.svg';
 import categorySqlGlyph from '@/assets/icons/category-sql-glyph.svg';
@@ -37,8 +38,8 @@ type DifficultyOption = {
   value: Difficulty;
 };
 
-/** The layout is authored at this width and scaled to fit the window. */
 const DESIGN_WIDTH = 1920;
+const HEADER_HEIGHT = 88;
 
 const DIFFICULTIES: DifficultyOption[] = [
   {
@@ -75,7 +76,6 @@ const CATEGORY_TAGLINE: Record<Category, string> = {
   TESTING: '@Test',
 };
 
-/** The rule trailing each section heading, fading out the way the design draws it. */
 function HeadingRule() {
   return (
     <span
@@ -252,15 +252,11 @@ export default function SoloSetupPage({
     Difficulty | undefined
   >(undefined);
 
-  const [scale, setScale] = useState(() => window.innerWidth / DESIGN_WIDTH);
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
-
-  useEffect(() => {
-    const updateScale = () => setScale(window.innerWidth / DESIGN_WIDTH);
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
+  const scale = useDesignScale(
+    DESIGN_WIDTH,
+    mainHeight ? mainHeight + HEADER_HEIGHT : undefined,
+  );
 
   const onSessionExpiredRef = useRef(onSessionExpired);
   useEffect(() => {
@@ -321,12 +317,13 @@ export default function SoloSetupPage({
         <Header
           onGoDashboard={onGoDashboard}
           onLogout={onLogout}
+          scale={scale}
           username={session.user.username}
         />
       </div>
 
       <div
-        className="2xl:overflow-hidden 2xl:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
+        className="lg:overflow-hidden lg:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
         style={
           {
             '--solo-main-h': `${mainHeight}px`,
@@ -335,7 +332,7 @@ export default function SoloSetupPage({
         }
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:pt-12 2xl:mx-0 2xl:max-w-none 2xl:px-[80px] 2xl:pt-[110px] 2xl:origin-top-left 2xl:[width:var(--solo-design-w)] 2xl:[transform:scale(var(--solo-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:mx-0 lg:max-w-none lg:px-[80px] lg:pt-[110px] lg:origin-top-left lg:[width:var(--solo-design-w)] lg:[transform:scale(var(--solo-scale))]"
           ref={mainCanvasRef}
           style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >

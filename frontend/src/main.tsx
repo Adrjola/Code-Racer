@@ -11,22 +11,17 @@ function updateLayoutScale() {
     window.innerWidth / DESIGN_WIDTH,
     window.innerHeight / DESIGN_HEIGHT,
   );
-  const loginScale = window.innerWidth / DESIGN_WIDTH;
-  const authCenterX = window.innerWidth / (2 * scale);
-  const loginCenterX = window.innerWidth / (2 * loginScale);
+  const authScale = window.innerWidth / DESIGN_WIDTH;
+  const landingScale = authScale;
 
-  document.documentElement.style.setProperty('--auth-scale', `${scale}`);
-  document.documentElement.style.setProperty(
-    '--auth-center-x',
-    `${authCenterX}px`,
-  );
+  document.documentElement.style.setProperty('--auth-scale', `${authScale}`);
   document.documentElement.style.setProperty(
     '--auth-login-scale',
-    `${loginScale}`,
+    `${authScale}`,
   );
   document.documentElement.style.setProperty(
-    '--auth-login-center-x',
-    `${loginCenterX}px`,
+    '--landing-scale',
+    `${landingScale}`,
   );
   document.documentElement.style.setProperty('--page-scale', `${scale}`);
 }

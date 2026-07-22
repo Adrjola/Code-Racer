@@ -206,7 +206,7 @@ describe('SoloSetupPage', () => {
 
     expect(await screen.findByText('player')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /dashboard/i }));
+    await user.click(screen.getByRole('button', { name: 'Dashboard' }));
 
     expect(onGoDashboard).toHaveBeenCalledTimes(1);
   });

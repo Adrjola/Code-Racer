@@ -1,16 +1,24 @@
 import { useEffect, useState } from 'react';
 
-export function useDesignScale(designWidth: number) {
+function computeScale(designWidth: number, designHeight?: number) {
+  const widthScale = window.innerWidth / designWidth;
+  const heightScale = designHeight
+    ? window.innerHeight / designHeight
+    : Infinity;
+  return Math.min(1, widthScale, heightScale);
+}
+
+export function useDesignScale(designWidth: number, designHeight?: number) {
   const [scale, setScale] = useState(() =>
-    Math.min(1, window.innerWidth / designWidth),
+    computeScale(designWidth, designHeight),
   );
 
   useEffect(() => {
-    const update = () => setScale(Math.min(1, window.innerWidth / designWidth));
+    const update = () => setScale(computeScale(designWidth, designHeight));
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [designWidth]);
+  }, [designWidth, designHeight]);
 
   return scale;
 }
