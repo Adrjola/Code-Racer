@@ -30,6 +30,9 @@ public interface SoloAttemptRepository
 
   List<SoloAttempt> findByStateIn(List<SoloAttemptState> states);
 
+  /** The single live attempt the one-active-attempt index allows a user to have. */
+  Optional<SoloAttempt> findFirstByUserIdAndStateIn(UUID userId, List<SoloAttemptState> states);
+
   /**
    * Locks one attempt row for the caller's transaction. Live progress updates read, check and write
    * the same row, so they have to be serialised the way the in-memory map used to serialise them.
