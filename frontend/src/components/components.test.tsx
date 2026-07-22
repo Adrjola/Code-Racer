@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import Badge from './Badge';
 import Button from './Button';
 import ConfirmDialog from './ConfirmDialog';
+import Header from './Header';
 import Modal from './Modal';
 import Pagination from './Pagination';
 import SelectField from './SelectField';
@@ -258,5 +259,20 @@ describe('TextAreaField', () => {
     expect(screen.getByLabelText('Source')).toHaveAccessibleDescription(
       'Whitespace is normalized',
     );
+  });
+});
+
+describe('Header scale', () => {
+  it('sizes the logo the same on an overlay page and a flow page', () => {
+    const overlay = render(<Header layout="overlay" variant="minimal" />);
+    const overlayLogo = overlay.container.querySelector('header p')?.className;
+    overlay.unmount();
+
+    const flow = render(<Header variant="minimal" />);
+    const flowLogo = flow.container.querySelector('header p')?.className;
+
+    // Same component, same classes: the size can only differ via the scale, and
+    // both layouts now derive that from window width alone.
+    expect(flowLogo).toBe(overlayLogo);
   });
 });

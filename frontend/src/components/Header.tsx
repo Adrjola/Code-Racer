@@ -10,9 +10,11 @@ import LogoutConfirmDialog from './LogoutConfirmDialog';
 const DESIGN_WIDTH = 1920;
 
 type SharedHeaderProps = {
+  /**
+   * "overlay" dissolves the header into a page that is already a scaled 1920
+   * canvas; "flow" scales itself for pages that are not.
+   */
   layout?: 'flow' | 'overlay';
-  scale?: number;
-  scaleVar?: string;
 };
 
 type HeaderProps = SharedHeaderProps &
@@ -116,13 +118,8 @@ function NavContent({
 
 export default function Header(props: HeaderProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const computedScale = useDesignScale(DESIGN_WIDTH);
-  const headerScale =
-    props.scale !== undefined
-      ? props.scale
-      : props.scaleVar
-        ? `var(--${props.scaleVar})`
-        : computedScale;
+  // One source for every page, so the logo is the same size everywhere.
+  const headerScale = useDesignScale(DESIGN_WIDTH);
   const headerStyle = { '--header-scale': headerScale } as CSSProperties;
 
   const isOverlay = props.layout === 'overlay';

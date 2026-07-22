@@ -253,10 +253,12 @@ export default function SoloSetupPage({
   >(undefined);
 
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
-  const scale = useDesignScale(
+  // This canvas never grows past its design size, only shrinks to fit.
+  const fitScale = useDesignScale(
     DESIGN_WIDTH,
     mainHeight ? mainHeight + HEADER_HEIGHT : undefined,
   );
+  const scale = Math.min(1, fitScale);
 
   const onSessionExpiredRef = useRef(onSessionExpired);
   useEffect(() => {
@@ -317,7 +319,6 @@ export default function SoloSetupPage({
         <Header
           onGoDashboard={onGoHome}
           onLogout={onLogout}
-          scale={scale}
           username={session.user.username}
         />
       </div>

@@ -85,11 +85,7 @@ export default function LandingPage({ onPlay }: LandingPageProps) {
           </h1>
 
           <div className="relative z-10 flex min-h-[100dvh] flex-col px-5 pb-3 pt-3 lg:contents lg:min-h-0">
-            <Header
-              layout="overlay"
-              scaleVar="landing-scale"
-              variant="minimal"
-            />
+            <Header layout="overlay" variant="minimal" />
 
             <div className="flex flex-1 flex-col items-center justify-end gap-[clamp(0.5rem,1.5dvh,1rem)] py-3 lg:contents">
               <BenjiTerminal className="w-full max-w-[520px] lg:absolute lg:left-[42px] lg:top-[250px] lg:w-[600px] lg:max-w-none" />

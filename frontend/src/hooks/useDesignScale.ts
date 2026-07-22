@@ -5,7 +5,10 @@ function computeScale(designWidth: number, designHeight?: number) {
   const heightScale = designHeight
     ? window.innerHeight / designHeight
     : Infinity;
-  return Math.min(1, widthScale, heightScale);
+  // Deliberately uncapped: the header and the auth/landing canvases all grow
+  // past 1 on wide monitors, and capping here made the same logo render at two
+  // different sizes depending on which page you were on.
+  return Math.min(widthScale, heightScale);
 }
 
 export function useDesignScale(designWidth: number, designHeight?: number) {

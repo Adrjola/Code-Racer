@@ -54,11 +54,7 @@ export default function AuthLayout({
         }
       >
         <main className={mainClassName}>
-          <Header
-            layout="overlay"
-            scaleVar={isLogin ? 'auth-login-scale' : 'auth-scale'}
-            variant="minimal"
-          />
+          <Header layout="overlay" variant="minimal" />
 
           <div className={formWrapperClassName}>
             <div className="flex w-[min(100%,37.5625rem)] flex-col items-center lg:absolute lg:left-1/2 lg:top-1/2 lg:w-[601px] lg:-translate-x-1/2 lg:-translate-y-1/2">
