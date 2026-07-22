@@ -161,7 +161,9 @@ describe('UsersPage', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Delete' }),
     );
-    expect(screen.getByRole('dialog', { name: 'Delete user' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Delete user' }),
+    ).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
@@ -231,7 +233,7 @@ describe('UsersPage', () => {
     );
   });
 
-  it('does not offer deleting the logged-in admin\'s own account', async () => {
+  it("does not offer deleting the logged-in admin's own account", async () => {
     withUsers([{ ...activeUser, id: adminSession.user.id, role: 'ADMIN' }]);
     render(<UsersPage session={adminSession} />);
 
@@ -239,5 +241,87 @@ describe('UsersPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('edits a user, pre-filling the current values', async () => {
+    withUsers([activeUser]);
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.put(`${USERS_URL}/${activeUser.id}`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          data: {
+            ...activeUser,
+            email: 'new@example.com',
+            username: 'newname',
+          },
+        });
+      }),
+    );
+    render(<UsersPage session={adminSession} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    const dialog = within(screen.getByRole('dialog', { name: 'Edit user' }));
+    expect(dialog.getByLabelText('Username')).toHaveValue('player1');
+    expect(dialog.getByLabelText('Email')).toHaveValue('player@example.com');
+
+    await userEvent.clear(dialog.getByLabelText('Username'));
+    await userEvent.type(dialog.getByLabelText('Username'), 'newname');
+    await userEvent.clear(dialog.getByLabelText('Email'));
+    await userEvent.type(dialog.getByLabelText('Email'), 'new@example.com');
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(body).toEqual({ email: 'new@example.com', username: 'newname' }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '"player1" was updated.',
+    );
+  });
+
+  it('shows a client-side validation error without submitting', async () => {
+    withUsers([activeUser]);
+    let submitted = false;
+    server.use(
+      http.put(`${USERS_URL}/${activeUser.id}`, () => {
+        submitted = true;
+        return HttpResponse.json({ data: activeUser });
+      }),
+    );
+    render(<UsersPage session={adminSession} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const dialog = within(screen.getByRole('dialog', { name: 'Edit user' }));
+    await userEvent.clear(dialog.getByLabelText('Email'));
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+
+    expect(dialog.getByText('Email is required')).toBeInTheDocument();
+    expect(submitted).toBe(false);
+  });
+
+  it('reports a conflict when the new email or username is already taken', async () => {
+    withUsers([activeUser]);
+    server.use(
+      http.put(`${USERS_URL}/${activeUser.id}`, () =>
+        HttpResponse.json(
+          {
+            code: 'USER_ALREADY_EXISTS',
+            message: 'A user with this email or username already exists',
+            status: 409,
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    render(<UsersPage session={adminSession} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const dialog = within(screen.getByRole('dialog', { name: 'Edit user' }));
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'A user with this email or username already exists',
+    );
   });
 });

@@ -1,6 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { deleteUser, listUsers, restoreUser, type AdminUser } from './usersApi';
+import {
+  deleteUser,
+  listUsers,
+  restoreUser,
+  updateUser,
+  type AdminUser,
+} from './usersApi';
 import { saveSession } from '@/features/auth/session';
 import { server } from '@/test/server';
 
@@ -94,5 +100,26 @@ describe('usersApi', () => {
 
     const restored = await restoreUser(user.id);
     expect(restored.deleted).toBe(false);
+  });
+
+  it('sends a PUT with the edited fields and maps the response', async () => {
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.put(`${USERS_URL}/${user.id}`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          data: { ...user, email: 'new@example.com', username: 'newname' },
+        });
+      }),
+    );
+
+    const updated = await updateUser(user.id, {
+      email: 'new@example.com',
+      username: 'newname',
+    });
+
+    expect(body).toEqual({ email: 'new@example.com', username: 'newname' });
+    expect(updated.username).toBe('newname');
+    expect(updated.email).toBe('new@example.com');
   });
 });

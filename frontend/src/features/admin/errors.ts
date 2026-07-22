@@ -17,6 +17,7 @@ export function readableAdminError(error: unknown): string {
     case 'CONFLICT':
     case 'USER_ALREADY_DELETED':
     case 'USER_NOT_DELETED':
+    case 'USER_ALREADY_EXISTS':
     case 'INVALID_INPUT':
     case 'VALIDATION_FAILED':
       return error.message;

@@ -3,6 +3,7 @@ package org.coderacer.backend.controller;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AdminUserResponse;
+import org.coderacer.backend.dto.AdminUserUpdateRequest;
 import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,6 +53,12 @@ public class AdminUserController {
   @PostMapping("/{id}/restore")
   public BaseResponse<AdminUserResponse> restore(@PathVariable UUID id) {
     return wrap(service.restore(id));
+  }
+
+  @PutMapping("/{id}")
+  public BaseResponse<AdminUserResponse> update(
+      @PathVariable UUID id, @RequestBody AdminUserUpdateRequest request) {
+    return wrap(service.update(id, request));
   }
 
   private <T> BaseResponse<T> wrap(T data) {
