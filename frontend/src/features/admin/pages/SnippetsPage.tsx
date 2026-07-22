@@ -80,29 +80,33 @@ export default function SnippetsPage() {
     Record<string, ExplanationState>
   >({});
 
-  const explainSnippet = useCallback(async (snippetId: string) => {
-    setExplanations((prev) => ({
-      ...prev,
-      [snippetId]: { loading: true, data: null, error: null },
-    }));
-    try {
-      const res = await apiRequest<BaseResponse<ExplanationData>>(
-        `/api/snippets/${snippetId}/explanation`,
-        { auth: true, method: 'GET' },
-      );
+  const explainSnippet = useCallback(
+    async (snippetId: string) => {
+      if (explanations[snippetId]?.data) return;
       setExplanations((prev) => ({
         ...prev,
-        [snippetId]: { loading: false, data: res.data, error: null },
+        [snippetId]: { loading: true, data: null, error: null },
       }));
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to get explanation';
-      setExplanations((prev) => ({
-        ...prev,
-        [snippetId]: { loading: false, data: null, error: message },
-      }));
-    }
-  }, []);
+      try {
+        const res = await apiRequest<BaseResponse<ExplanationData>>(
+          `/api/admin/snippets/${snippetId}/explanation`,
+          { auth: true, method: 'GET' },
+        );
+        setExplanations((prev) => ({
+          ...prev,
+          [snippetId]: { loading: false, data: res.data, error: null },
+        }));
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to get explanation';
+        setExplanations((prev) => ({
+          ...prev,
+          [snippetId]: { loading: false, data: null, error: message },
+        }));
+      }
+    },
+    [explanations],
+  );
 
   useEffect(() => {
     let active = true;
@@ -315,43 +319,50 @@ export default function SnippetsPage() {
                     </>
                   )}
                 </div>
-                {explanations[snippet.id]?.data && (
-                  <div className="mt-3 w-full rounded border border-white/10 bg-white/[0.03] p-3 text-xs text-text-secondary">
-                    <p className="font-semibold text-text-primary">Summary</p>
-                    <p className="mt-1">
-                      {explanations[snippet.id].data!.summary}
-                    </p>
-                    <p className="mt-2 font-semibold text-text-primary">
-                      Step by Step
-                    </p>
-                    <ol className="mt-1 list-decimal pl-4">
-                      {explanations[snippet.id].data!.stepByStep.map((s) => (
-                        <li key={s}>{s}</li>
-                      ))}
-                    </ol>
-                    <p className="mt-2 font-semibold text-text-primary">
-                      Concepts
-                    </p>
-                    <ul className="mt-1 list-disc pl-4">
-                      {explanations[snippet.id].data!.concepts.map((c) => (
-                        <li key={c}>{c}</li>
-                      ))}
-                    </ul>
-                    <p className="mt-2 font-semibold text-text-primary">
-                      Best Practices
-                    </p>
-                    <ul className="mt-1 list-disc pl-4">
-                      {explanations[snippet.id].data!.bestPractices.map((b) => (
-                        <li key={b}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {explanations[snippet.id]?.error && (
-                  <p className="mt-2 w-full text-xs text-red-400">
-                    {explanations[snippet.id].error}
-                  </p>
-                )}
+                {(() => {
+                  const explanation = explanations[snippet.id];
+                  return (
+                    <>
+                      {explanation?.data && (
+                        <div className="mt-3 w-full rounded border border-white/10 bg-white/[0.03] p-3 text-xs text-text-secondary">
+                          <p className="font-semibold text-text-primary">
+                            Summary
+                          </p>
+                          <p className="mt-1">{explanation.data.summary}</p>
+                          <p className="mt-2 font-semibold text-text-primary">
+                            Step by Step
+                          </p>
+                          <ol className="mt-1 list-decimal pl-4">
+                            {explanation.data.stepByStep.map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ol>
+                          <p className="mt-2 font-semibold text-text-primary">
+                            Concepts
+                          </p>
+                          <ul className="mt-1 list-disc pl-4">
+                            {explanation.data.concepts.map((c, i) => (
+                              <li key={i}>{c}</li>
+                            ))}
+                          </ul>
+                          <p className="mt-2 font-semibold text-text-primary">
+                            Best Practices
+                          </p>
+                          <ul className="mt-1 list-disc pl-4">
+                            {explanation.data.bestPractices.map((b, i) => (
+                              <li key={i}>{b}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {explanation?.error && (
+                        <p className="mt-2 w-full text-xs text-red-300">
+                          {explanation.error}
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </li>
             ))}
           </ul>

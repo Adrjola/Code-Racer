@@ -1,6 +1,7 @@
 package org.coderacer.backend.service;
 
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -54,8 +55,9 @@ public class GroqAiAdapter implements AiProvider {
     this.objectMapper = objectMapper;
 
     SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-    requestFactory.setConnectTimeout(properties.connectTimeout());
-    requestFactory.setReadTimeout(properties.readTimeout());
+    requestFactory.setConnectTimeout(
+        Duration.ofSeconds(AiProviderProperties.CONNECT_TIMEOUT_SECONDS));
+    requestFactory.setReadTimeout(Duration.ofSeconds(AiProviderProperties.READ_TIMEOUT_SECONDS));
 
     this.restClient =
         RestClient.builder()
@@ -73,10 +75,9 @@ public class GroqAiAdapter implements AiProvider {
 
   @Override
   public ExplanationResponse explain(String snippetSource) {
-    if (!properties.enabled()) {
-      throw AiProviderException.disabled();
-    }
-    if (snippetSource == null || snippetSource.length() > MAX_SNIPPET_LENGTH) {
+    if (snippetSource == null
+        || snippetSource.isBlank()
+        || snippetSource.length() > MAX_SNIPPET_LENGTH) {
       throw AiProviderException.invalidResponse("snippet is empty or exceeds size limit");
     }
 
@@ -92,7 +93,7 @@ public class GroqAiAdapter implements AiProvider {
                 Map.of("role", "system", "content", buildSystemPrompt(delimiter)),
                 Map.of("role", "user", "content", userMessage)),
             "max_tokens",
-            properties.tokenBudget(),
+            AiProviderProperties.TOKEN_BUDGET,
             "temperature",
             0.2);
 

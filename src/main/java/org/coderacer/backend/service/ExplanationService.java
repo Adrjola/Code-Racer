@@ -1,7 +1,9 @@
 package org.coderacer.backend.service;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.coderacer.backend.dto.ExplanationResponse;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.AiProviderException;
@@ -15,6 +17,7 @@ public class ExplanationService {
 
   private final CodeSnippetRepository codeSnippetRepository;
   private final AiProvider aiProvider;
+  private final Map<UUID, ExplanationResponse> cache = new ConcurrentHashMap<>();
 
   public ExplanationService(
       CodeSnippetRepository codeSnippetRepository, Optional<AiProvider> aiProvider) {
@@ -25,6 +28,11 @@ public class ExplanationService {
   public ExplanationResponse explain(UUID snippetId) {
     if (aiProvider == null) {
       throw AiProviderException.disabled();
+    }
+
+    ExplanationResponse cached = cache.get(snippetId);
+    if (cached != null) {
+      return cached;
     }
 
     CodeSnippet snippet =
@@ -42,6 +50,7 @@ public class ExplanationService {
       throw AiProviderException.invalidResponse("malformed or incomplete explanation");
     }
 
+    cache.put(snippetId, response);
     return response;
   }
 }

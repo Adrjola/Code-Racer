@@ -3,7 +3,6 @@ package org.coderacer.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.coderacer.backend.config.properties.AiProviderProperties;
@@ -41,15 +40,7 @@ class GroqAiAdapterTest {
     server.start();
 
     String baseUrl = server.url("/").toString();
-    enabledProperties =
-        new AiProviderProperties(
-            true,
-            "test-key",
-            baseUrl,
-            "test-model",
-            Duration.ofSeconds(5),
-            Duration.ofSeconds(5),
-            4096);
+    enabledProperties = new AiProviderProperties(true, "test-key", baseUrl, "test-model");
 
     ObjectMapper objectMapper = new ObjectMapper();
     RestClient restClient =
@@ -82,21 +73,6 @@ class GroqAiAdapterTest {
   }
 
   @Test
-  void explain_disabledProvider_throwsDisabled() {
-    AiProviderProperties disabledProps =
-        new AiProviderProperties(false, "key", "http://localhost", "model", null, null, 0);
-    ObjectMapper objectMapper = new ObjectMapper();
-    GroqAiAdapter disabledAdapter =
-        new GroqAiAdapter(disabledProps, objectMapper, RestClient.builder().build());
-
-    assertThatThrownBy(() -> disabledAdapter.explain("code"))
-        .isInstanceOf(AiProviderException.class)
-        .hasMessageContaining("disabled")
-        .extracting(e -> ((AiProviderException) e).getStatus())
-        .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-  }
-
-  @Test
   void explain_nullSnippet_throwsInvalidResponse() {
     assertThatThrownBy(() -> adapter.explain(null))
         .isInstanceOf(AiProviderException.class)
@@ -107,6 +83,13 @@ class GroqAiAdapterTest {
   void explain_oversizedSnippet_throwsInvalidResponse() {
     String oversized = "x".repeat(10_001);
     assertThatThrownBy(() -> adapter.explain(oversized))
+        .isInstanceOf(AiProviderException.class)
+        .hasMessageContaining("size limit");
+  }
+
+  @Test
+  void explain_emptyStringSnippet_throwsInvalidResponse() {
+    assertThatThrownBy(() -> adapter.explain("   "))
         .isInstanceOf(AiProviderException.class)
         .hasMessageContaining("size limit");
   }

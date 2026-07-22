@@ -40,7 +40,7 @@ class ExplanationControllerTest {
     when(service.explain(snippetId)).thenReturn(response);
 
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", snippetId))
+        .perform(get("/api/admin/snippets/{id}/explanation", snippetId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.summary").value("A summary"))
         .andExpect(jsonPath("$.data.stepByStep[0]").value("Step 1"))
@@ -54,7 +54,7 @@ class ExplanationControllerTest {
         .thenThrow(new ResourceNotFoundException("Snippet not found: " + snippetId));
 
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", snippetId))
+        .perform(get("/api/admin/snippets/{id}/explanation", snippetId))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
   }
@@ -64,7 +64,7 @@ class ExplanationControllerTest {
     when(service.explain(snippetId)).thenThrow(AiProviderException.disabled());
 
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", snippetId))
+        .perform(get("/api/admin/snippets/{id}/explanation", snippetId))
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.code").value("AI_PROVIDER_DISABLED"));
   }
@@ -75,7 +75,7 @@ class ExplanationControllerTest {
         .thenThrow(AiProviderException.timeout(new RuntimeException("timeout")));
 
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", snippetId))
+        .perform(get("/api/admin/snippets/{id}/explanation", snippetId))
         .andExpect(status().isGatewayTimeout())
         .andExpect(jsonPath("$.code").value("AI_PROVIDER_TIMEOUT"));
   }
@@ -86,7 +86,7 @@ class ExplanationControllerTest {
         .thenThrow(AiProviderException.unavailable(new RuntimeException("down")));
 
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", snippetId))
+        .perform(get("/api/admin/snippets/{id}/explanation", snippetId))
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
   }
@@ -96,7 +96,7 @@ class ExplanationControllerTest {
     when(service.explain(snippetId)).thenThrow(AiProviderException.invalidResponse("malformed"));
 
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", snippetId))
+        .perform(get("/api/admin/snippets/{id}/explanation", snippetId))
         .andExpect(status().isBadGateway())
         .andExpect(jsonPath("$.code").value("AI_PROVIDER_INVALID_RESPONSE"));
   }
@@ -104,7 +104,7 @@ class ExplanationControllerTest {
   @Test
   void explain_returns400_whenIdIsNotUuid() throws Exception {
     mockMvc
-        .perform(get("/api/snippets/{id}/explanation", "not-a-uuid"))
+        .perform(get("/api/admin/snippets/{id}/explanation", "not-a-uuid"))
         .andExpect(status().isBadRequest());
   }
 }

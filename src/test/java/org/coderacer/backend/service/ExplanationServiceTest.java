@@ -2,6 +2,8 @@ package org.coderacer.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -97,6 +99,27 @@ class ExplanationServiceTest {
         .thenThrow(AiProviderException.disabled());
 
     assertThrows(AiProviderException.class, () -> service.explain(snippetId));
+  }
+
+  @Test
+  void explainReturnsCachedResponseOnSecondCall() {
+    when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
+    when(aiProvider.explain("System.out.println(\"Hello\");")).thenReturn(validResponse());
+
+    ExplanationResponse first = service.explain(snippetId);
+    ExplanationResponse second = service.explain(snippetId);
+
+    assertThat(second).isSameAs(first);
+    verify(aiProvider).explain("System.out.println(\"Hello\");");
+  }
+
+  @Test
+  void explainThrowsDisabledWhenNoProvider() {
+    ExplanationService disabledService =
+        new ExplanationService(codeSnippetRepository, Optional.empty());
+
+    assertThrows(AiProviderException.class, () -> disabledService.explain(snippetId));
+    verifyNoInteractions(codeSnippetRepository);
   }
 
   @Test

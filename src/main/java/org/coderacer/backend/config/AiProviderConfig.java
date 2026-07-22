@@ -14,6 +14,11 @@ public class AiProviderConfig {
   @Bean
   @ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
   public AiProvider aiProvider(AiProviderProperties properties, ObjectMapper objectMapper) {
+    if (properties.apiKey() == null || properties.apiKey().isBlank()) {
+      throw new IllegalStateException(
+          "app.ai.enabled is true but app.ai.api-key is blank; set APP_AI_API_KEY or disable the"
+              + " feature");
+    }
     return new GroqAiAdapter(properties, objectMapper);
   }
 }
