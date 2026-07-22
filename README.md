@@ -8,7 +8,7 @@ individually or compete with friends in private code-typing races.
 - `src/` - Spring Boot backend source and tests
 - `frontend/` - React and TypeScript web application
 - `docs/` - team workflow and testing documentation
-- `compose.yaml` - local PostgreSQL, Mailpit, and backend orchestration
+- `compose.yaml` - local PostgreSQL, Mailpit, backend, and frontend orchestration
 
 The backend is built from the repository root with Gradle. The frontend is a
 separate npm application under `frontend/`.
@@ -142,24 +142,15 @@ Copy-Item .env.example .env
    after the initial account exists.
 
 3. Ensure Docker Desktop is running, then build and start PostgreSQL, Mailpit,
-   and the backend from the repository root.
+   the backend, and the frontend from the repository root.
 
 ```bash
 docker compose up --build -d
 ```
 
-4. In a separate terminal, install the frontend dependencies and start the
-   Vite development server.
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
+Docker Compose runs the Vite development server in the `frontend` container.
 Vite watches the frontend source files and updates the browser while the
-frontend is being developed. Docker Compose intentionally does not run the
-frontend development server.
+frontend is being developed.
 
 Open:
 
@@ -180,8 +171,6 @@ Stop the stack and delete the local database volume:
 docker compose down -v
 ```
 
-Stop the frontend development server with `Ctrl+C` in its terminal.
-
 Use volume removal only when a clean local database is intended. Never commit
 `.env`, access tokens, passwords, or other real secrets.
 
@@ -190,3 +179,59 @@ Use volume removal only when a clean local database is intended. Never commit
 - [Working Agreements](docs/working_agreements.md)
 - [Testing Strategy](docs/testing.md)
 - [API Conventions](docs/api-conventions.md)
+
+## Deployment
+
+Production deployment is handled by `.github/workflows/deploy.yml`. Pull
+requests into `main` build the Docker image without touching the server. Pushes
+to `main` and manual workflow runs from `main` deploy on the self-hosted runner
+through the `production` GitHub Environment. The deploy job builds a single
+Docker image containing the Spring Boot API and the compiled Vite frontend,
+starts PostgreSQL in a private Docker network with a persistent volume, then
+exposes only the application port.
+
+Required `production` Environment Secrets:
+
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `MAIL_HOST`
+- `MAIL_USERNAME`
+- `MAIL_PASSWORD`
+- `APP_EMAIL_FROM`
+- `APP_EMAIL_VERIFICATION_URL`
+- `APP_PASSWORD_RESET_URL`
+- `APP_JWT_SECRET`
+- `ALLOWED_ORIGINS`
+
+Optional `production` Environment Secrets:
+
+- `MAIL_PORT` defaults to `587`
+- `MAIL_SMTP_AUTH` defaults to `true`
+- `MAIL_SMTP_STARTTLS_ENABLE` defaults to `true`
+- `APP_EMAIL_DELIVERY_MODE` defaults to `smtp`
+- `APP_JWT_ACCESS_TOKEN_TTL` defaults to `15m`
+- `APP_ADMIN_BOOTSTRAP_ENABLED` defaults to `false`
+- `APP_ADMIN_EMAIL`
+- `APP_ADMIN_USERNAME`
+- `APP_ADMIN_PASSWORD`
+
+Optional `production` Environment Variables:
+
+- `SERVER_PORT` defaults to `3600`
+- `APP_PUBLIC_URL` defaults to `https://team6.acnbootcamp.lv`
+
+For the first production deploy only, set `APP_ADMIN_BOOTSTRAP_ENABLED=true`
+and provide the admin email, username, and password. After the first admin user
+exists, set `APP_ADMIN_BOOTSTRAP_ENABLED=false` again.
+
+Use the `workflow_dispatch` input `server_port` to choose the public port on the
+server for a manual deployment. The internship Cloudflare Tunnel maps
+`https://team6.acnbootcamp.lv` to port `3600` on the host machine. The container
+listens on port `8080` internally; the workflow maps host port `3600` to it.
+
+Production URL values:
+
+- `ALLOWED_ORIGINS=https://team6.acnbootcamp.lv`
+- `APP_EMAIL_VERIFICATION_URL=https://team6.acnbootcamp.lv/verify-email`
+- `APP_PASSWORD_RESET_URL=https://team6.acnbootcamp.lv/reset-password`
