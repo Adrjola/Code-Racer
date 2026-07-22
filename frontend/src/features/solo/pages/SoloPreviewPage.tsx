@@ -149,6 +149,7 @@ export default function SoloPreviewPage({
         await endAttempt();
         onExitRace();
       }}
+      onNewSnippet={newSnippet}
       onRestartRace={raceAgain}
       onStartRace={start}
       snippet={snippet}

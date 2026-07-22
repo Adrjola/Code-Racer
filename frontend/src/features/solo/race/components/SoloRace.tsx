@@ -24,6 +24,7 @@ import { SoloRaceWorldBest } from './SoloRaceWorldBest';
 interface SoloRaceProps {
   errorMessage?: string | null;
   onLobbyNavigate?: () => void | Promise<void>;
+  onNewSnippet?: () => void | Promise<void>;
   onRestartRace?: () => void | Promise<void>;
   onStartRace?: () => void | Promise<void>;
   snippet: RaceSnippet;
@@ -34,6 +35,7 @@ interface SoloRaceProps {
 export function SoloRace({
   errorMessage,
   onLobbyNavigate,
+  onNewSnippet,
   onRestartRace,
   onStartRace,
   snippet,
@@ -154,6 +156,20 @@ export function SoloRace({
     terminateRaceToMenu();
   };
 
+  const loadNewSnippet = async () => {
+    if (isBootstrappingRace || !onNewSnippet) {
+      return;
+    }
+
+    setIsBootstrappingRace(true);
+    try {
+      await onNewSnippet();
+    } finally {
+      setIsBootstrappingRace(false);
+    }
+    terminateRaceToMenu();
+  };
+
   const startRace = async () => {
     if (isBootstrappingRace) {
       return;
@@ -176,6 +192,38 @@ export function SoloRace({
     setHasRaceStarted(true);
     setNowMs(Date.now());
   };
+
+  // Enter is the fastest way back into a race after finishing one, but it must
+  // not fire once the race is running, where Enter is a typed character.
+  const startRaceRef = useRef(startRace);
+  useEffect(() => {
+    startRaceRef.current = startRace;
+  });
+
+  const canStartWithEnter =
+    !hasRaceStarted && !isBootstrappingRace && !isLeaveConfirmOpen;
+
+  useEffect(() => {
+    if (!canStartWithEnter) {
+      return;
+    }
+
+    const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.key !== 'Enter' ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      void startRaceRef.current();
+    };
+
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown);
+  }, [canStartWithEnter]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (isLocked) {
@@ -281,7 +329,11 @@ export function SoloRace({
 
   return (
     <div className="min-h-screen w-full bg-[#08051A] text-slate-50 lg:flex lg:h-[100dvh] lg:min-h-0 lg:flex-col lg:overflow-hidden">
-      <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
+      <SoloRaceHeader
+        actionLabel={hasRaceStarted ? 'Restart' : 'New snippet'}
+        onAction={hasRaceStarted ? restartRace : loadNewSnippet}
+        onLobby={goToLobby}
+      />
 
       {isLeaveConfirmOpen && (
         <ConfirmDialog
@@ -336,6 +388,14 @@ export function SoloRace({
                 ref={inputRef}
                 readOnly={isLocked}
                 className="absolute inset-0 h-full w-full cursor-default resize-none opacity-0"
+                onBlur={() => {
+                  // A click anywhere else silently stops typing from landing,
+                  // so an active race takes its focus straight back.
+                  if (isLocked) {
+                    return;
+                  }
+                  window.setTimeout(() => inputRef.current?.focus(), 0);
+                }}
                 onKeyDown={handleKeyDown}
                 onBeforeInput={(event: FormEvent<HTMLTextAreaElement>) => {
                   const { data } = event as FormEvent<HTMLTextAreaElement> & {
