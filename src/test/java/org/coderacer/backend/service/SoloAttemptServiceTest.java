@@ -3,6 +3,8 @@ package org.coderacer.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,7 +58,10 @@ class SoloAttemptServiceTest {
 
   @BeforeEach
   void setUp() {
-    activeAttemptStateStore = new ActiveAttemptStateStore();
+    lenient()
+        .when(soloAttemptRepository.findWithLockById(any()))
+        .thenAnswer(invocation -> soloAttemptRepository.findById(invocation.getArgument(0)));
+    activeAttemptStateStore = new ActiveAttemptStateStore(soloAttemptRepository);
     resultCalculator = new SoloAttemptResultCalculator();
     lifecycleService = new SoloAttemptLifecycleService(soloAttemptRepository);
     clock = Clock.fixed(now, ZoneOffset.UTC);
@@ -68,6 +73,7 @@ class SoloAttemptServiceTest {
             activeAttemptStateStore,
             resultCalculator,
             lifecycleService,
+            new SoloAttemptStaleness(),
             clock);
   }
 
@@ -127,6 +133,62 @@ class SoloAttemptServiceTest {
         .thenThrow(new DataIntegrityViolationException("duplicate active attempt"));
 
     assertThrows(OneActiveAttemptConflictException.class, () -> service.start(userId, snippetId));
+  }
+
+  @Test
+  void startRetiresAnAbandonedCountdownThatNeverBegan() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+    when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
+    SoloAttempt stranded = liveAttempt(now.minusSeconds(120), SoloAttemptState.COUNTDOWN);
+    when(soloAttemptRepository.findFirstWithLockByUserIdAndStateIn(eq(userId), any()))
+        .thenReturn(Optional.of(stranded));
+    when(soloAttemptRepository.saveAndFlush(any(SoloAttempt.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    SoloAttempt result = service.start(userId, snippetId);
+
+    assertThat(stranded.getState()).isEqualTo(SoloAttemptState.EXPIRED);
+    assertThat(result.getState()).isEqualTo(SoloAttemptState.COUNTDOWN);
+  }
+
+  @Test
+  void startRetiresAnActiveRaceNobodyIsTypingIn() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+    when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
+    SoloAttempt stranded = liveAttempt(now.minusSeconds(300), SoloAttemptState.ACTIVE);
+    stranded.recordProgress(5, 1, now.minusSeconds(120));
+    when(soloAttemptRepository.findFirstWithLockByUserIdAndStateIn(eq(userId), any()))
+        .thenReturn(Optional.of(stranded));
+    when(soloAttemptRepository.saveAndFlush(any(SoloAttempt.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    service.start(userId, snippetId);
+
+    assertThat(stranded.getState()).isEqualTo(SoloAttemptState.EXPIRED);
+  }
+
+  @Test
+  void startStillConflictsWithARaceThatIsBeingTyped() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+    when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
+    SoloAttempt busy = liveAttempt(now.minusSeconds(30), SoloAttemptState.ACTIVE);
+    busy.recordProgress(12, 3, now.minusSeconds(2));
+    when(soloAttemptRepository.findFirstWithLockByUserIdAndStateIn(eq(userId), any()))
+        .thenReturn(Optional.of(busy));
+    when(soloAttemptRepository.saveAndFlush(any(SoloAttempt.class)))
+        .thenThrow(new DataIntegrityViolationException("duplicate active attempt"));
+
+    assertThrows(OneActiveAttemptConflictException.class, () -> service.start(userId, snippetId));
+    assertThat(busy.getState()).isEqualTo(SoloAttemptState.ACTIVE);
+  }
+
+  private SoloAttempt liveAttempt(Instant startedAt, SoloAttemptState state) {
+    SoloAttempt attempt = new SoloAttempt(user(), snippet(), Difficulty.EASY, startedAt);
+    ReflectionTestUtils.setField(attempt, "id", UUID.randomUUID());
+    if (state == SoloAttemptState.ACTIVE) {
+      attempt.activate();
+    }
+    return attempt;
   }
 
   @Test

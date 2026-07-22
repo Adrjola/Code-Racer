@@ -2,30 +2,69 @@ package org.coderacer.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.enums.Category;
+import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.exception.ImplausibleRateException;
 import org.coderacer.backend.exception.ProgressMismatchException;
 import org.coderacer.backend.exception.ProgressSequenceException;
+import org.coderacer.backend.model.CodeSnippet;
+import org.coderacer.backend.model.SoloAttempt;
+import org.coderacer.backend.model.User;
+import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.util.CanonicalText;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
+import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 class ActiveAttemptStateStoreTest {
 
   private static final int[] CANONICAL = CanonicalText.toCodePoints("hello");
+
+  @Mock private SoloAttemptRepository repository;
+
+  private final Map<UUID, SoloAttempt> rows = new HashMap<>();
 
   private ActiveAttemptStateStore store;
 
   @BeforeEach
   void setUp() {
-    store = new ActiveAttemptStateStore();
+    Answer<Optional<SoloAttempt>> row =
+        invocation -> Optional.ofNullable(rows.get(invocation.<UUID>getArgument(0)));
+    lenient().when(repository.findWithLockById(any())).thenAnswer(row);
+    lenient().when(repository.findById(any())).thenAnswer(row);
+    store = new ActiveAttemptStateStore(repository);
+  }
+
+  /** Progress lives on the attempt row, so every tracked attempt needs one to exist. */
+  private UUID liveAttempt() {
+    User user = new User();
+    ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+    CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, Category.JAVA);
+    ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
+    SoloAttempt attempt =
+        new SoloAttempt(user, snippet, Difficulty.EASY, Instant.parse("2026-01-01T00:00:00Z"));
+    ReflectionTestUtils.setField(attempt, "id", UUID.randomUUID());
+    attempt.activate();
+    rows.put(attempt.getId(), attempt);
+    return attempt.getId();
   }
 
   @Test
   void registerInitializesOffsetZeroAndSequenceZero() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant activatedAt = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, activatedAt);
     assertThat(store.get(id)).contains(new ActiveProgress(0, 0, activatedAt));
@@ -38,7 +77,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void reregisteringDoesNotResetAlreadyAdvancedProgress() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     store.applyDelta(id, 1, CanonicalText.toCodePoints("he"), CANONICAL, now, now.plusSeconds(1));
@@ -50,7 +89,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void appliesFirstDeltaInSequence() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     ActiveProgress progress =
@@ -62,7 +101,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void resendingLastSequenceIsIdempotent() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     ActiveProgress first =
@@ -76,7 +115,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void rejectsSkippedSequence() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     assertThrows(
@@ -88,7 +127,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void rejectsStaleSequenceOlderThanLastAccepted() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     store.applyDelta(id, 1, CanonicalText.toCodePoints("h"), CANONICAL, now, now.plusSeconds(1));
@@ -106,7 +145,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void rejectsMismatchedCharacters() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     assertThrows(
@@ -118,7 +157,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void rejectsDeltaExceedingCanonicalLength() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     assertThrows(
@@ -149,7 +188,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void rejectsImplausibleRate() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant now = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, now);
     assertThrows(
@@ -159,7 +198,7 @@ class ActiveAttemptStateStoreTest {
 
   @Test
   void acceptsBatchesThatArriveFasterThanTheyWereTyped() {
-    UUID id = UUID.randomUUID();
+    UUID id = liveAttempt();
     Instant startedAt = Instant.parse("2026-01-01T00:00:00Z");
     store.register(id, startedAt);
 

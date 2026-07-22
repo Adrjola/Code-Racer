@@ -6,6 +6,7 @@ import {
   shouldSkipFlush,
   useExactCodeTypingEngine,
 } from '../../../../features/solo/race/hooks/useExactCodeTypingEngine.ts';
+import { ApiRequestError } from '../../../../lib/apiClient';
 import type {
   RaceSnippet,
   ExactCodeTypingEngineTransport,
@@ -186,6 +187,78 @@ describe('useExactCodeTypingEngine logic engine', () => {
     });
     expect(sendProgressBatch).toHaveBeenCalledWith({
       events: [{ value: 'a', version: 1 }],
+    });
+    unmount();
+  });
+
+  it('keeps a race alive while the server is unreachable', async () => {
+    // A backend restart takes longer than four debounced sends, so counting
+    // connection failures the same as rejections killed races the server would
+    // have accepted once it came back.
+    const sendProgressBatch = vi.fn(async () => {
+      throw new ApiRequestError('Network request failed', 'NETWORK_ERROR');
+    });
+    const transport: ExactCodeTypingEngineTransport = {
+      sendProgressBatch,
+      submitCompletion: vi.fn(async () => undefined),
+    };
+
+    const startedAt = new Date().toISOString();
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, startedAt, transport),
+    );
+
+    await waitFor(() => {
+      expect(result.current.state.targetCode).toBe('ab');
+    });
+
+    act(() => {
+      result.current.handleInput('a');
+    });
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await act(async () => {
+        await result.current.flushNow();
+      });
+    }
+
+    expect(sendProgressBatch.mock.calls.length).toBeGreaterThan(4);
+    expect(result.current.state.isExpired).toBe(false);
+    unmount();
+  });
+
+  it('still gives up quickly when the server rejects the batch', async () => {
+    // A 4xx means the batch will never be accepted, so the old ceiling stands.
+    const sendProgressBatch = vi.fn(async () => {
+      throw new ApiRequestError(
+        'Bad request',
+        'PROGRESS_SEQUENCE_CONFLICT',
+        409,
+      );
+    });
+    const transport: ExactCodeTypingEngineTransport = {
+      sendProgressBatch,
+      submitCompletion: vi.fn(async () => undefined),
+    };
+
+    const startedAt = new Date().toISOString();
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, startedAt, transport),
+    );
+
+    await waitFor(() => {
+      expect(result.current.state.targetCode).toBe('ab');
+    });
+
+    act(() => {
+      result.current.handleInput('a');
+    });
+
+    await act(async () => {
+      await result.current.flushNow();
+    });
+    await waitFor(() => {
+      expect(result.current.state.isExpired).toBe(true);
     });
     unmount();
   });

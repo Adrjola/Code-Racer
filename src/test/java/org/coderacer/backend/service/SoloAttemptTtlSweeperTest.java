@@ -2,6 +2,7 @@ package org.coderacer.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,7 +11,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
@@ -24,12 +28,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class SoloAttemptTtlSweeperTest {
 
   @Mock private SoloAttemptRepository soloAttemptRepository;
+
+  private final Map<UUID, SoloAttempt> rows = new HashMap<>();
 
   private ActiveAttemptStateStore activeAttemptStateStore;
   private Instant now;
@@ -39,8 +46,14 @@ class SoloAttemptTtlSweeperTest {
   void setUp() {
     now = Instant.parse("2026-01-01T00:30:00Z");
     Clock clock = Clock.fixed(now, ZoneOffset.UTC);
-    activeAttemptStateStore = new ActiveAttemptStateStore();
-    sweeper = new SoloAttemptTtlSweeper(soloAttemptRepository, activeAttemptStateStore, clock);
+    Answer<Optional<SoloAttempt>> row =
+        invocation -> Optional.ofNullable(rows.get(invocation.<UUID>getArgument(0)));
+    lenient().when(soloAttemptRepository.findWithLockById(any())).thenAnswer(row);
+    lenient().when(soloAttemptRepository.findById(any())).thenAnswer(row);
+    activeAttemptStateStore = new ActiveAttemptStateStore(soloAttemptRepository);
+    sweeper =
+        new SoloAttemptTtlSweeper(
+            soloAttemptRepository, activeAttemptStateStore, new SoloAttemptStaleness(), clock);
   }
 
   private SoloAttempt newAttempt(Instant startedAt) {
@@ -51,6 +64,7 @@ class SoloAttemptTtlSweeperTest {
     ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
     SoloAttempt attempt = new SoloAttempt(user, snippet, Difficulty.EASY, startedAt);
     ReflectionTestUtils.setField(attempt, "id", UUID.randomUUID());
+    rows.put(attempt.getId(), attempt);
     return attempt;
   }
 
