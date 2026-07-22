@@ -10,6 +10,7 @@ import {
 import type { Difficulty } from '@/features/solo/api/soloApi';
 import type {
   DifficultyStatistics,
+  GlobalLeaderboardEntry,
   SnippetStatistics,
   SoloAttemptHistoryEntry,
 } from '../api/statisticsApi';
@@ -67,6 +68,32 @@ function mockSnippetStatistics(snippets: SnippetStatistics[]) {
   );
 }
 
+const DEFAULT_EASY_LEADERBOARD: GlobalLeaderboardEntry[] = [
+  { cpm: 642, durationMs: 17_000, rank: 1, username: 'zoomer' },
+  { cpm: 631, durationMs: 18_000, rank: 2, username: 'slower_zoomer' },
+  { cpm: 600, durationMs: 19_000, rank: 3, username: 'PowerPuffGirl' },
+];
+
+function mockGlobalLeaderboard(
+  byDifficulty: Partial<Record<Difficulty, GlobalLeaderboardEntry[]>> = {
+    EASY: DEFAULT_EASY_LEADERBOARD,
+  },
+) {
+  server.use(
+    http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, ({ request }) => {
+      const difficulty = new URL(request.url).searchParams.get(
+        'difficulty',
+      ) as Difficulty | null;
+      return HttpResponse.json({
+        data: {
+          difficulty,
+          entries: (difficulty && byDifficulty[difficulty]) ?? [],
+        },
+      });
+    }),
+  );
+}
+
 function historyEntry(
   overrides: Partial<SoloAttemptHistoryEntry> = {},
 ): SoloAttemptHistoryEntry {
@@ -120,10 +147,11 @@ beforeEach(() => {
     (['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(emptyDifficulty),
   );
   mockSnippetStatistics([]);
+  mockGlobalLeaderboard();
 });
 
 describe('StatisticsPage', () => {
-  it('shows the global easy ranking by default', () => {
+  it('shows the global easy ranking by default', async () => {
     renderStatistics();
 
     expect(
@@ -137,23 +165,59 @@ describe('StatisticsPage', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.getByText('zoomer')).toBeInTheDocument();
-    expect(screen.getByText('0:17')).toBeInTheDocument();
+    expect(await screen.findByText('zoomer')).toBeInTheDocument();
+    expect(screen.getByText('0:17.000')).toBeInTheDocument();
   });
 
-  it('marks the current user row', () => {
+  it('preserves the backend order, ranks, and tie values verbatim', async () => {
+    mockGlobalLeaderboard({
+      EASY: [
+        { cpm: 400, durationMs: 20_000, rank: 1, username: 'alice' },
+        { cpm: 400, durationMs: 20_000, rank: 1, username: 'bob' },
+        { cpm: 200, durationMs: 30_000, rank: 3, username: 'carol' },
+      ],
+    });
     renderStatistics();
 
-    const rows = screen.getAllByRole('listitem');
+    const rows = await screen.findAllByRole('listitem');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('alice'),
+      expect.stringContaining('bob'),
+      expect.stringContaining('carol'),
+    ]);
+    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('marks the current user row', async () => {
+    renderStatistics();
+
+    const rows = await screen.findAllByRole('listitem');
     const ownRow = rows.find((row) => row.textContent?.includes('YOU'));
 
     expect(ownRow).toBeDefined();
     expect(ownRow?.textContent).toContain('PowerPuffGirl');
   });
 
+  it('shows a loading state before the global leaderboard resolves', async () => {
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, async () => {
+        // Never resolves within the test, so the page stays in the loading state.
+        await new Promise(() => {});
+        return HttpResponse.json({ data: { difficulty: 'EASY', entries: [] } });
+      }),
+    );
+    renderStatistics();
+
+    expect(
+      screen.getByText(/loading global rankings/i),
+    ).toBeInTheDocument();
+  });
+
   it('shows a placeholder when a difficulty has no ranking data yet', async () => {
     const user = userEvent.setup();
     renderStatistics();
+    await screen.findByText('zoomer');
 
     await user.click(screen.getByRole('tab', { name: /tryhard/i }));
 
@@ -163,8 +227,76 @@ describe('StatisticsPage', () => {
     );
     expect(screen.queryByText('zoomer')).not.toBeInTheDocument();
     expect(
-      screen.getByText(/no global rankings yet for this difficulty/i),
+      await screen.findByText(/no global rankings yet for this difficulty/i),
     ).toBeInTheDocument();
+  });
+
+  it('shows an error with a retry that refetches the global leaderboard', async () => {
+    let attempts = 0;
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return HttpResponse.error();
+        }
+        return HttpResponse.json({
+          data: { difficulty: 'EASY', entries: DEFAULT_EASY_LEADERBOARD },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+
+    const retry = await screen.findByRole('button', { name: /try again/i });
+    await user.click(retry);
+
+    expect(await screen.findByText('zoomer')).toBeInTheDocument();
+  });
+
+  it('calls onSessionExpired when the global leaderboard request is unauthorized', async () => {
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, () =>
+        HttpResponse.json(
+          {
+            code: 'AUTHENTICATION_REQUIRED',
+            instance: '/api/solo-attempts/global-leaderboard',
+            message: 'expired',
+            status: 401,
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+    const onSessionExpired = vi.fn();
+    render(
+      <StatisticsPage
+        onGoHome={vi.fn()}
+        onLogout={vi.fn()}
+        onSessionExpired={onSessionExpired}
+        session={session()}
+      />,
+    );
+
+    await waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
+  });
+
+  it('refetches the global leaderboard when the difficulty changes', async () => {
+    const requestedDifficulties: (string | null)[] = [];
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, ({ request }) => {
+        const difficulty = new URL(request.url).searchParams.get('difficulty');
+        requestedDifficulties.push(difficulty);
+        return HttpResponse.json({ data: { difficulty, entries: [] } });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+    await screen.findByText(/no global rankings yet for this difficulty/i);
+
+    await user.click(screen.getByRole('tab', { name: /tryhard/i }));
+    await screen.findByText(/no global rankings yet for this difficulty/i);
+
+    expect(requestedDifficulties).toEqual(['EASY', 'MEDIUM']);
   });
 
   it('shows a loading state before the personal stats resolve', async () => {

@@ -4,11 +4,12 @@ import { TrophyIcon } from '@/components/icons';
 import type { AuthSession } from '@/features/auth/session';
 import type { Difficulty } from '@/features/solo/api/soloApi';
 import {
+  toGlobalRankingEntries,
   toPersonalActivityEntries,
   toPersonalActivityEntriesFromHistory,
   toPersonalStatsSummary,
 } from '../api/statisticsMappers';
-import { getMockGlobalRanking } from '../data/mockGlobalRanking';
+import { useGlobalLeaderboard } from '../hooks/useGlobalLeaderboard';
 import { usePersonalStatistics } from '../hooks/usePersonalStatistics';
 import { useSnippetHistory } from '../hooks/useSnippetHistory';
 import { DifficultyTabs } from '../components/DifficultyTabs';
@@ -92,6 +93,11 @@ export default function StatisticsPage({
     snippetStats,
     status: personalStatus,
   } = usePersonalStatistics(onSessionExpired);
+  const {
+    entries: globalEntries,
+    retry: retryGlobalLeaderboard,
+    status: globalStatus,
+  } = useGlobalLeaderboard(difficulty, onSessionExpired);
   const isHistory = snippetView === 'HISTORY';
   const {
     entries: historyEntries,
@@ -115,7 +121,9 @@ export default function StatisticsPage({
   }, [difficulty, snippetView, view]);
 
   const ranking =
-    view === 'GLOBAL' ? getMockGlobalRanking(difficulty) : undefined;
+    view === 'GLOBAL' && globalStatus === 'success'
+      ? toGlobalRankingEntries(globalEntries)
+      : undefined;
   const activity =
     view !== 'PERSONAL' || personalStatus !== 'success'
       ? []
@@ -219,14 +227,36 @@ export default function StatisticsPage({
             <DifficultyTabs difficulty={difficulty} onChange={setDifficulty} />
           </section>
 
-          {view === 'GLOBAL' && ranking && (
+          {view === 'GLOBAL' && globalStatus === 'loading' && (
+            <p className="text-text-muted" role="status">
+              Loading global rankings…
+            </p>
+          )}
+
+          {view === 'GLOBAL' && globalStatus === 'error' && (
+            <div className="flex flex-col items-start gap-3" role="alert">
+              <p className="text-text-muted">
+                Couldn&apos;t load global rankings. Check your connection and
+                try again.
+              </p>
+              <button
+                className="rounded-[9px] border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[12px] font-bold tracking-wide text-text-primary hover:border-white/20"
+                onClick={retryGlobalLeaderboard}
+                type="button"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {view === 'GLOBAL' && ranking && ranking.length > 0 && (
             <GlobalRankingTable
               currentUsername={session.user.username}
               entries={ranking}
             />
           )}
 
-          {view === 'GLOBAL' && !ranking && (
+          {view === 'GLOBAL' && ranking && ranking.length === 0 && (
             <p className="text-text-muted" role="status">
               No global rankings yet for this difficulty.
             </p>

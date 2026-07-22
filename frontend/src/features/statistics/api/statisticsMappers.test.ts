@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatRelativeTime,
+  toGlobalRankingEntries,
   toPersonalActivityEntries,
   toPersonalActivityEntriesFromHistory,
   toPersonalStatsSummary,
 } from './statisticsMappers';
 import type {
   DifficultyStatistics,
+  GlobalLeaderboardEntry,
   SnippetStatistics,
   SoloAttemptHistoryEntry,
 } from './statisticsApi';
@@ -109,6 +111,37 @@ describe('toPersonalActivityEntries', () => {
 
   it('returns an empty list for an empty input', () => {
     expect(toPersonalActivityEntries([])).toEqual([]);
+  });
+});
+
+describe('toGlobalRankingEntries', () => {
+  it('formats durationMs and passes rank, username, and cpm through unchanged', () => {
+    const entries: GlobalLeaderboardEntry[] = [
+      { cpm: 642, durationMs: 17_000, rank: 1, username: 'zoomer' },
+    ];
+
+    expect(toGlobalRankingEntries(entries)).toEqual([
+      { cpm: 642, fastestTime: '0:17.000', rank: 1, username: 'zoomer' },
+    ]);
+  });
+
+  it('preserves the backend order and tied ranks instead of resorting', () => {
+    const entries: GlobalLeaderboardEntry[] = [
+      { cpm: 400, durationMs: 20_000, rank: 1, username: 'alice' },
+      { cpm: 400, durationMs: 20_000, rank: 1, username: 'bob' },
+      { cpm: 200, durationMs: 30_000, rank: 3, username: 'carol' },
+    ];
+
+    expect(toGlobalRankingEntries(entries).map((entry) => entry.rank)).toEqual(
+      [1, 1, 3],
+    );
+    expect(
+      toGlobalRankingEntries(entries).map((entry) => entry.username),
+    ).toEqual(['alice', 'bob', 'carol']);
+  });
+
+  it('returns an empty list for an empty input', () => {
+    expect(toGlobalRankingEntries([])).toEqual([]);
   });
 });
 

@@ -1,7 +1,6 @@
 package org.coderacer.backend.repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
@@ -58,26 +57,17 @@ public interface SoloAttemptRepository
   Page<SoloAttempt> findAll(Specification<SoloAttempt> specification, Pageable pageable);
 
   /**
-   * The single COMPLETED attempt with the lowest durationMs for a difficulty, restricted to
-   * non-deleted users. Ties break by earliest finishedAt, then lowest user id, both encoded
-   * directly in the method name's ORDER BY.
-   */
-  @EntityGraph(attributePaths = "user")
-  Optional<SoloAttempt>
-      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByDurationMsAscFinishedAtAscUserIdAsc(
-          Difficulty difficulty, SoloAttemptState state);
-
-  /** Same shape as above, highest cpm instead of lowest durationMs. */
-  @EntityGraph(attributePaths = "user")
-  Optional<SoloAttempt>
-      findFirstByDifficultyAndStateAndUserDeletedFalseOrderByCpmDescFinishedAtAscUserIdAsc(
-          Difficulty difficulty, SoloAttemptState state);
-
-  /**
    * Every completed attempt of one user across all difficulties. No entity graph is needed here:
    * codeSnippet is EAGER on SoloAttempt, and its category is a plain enum column, not a lazy
    * association.
    */
   List<SoloAttempt> findByUserIdAndStateAndCodeSnippetLifecycleNot(
       UUID userId, SoloAttemptState state, SnippetLifecycle lifecycle);
+
+  /**
+   * Every scoring run at one difficulty, restricted to non-deleted users — the leaderboard board.
+   */
+  @EntityGraph(attributePaths = "user")
+  List<SoloAttempt> findByDifficultyAndStateAndUserDeletedFalse(
+      Difficulty difficulty, SoloAttemptState state);
 }

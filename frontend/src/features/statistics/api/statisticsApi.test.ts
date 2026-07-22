@@ -93,6 +93,82 @@ describe('statisticsApi.getPersonalStatistics', () => {
   });
 });
 
+describe('statisticsApi.getGlobalLeaderboard', () => {
+  it('returns the ranked entries from the response, requesting the given difficulty', async () => {
+    saveSession(session());
+    let requestUrl: URL | undefined;
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, ({ request }) => {
+        requestUrl = new URL(request.url);
+        return HttpResponse.json({
+          data: {
+            difficulty: 'EASY',
+            entries: [
+              { cpm: 600, durationMs: 17_000, rank: 1, username: 'zoomer' },
+              { cpm: 500, durationMs: 18_000, rank: 2, username: 'racer' },
+            ],
+          },
+        });
+      }),
+    );
+
+    const entries = await statisticsApi.getGlobalLeaderboard('EASY');
+
+    expect(entries).toEqual([
+      { cpm: 600, durationMs: 17_000, rank: 1, username: 'zoomer' },
+      { cpm: 500, durationMs: 18_000, rank: 2, username: 'racer' },
+    ]);
+    expect(requestUrl?.searchParams.get('difficulty')).toBe('EASY');
+  });
+
+  it('returns an empty list for a difficulty with no completed attempts', async () => {
+    saveSession(session());
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, () =>
+        HttpResponse.json({ data: { difficulty: 'HARD', entries: [] } }),
+      ),
+    );
+
+    await expect(statisticsApi.getGlobalLeaderboard('HARD')).resolves.toEqual(
+      [],
+    );
+  });
+
+  it('rejects with a session-expired error when unauthorized', async () => {
+    saveSession(session());
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, () =>
+        HttpResponse.json(
+          {
+            code: 'AUTHENTICATION_REQUIRED',
+            instance: '/api/solo-attempts/global-leaderboard',
+            message: 'expired',
+            status: 401,
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+
+    await expect(
+      statisticsApi.getGlobalLeaderboard('EASY'),
+    ).rejects.toMatchObject({ code: 'AUTHENTICATION_REQUIRED' });
+  });
+
+  it('rejects with a network error when the request fails', async () => {
+    saveSession(session());
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts/global-leaderboard`, () =>
+        HttpResponse.error(),
+      ),
+    );
+
+    await expect(
+      statisticsApi.getGlobalLeaderboard('EASY'),
+    ).rejects.toBeInstanceOf(ApiRequestError);
+  });
+});
+
 describe('statisticsApi.getSnippetStatistics', () => {
   it('returns the personal-best-per-snippet list from the response', async () => {
     saveSession(session());
