@@ -9,7 +9,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "app.ai")
 public record AiProviderProperties(
     boolean enabled,
-    @NotBlank String apiKey,
+    String apiKey,
     @NotBlank String baseUrl,
     @NotBlank String modelId,
     Duration connectTimeout,
