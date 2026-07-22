@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.dto.CreateSnippetRequest;
 import org.coderacer.backend.dto.SnippetResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.service.SnippetService;
@@ -38,11 +39,11 @@ public class AdminSnippetController {
 
   @GetMapping
   public BaseResponse<PagedModel<SnippetResponse>> list(
-      @RequestParam(required = false) UUID categoryId,
+      @RequestParam(required = false) Category category,
       @RequestParam(required = false) Difficulty difficulty,
       @RequestParam(required = false) SnippetLifecycle lifecycle,
       Pageable pageable) {
-    return wrap(new PagedModel<>(service.list(categoryId, difficulty, lifecycle, pageable)));
+    return wrap(new PagedModel<>(service.list(category, difficulty, lifecycle, pageable)));
   }
 
   @GetMapping("/{id}")

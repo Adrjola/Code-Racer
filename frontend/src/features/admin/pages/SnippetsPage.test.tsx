@@ -8,27 +8,9 @@ import { server } from '@/test/server';
 
 const API_URL = 'http://localhost:8080';
 const SNIPPETS_URL = `${API_URL}/api/admin/snippets`;
-const CATEGORIES_URL = `${API_URL}/api/admin/categories`;
-
-const javaCategory = {
-  active: true,
-  createdAt: '2026-07-16T12:00:00Z',
-  description: 'Java exercises',
-  id: 'c1',
-  name: 'Java basics',
-  updatedAt: '2026-07-16T12:00:00Z',
-};
-
-const disabledCategory = {
-  ...javaCategory,
-  active: false,
-  description: 'No longer used',
-  id: 'c2',
-  name: 'Old topic',
-};
 
 const active = {
-  categoryId: 'c1',
+  category: 'JAVA' as const,
   createdAt: '2026-07-16T12:00:00Z',
   difficulty: 'EASY' as const,
   id: 's1',
@@ -55,9 +37,6 @@ function pageOf(content: unknown[], overrides = {}) {
 
 function withSnippets(content: unknown[], overrides = {}) {
   server.use(
-    http.get(CATEGORIES_URL, () =>
-      HttpResponse.json(pageOf([javaCategory, disabledCategory])),
-    ),
     http.get(SNIPPETS_URL, () => HttpResponse.json(pageOf(content, overrides))),
   );
 }
@@ -88,7 +67,7 @@ describe('SnippetsPage', () => {
     const card = screen.getByRole('listitem');
     expect(within(card).getByText('Active')).toBeInTheDocument();
     await waitFor(() =>
-      expect(within(card).getByText(/Java basics/)).toBeInTheDocument(),
+      expect(within(card).getByText(/Java/)).toBeInTheDocument(),
     );
   });
 
@@ -104,7 +83,6 @@ describe('SnippetsPage', () => {
   it('sends the chosen filters and resets to the first page', async () => {
     const urls: string[] = [];
     server.use(
-      http.get(CATEGORIES_URL, () => HttpResponse.json(pageOf([javaCategory]))),
       http.get(SNIPPETS_URL, ({ request }) => {
         urls.push(request.url);
         return HttpResponse.json(
@@ -146,34 +124,15 @@ describe('SnippetsPage', () => {
     await userEvent.type(screen.getByLabelText('Title'), 'Sum');
     await userEvent.selectOptions(
       within(screen.getByRole('dialog')).getByLabelText('Category'),
-      'c1',
+      'JAVA',
     );
     await userEvent.type(screen.getByLabelText('Code'), 'int b = 2;');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
-      expect(created).toMatchObject({ categoryId: 'c1', title: 'Sum' }),
+      expect(created).toMatchObject({ category: 'JAVA', title: 'Sum' }),
     );
     expect(created).not.toHaveProperty('version');
-  });
-
-  it('offers only active categories when creating', async () => {
-    withSnippets([]);
-    render(<SnippetsPage />);
-
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'New snippet' }),
-    );
-
-    const picker = within(screen.getByRole('dialog')).getByLabelText(
-      'Category',
-    );
-    expect(
-      within(picker).getByRole('option', { name: 'Java basics' }),
-    ).toBeInTheDocument();
-    expect(
-      within(picker).queryByRole('option', { name: /Old topic/ }),
-    ).not.toBeInTheDocument();
   });
 
   it('deletes an active snippet after confirming it cannot be undone', async () => {
@@ -257,7 +216,6 @@ describe('SnippetsPage', () => {
   it('reports a load failure and retries', async () => {
     let calls = 0;
     server.use(
-      http.get(CATEGORIES_URL, () => HttpResponse.json(pageOf([javaCategory]))),
       http.get(SNIPPETS_URL, () => {
         calls += 1;
         return calls === 1

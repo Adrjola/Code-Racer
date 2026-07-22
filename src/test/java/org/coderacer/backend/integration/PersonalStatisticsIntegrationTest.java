@@ -7,13 +7,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.coderacer.backend.dto.DifficultyStatistics;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
@@ -29,7 +28,6 @@ class PersonalStatisticsIntegrationTest extends AbstractPostgresIntegrationTest 
   @Autowired private PersonalStatisticsService statisticsService;
   @Autowired private SoloAttemptRepository attemptRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private UserRepository userRepository;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
@@ -140,10 +138,7 @@ class PersonalStatisticsIntegrationTest extends AbstractPostgresIntegrationTest 
   }
 
   private CodeSnippet newSnippet(Difficulty difficulty) {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.save(category);
+    Category category = Category.JAVA;
     String source = UUID.randomUUID().toString();
     return codeSnippetRepository.save(
         new CodeSnippet(source, source, sha256Hex(source), difficulty, category));

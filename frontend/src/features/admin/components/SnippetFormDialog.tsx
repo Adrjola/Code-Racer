@@ -5,6 +5,7 @@ import SelectField from '@/components/SelectField';
 import TextAreaField from '@/components/TextAreaField';
 import TextField from '@/components/TextField';
 import type { Category, Difficulty, SnippetValues } from '@/features/admin/api';
+import { CATEGORY_OPTIONS } from '@/features/admin/categories';
 import {
   canonicalizeSource,
   hasFormErrors,
@@ -15,7 +16,6 @@ import {
 } from '@/features/admin/validation';
 
 type SnippetFormDialogProps = {
-  categories: Category[];
   error?: string;
   isSubmitting: boolean;
   onCancel: () => void;
@@ -31,23 +31,23 @@ const difficultyOptions = DIFFICULTIES.map((difficulty) => ({
 
 /** Snippets are immutable, so this only ever creates a new one. */
 export default function SnippetFormDialog({
-  categories,
   error,
   isSubmitting,
   onCancel,
   onSubmit,
 }: SnippetFormDialogProps) {
   const [values, setValues] = useState<SnippetValues>({
-    categoryId: '',
+    category: '',
     difficulty: 'EASY',
     source: '',
     title: '',
   });
   const [errors, setErrors] = useState<FormErrors<SnippetValues>>({});
 
-  const categoryOptions = categories
-    .filter((category) => category.active)
-    .map((category) => ({ label: category.name, value: category.id }));
+  const categoryOptions = CATEGORY_OPTIONS.map((option) => ({
+    label: option.displayName,
+    value: option.category,
+  }));
 
   const setValue =
     <Field extends keyof SnippetValues>(field: Field) =>
@@ -64,7 +64,7 @@ export default function SnippetFormDialog({
     }
 
     onSubmit({
-      categoryId: values.categoryId,
+      category: values.category as Category,
       difficulty: values.difficulty,
       source: canonicalizeSource(values.source),
       title: values.title.trim(),
@@ -95,13 +95,13 @@ export default function SnippetFormDialog({
           value={values.difficulty}
         />
         <SelectField
-          error={errors.categoryId}
+          error={errors.category}
           id="snippet-category"
           label="Category"
-          onChange={setValue('categoryId')}
+          onChange={setValue('category')}
           options={categoryOptions}
           placeholder="Select a category"
-          value={values.categoryId}
+          value={values.category}
         />
       </div>
       <TextAreaField

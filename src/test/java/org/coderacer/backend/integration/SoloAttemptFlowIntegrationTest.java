@@ -14,13 +14,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
@@ -55,7 +54,6 @@ class SoloAttemptFlowIntegrationTest {
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private UserRepository userRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private MutableClock clock;
   @Autowired private JwtTokenService jwtTokenService;
@@ -72,10 +70,7 @@ class SoloAttemptFlowIntegrationTest {
   }
 
   private CodeSnippet newSnippet(String content) {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.saveAndFlush(category);
+    Category category = Category.JAVA;
     return codeSnippetRepository.saveAndFlush(
         new CodeSnippet(
             "Title", content, sha256Hex(content + UUID.randomUUID()), Difficulty.EASY, category));

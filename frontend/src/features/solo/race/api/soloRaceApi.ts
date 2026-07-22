@@ -1,3 +1,4 @@
+import type { Category } from '@/features/solo/api/soloApi';
 import { apiRequest, type BaseResponse } from '@/lib/apiClient';
 
 export interface ProgressAckResponse {
@@ -7,7 +8,7 @@ export interface ProgressAckResponse {
 }
 
 export interface SoloAttemptSnippetSummary {
-  categoryId: string;
+  category: Category;
   snippetId: string;
   title: string;
 }

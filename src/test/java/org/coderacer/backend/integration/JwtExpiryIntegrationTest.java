@@ -52,7 +52,7 @@ class JwtExpiryIntegrationTest {
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
             bearerEntity(expiredTokenFor(admin)),
             String.class);

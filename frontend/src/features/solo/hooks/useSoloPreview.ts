@@ -6,6 +6,7 @@ import {
   isSnippetUnavailableError,
   readableSoloError,
   startSoloAttempt,
+  type Category,
   type Difficulty,
   type SnippetPreview,
   type StartSoloAttemptResponse,
@@ -28,7 +29,7 @@ export type StartPhase =
   | { phase: 'starting' };
 
 export type UseSoloPreviewOptions = {
-  categoryId?: string;
+  category?: Category;
   difficulty?: Difficulty;
   onSessionExpired?: () => void;
 };
@@ -42,7 +43,7 @@ export type UseSoloPreviewResult = {
 };
 
 export function useSoloPreview({
-  categoryId,
+  category,
   difficulty,
   onSessionExpired,
 }: UseSoloPreviewOptions = {}): UseSoloPreviewResult {
@@ -66,7 +67,7 @@ export function useSoloPreview({
   const loadSnippet = useCallback(
     (excludeId?: string) => {
       const requestId = ++requestIdRef.current;
-      fetchRandomSnippet({ categoryId, difficulty, excludeId })
+      fetchRandomSnippet({ category, difficulty, excludeId })
         .then((snippet) => {
           if (requestIdRef.current === requestId) {
             setSnippetPhase({ phase: 'ready', snippet });
@@ -93,7 +94,7 @@ export function useSoloPreview({
           });
         });
     },
-    [categoryId, difficulty, handleSessionExpired],
+    [category, difficulty, handleSessionExpired],
   );
 
   useEffect(() => {

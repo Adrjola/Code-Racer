@@ -2,6 +2,7 @@ package org.coderacer.backend.repository;
 
 import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.model.CodeSnippet;
@@ -18,12 +19,12 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
   @Query(
       """
       select s from CodeSnippet s
-      where (:categoryId is null or s.category.id = :categoryId)
+      where (:category is null or s.category = :category)
         and (:difficulty is null or s.difficulty = :difficulty)
         and (:lifecycle is null or s.lifecycle = :lifecycle)
       """)
   Page<CodeSnippet> search(
-      @Param("categoryId") UUID categoryId,
+      @Param("category") Category category,
       @Param("difficulty") Difficulty difficulty,
       @Param("lifecycle") SnippetLifecycle lifecycle,
       Pageable pageable);
@@ -34,7 +35,7 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
           select *
           from code_snippet
           where lifecycle = 'ACTIVE'
-            and (cast(:categoryId as uuid) is null or category_id = cast(:categoryId as uuid))
+            and (cast(:category as varchar) is null or category = cast(:category as varchar))
             and (cast(:difficulty as varchar) is null or difficulty = cast(:difficulty as varchar))
             and (cast(:excludeContentHash as varchar) is null
                  or content_hash <> cast(:excludeContentHash as varchar))
@@ -44,7 +45,7 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
           """,
       nativeQuery = true)
   Optional<CodeSnippet> findFirstEligibleAtOrAfter(
-      @Param("categoryId") UUID categoryId,
+      @Param("category") String category,
       @Param("difficulty") String difficulty,
       @Param("excludeContentHash") String excludeContentHash,
       @Param("selectionKey") double selectionKey);
@@ -55,7 +56,7 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
           select *
           from code_snippet
           where lifecycle = 'ACTIVE'
-            and (cast(:categoryId as uuid) is null or category_id = cast(:categoryId as uuid))
+            and (cast(:category as varchar) is null or category = cast(:category as varchar))
             and (cast(:difficulty as varchar) is null or difficulty = cast(:difficulty as varchar))
             and (cast(:excludeContentHash as varchar) is null
                  or content_hash <> cast(:excludeContentHash as varchar))
@@ -65,7 +66,7 @@ public interface CodeSnippetRepository extends JpaRepository<CodeSnippet, UUID> 
           """,
       nativeQuery = true)
   Optional<CodeSnippet> findFirstEligibleBefore(
-      @Param("categoryId") UUID categoryId,
+      @Param("category") String category,
       @Param("difficulty") String difficulty,
       @Param("excludeContentHash") String excludeContentHash,
       @Param("selectionKey") double selectionKey);

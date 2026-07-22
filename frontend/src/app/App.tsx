@@ -320,6 +320,7 @@ export default function App() {
         onLogout={handleLogout}
         onSelect={handleSelectSolo}
         onSessionExpired={handleSessionExpired}
+        session={session}
       />
     );
   }
@@ -332,6 +333,7 @@ export default function App() {
           onLogout={handleLogout}
           onSelect={handleSelectSolo}
           onSessionExpired={handleSessionExpired}
+          session={session}
         />
       );
     }

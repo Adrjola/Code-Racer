@@ -6,14 +6,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Instant;
 import java.util.UUID;
 import org.coderacer.backend.dto.SoloAttemptRankingResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.ConflictException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
@@ -29,7 +28,6 @@ class SoloAttemptRankingIntegrationTest extends AbstractPostgresIntegrationTest 
   @Autowired private SoloAttemptRankingService rankingService;
   @Autowired private SoloAttemptRepository attemptRepository;
   @Autowired private CodeSnippetRepository codeSnippetRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private UserRepository userRepository;
 
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
@@ -151,13 +149,9 @@ class SoloAttemptRankingIntegrationTest extends AbstractPostgresIntegrationTest 
   }
 
   private CodeSnippet newSnippet() {
-    Category category = new Category();
-    category.setName("Category " + UUID.randomUUID());
-    category.setActive(true);
-    category = categoryRepository.save(category);
     String source = UUID.randomUUID().toString();
     return codeSnippetRepository.save(
-        new CodeSnippet(source, source, sha256Hex(source), Difficulty.EASY, category));
+        new CodeSnippet(source, source, sha256Hex(source), Difficulty.EASY, Category.JAVA));
   }
 
   private String sha256Hex(String value) {
