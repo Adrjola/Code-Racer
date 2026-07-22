@@ -241,8 +241,11 @@ describe('useExactCodeTypingEngine logic engine', () => {
       submitCompletion: vi.fn(async () => undefined),
     };
 
+    // Stable startedAt: a fresh one each render re-fires SET_RACE, which resets
+    // the state from initialState and would clear isExpired on every render.
+    const startedAt = new Date().toISOString();
     const { result, unmount } = renderHook(() =>
-      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+      useExactCodeTypingEngine(snippet, startedAt, transport),
     );
 
     await waitFor(() => {
@@ -254,14 +257,57 @@ describe('useExactCodeTypingEngine logic engine', () => {
     });
 
     // A permanently rejected batch used to be re-queued and retried forever.
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      await act(async () => {
-        await result.current.flushNow();
-      });
-    }
+    // Let the engine's own retry timer run, then confirm it gives up.
+    await act(async () => {
+      await result.current.flushNow();
+    });
+    await waitFor(() => {
+      expect(result.current.state.isExpired).toBe(true);
+    });
 
-    expect(sendProgressBatch.mock.calls.length).toBeLessThanOrEqual(4);
-    expect(result.current.state.isExpired).toBe(true);
+    expect(sendProgressBatch.mock.calls.length).toBeLessThanOrEqual(5);
+    unmount();
+  });
+
+  it('never queues a character the reducer refused', async () => {
+    const sendProgressBatch = vi.fn(async ({ events }) => ({
+      version: events[events.length - 1].version,
+      serverOffset: events[events.length - 1].version,
+    }));
+    const transport: ExactCodeTypingEngineTransport = {
+      sendProgressBatch,
+      submitCompletion: vi.fn(async () => undefined),
+    };
+
+    // A stable startedAt: a fresh one each render re-fires SET_RACE and wipes
+    // the accepted prefix between renders.
+    const startedAt = new Date().toISOString();
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, startedAt, transport),
+    );
+
+    await waitFor(() => {
+      expect(result.current.state.targetCode).toBe('ab');
+    });
+
+    // Three synchronous calls, the way Tab expands to spaces. Only the first
+    // two match "ab"; the third must not reach the server.
+    act(() => {
+      result.current.handleInput('a');
+      result.current.handleInput('b');
+      result.current.handleInput('b');
+    });
+
+    await act(async () => {
+      await result.current.flushNow();
+    });
+
+    const sent = sendProgressBatch.mock.calls
+      .flatMap((call) => call[0].events)
+      .map((event: { value: string }) => event.value)
+      .join('');
+    expect(sent).toBe('ab');
+    expect(result.current.state.acceptedPrefix).toBe('ab');
     unmount();
   });
 

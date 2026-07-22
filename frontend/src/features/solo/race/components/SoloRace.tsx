@@ -332,13 +332,15 @@ export function SoloRace({
 
   const renderCode = () => {
     const { targetCode, acceptedPrefix, currentInput } = state;
-    const remaining = sliceCodePoints(
-      targetCode,
-      codePointLength(acceptedPrefix),
+    // Wrong keystrokes mark the characters they should have been, rather than
+    // being inserted alongside them. The snippet is always rendered exactly
+    // once, so nothing shifts as mistakes are made and deleted.
+    const remaining = Array.from(
+      sliceCodePoints(targetCode, codePointLength(acceptedPrefix)),
     );
-    const incorrectPart = currentInput;
-    const incorrectCharCount = codePointLength(incorrectPart);
-    const rest = Array.from(remaining).slice(incorrectCharCount).join('');
+    const mistakeCount = codePointLength(currentInput);
+    const missedPart = remaining.slice(0, mistakeCount).join('');
+    const rest = remaining.slice(mistakeCount).join('');
 
     return (
       <pre
@@ -347,19 +349,26 @@ export function SoloRace({
         }`}
       >
         <span className="text-slate-100">{acceptedPrefix}</span>
-        {incorrectPart && (
-          <span className="bg-rose-500/25 text-rose-400 underline decoration-rose-400">
-            {incorrectPart}
-          </span>
-        )}
+        {/* Sits before the highlight so it marks where the mistake happened.
+            A missed newline highlights nothing visible, so this caret is the
+            only thing showing an error at the end of a line. */}
         <span
           className={`inline-block h-[1.15em] translate-y-[0.2em] ${
-            !incorrectPart && !isLocked
-              ? 'w-[2px] animate-pulse bg-emerald-400'
-              : 'w-0'
+            isLocked
+              ? 'w-0'
+              : mistakeCount
+                ? 'w-[3px] bg-rose-400'
+                : 'w-[2px] animate-pulse bg-emerald-400'
           }`}
+          data-error={mistakeCount > 0 ? 'true' : undefined}
+          data-testid="race-caret"
           ref={cursorRef}
         />
+        {missedPart && (
+          <span className="bg-rose-500/30 text-rose-300 underline decoration-rose-400">
+            {missedPart}
+          </span>
+        )}
         <span className="text-slate-200/40">{rest}</span>
       </pre>
     );
