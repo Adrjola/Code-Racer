@@ -408,7 +408,7 @@ export function SoloRace({
             />
           </div>
 
-          <div className="w-full max-w-[611px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
+          <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
             <div
               className="relative min-h-[360px] overflow-hidden rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
               style={{
@@ -474,7 +474,7 @@ export function SoloRace({
           </div>
 
           {!hasRaceStarted && (
-            <div className="w-full max-w-[487px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
+            <div className="w-full max-w-[440px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
               <SoloRaceWorldBest
                 onStartRace={startRace}
                 snippetId={snippet.id}

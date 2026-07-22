@@ -76,7 +76,7 @@ export function SoloRaceResult({
       </div>
 
       <div className="relative h-[1080px] w-[1920px] shrink-0 origin-center [transform:scale(var(--fit-scale))]">
-        <div className="absolute top-[224px] left-[558px] h-[667px] w-[804px] rounded-[16px] bg-[rgb(255_255_255_/_0.002)] shadow-[0_30px_80px_-20px_rgb(219_39_119_/_0.7)]">
+        <div className="absolute top-[224px] left-[525.69px] h-[667px] w-[868.63px] rounded-[16px] bg-[rgb(255_255_255_/_0.002)] shadow-[0_30px_80px_-20px_rgb(219_39_119_/_0.7)]">
           <span
             className={`${cornerClassName} top-0 left-0 rounded-tl-[6px] border-t-2 border-l-2`}
           />
