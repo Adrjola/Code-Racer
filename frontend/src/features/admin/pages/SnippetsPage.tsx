@@ -76,19 +76,31 @@ export default function SnippetsPage() {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [dialogError, setDialogError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
+  const [explanations, setExplanations] = useState<
+    Record<string, ExplanationState>
+  >({});
 
   const explainSnippet = useCallback(async (snippetId: string) => {
-    setExplanations((prev) => ({ ...prev, [snippetId]: { loading: true, data: null, error: null } }));
+    setExplanations((prev) => ({
+      ...prev,
+      [snippetId]: { loading: true, data: null, error: null },
+    }));
     try {
       const res = await apiRequest<BaseResponse<ExplanationData>>(
         `/api/snippets/${snippetId}/explanation`,
         { auth: true, method: 'GET' },
       );
-      setExplanations((prev) => ({ ...prev, [snippetId]: { loading: false, data: res.data, error: null } }));
+      setExplanations((prev) => ({
+        ...prev,
+        [snippetId]: { loading: false, data: res.data, error: null },
+      }));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to get explanation';
-      setExplanations((prev) => ({ ...prev, [snippetId]: { loading: false, data: null, error: message } }));
+      const message =
+        err instanceof Error ? err.message : 'Failed to get explanation';
+      setExplanations((prev) => ({
+        ...prev,
+        [snippetId]: { loading: false, data: null, error: message },
+      }));
     }
   }, []);
 
@@ -233,9 +245,7 @@ export default function SnippetsPage() {
       </div>
 
       {notice && (
-        <output
-          className="mt-6 block rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-sm text-text-secondary"
-        >
+        <output className="mt-6 block rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-sm text-text-secondary">
           {notice}
         </output>
       )}
@@ -292,7 +302,9 @@ export default function SnippetsPage() {
                         onClick={() => void explainSnippet(snippet.id)}
                         disabled={explanations[snippet.id]?.loading}
                       >
-                        {explanations[snippet.id]?.loading ? 'Explaining...' : 'Explain'}
+                        {explanations[snippet.id]?.loading
+                          ? 'Explaining...'
+                          : 'Explain'}
                       </Button>
                       <Button
                         onClick={() => openDialog({ snippet, type: 'delete' })}
@@ -306,23 +318,39 @@ export default function SnippetsPage() {
                 {explanations[snippet.id]?.data && (
                   <div className="mt-3 w-full rounded border border-white/10 bg-white/[0.03] p-3 text-xs text-text-secondary">
                     <p className="font-semibold text-text-primary">Summary</p>
-                    <p className="mt-1">{explanations[snippet.id].data!.summary}</p>
-                    <p className="mt-2 font-semibold text-text-primary">Step by Step</p>
+                    <p className="mt-1">
+                      {explanations[snippet.id].data!.summary}
+                    </p>
+                    <p className="mt-2 font-semibold text-text-primary">
+                      Step by Step
+                    </p>
                     <ol className="mt-1 list-decimal pl-4">
-                      {explanations[snippet.id].data!.stepByStep.map((s) => <li key={s}>{s}</li>)}
+                      {explanations[snippet.id].data!.stepByStep.map((s) => (
+                        <li key={s}>{s}</li>
+                      ))}
                     </ol>
-                    <p className="mt-2 font-semibold text-text-primary">Concepts</p>
+                    <p className="mt-2 font-semibold text-text-primary">
+                      Concepts
+                    </p>
                     <ul className="mt-1 list-disc pl-4">
-                      {explanations[snippet.id].data!.concepts.map((c) => <li key={c}>{c}</li>)}
+                      {explanations[snippet.id].data!.concepts.map((c) => (
+                        <li key={c}>{c}</li>
+                      ))}
                     </ul>
-                    <p className="mt-2 font-semibold text-text-primary">Best Practices</p>
+                    <p className="mt-2 font-semibold text-text-primary">
+                      Best Practices
+                    </p>
                     <ul className="mt-1 list-disc pl-4">
-                      {explanations[snippet.id].data!.bestPractices.map((b) => <li key={b}>{b}</li>)}
+                      {explanations[snippet.id].data!.bestPractices.map((b) => (
+                        <li key={b}>{b}</li>
+                      ))}
                     </ul>
                   </div>
                 )}
                 {explanations[snippet.id]?.error && (
-                  <p className="mt-2 w-full text-xs text-red-400">{explanations[snippet.id].error}</p>
+                  <p className="mt-2 w-full text-xs text-red-400">
+                    {explanations[snippet.id].error}
+                  </p>
                 )}
               </li>
             ))}
