@@ -166,6 +166,40 @@ class SecurityAuthorizationIntegrationTest {
   }
 
   @Test
+  void userTokenCannotAccessAdminUserRoute() {
+    User user = saveUser("user_reviewer", UserRole.USER);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "/api/admin/users",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(user)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody()).contains("\"code\":\"ACCESS_DENIED\"");
+  }
+
+  @Test
+  void adminTokenCanAccessAdminUserRoute_andResponseNeverExposesCredentials() {
+    User admin = saveUser("user_admin", UserRole.ADMIN);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "/api/admin/users",
+            HttpMethod.GET,
+            bearerEntity(jwtService.createAccessToken(admin)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).contains("\"username\":\"user_admin\"");
+    assertThat(response.getBody())
+        .doesNotContain("passwordHash")
+        .doesNotContain("tokenValidFrom")
+        .doesNotContain("verificationEmailResentAt");
+  }
+
+  @Test
   void oldTokenCannotAccessProtectedRouteAfterTokenInvalidation() {
     User admin = saveUser("admin", UserRole.ADMIN);
     String oldToken = jwtService.createAccessToken(admin);
