@@ -14,7 +14,7 @@ export function SoloRaceStatsRow({
   progressPercent,
 }: SoloRaceStatsRowProps) {
   return (
-    <div className="mb-6 w-full max-w-[868.63px]">
+    <div className="mb-6 w-full max-w-[var(--race-field-w)]">
       <div className="mb-[5px] flex h-[43.42px] items-start justify-between font-['JetBrains_Mono'] leading-none">
         <div className="flex items-start gap-8 text-[14px] font-normal text-[#6E6C78]">
           <span>

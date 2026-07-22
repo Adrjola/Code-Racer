@@ -398,7 +398,7 @@ export function SoloRace({
         onClick={focusInput}
       >
         <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:h-full lg:gap-0">
-          <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
+          <div className="w-full max-w-[var(--race-field-w)] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
             <SoloRaceStatsRow
               cpm={cpm}
               currentLine={line}
@@ -408,7 +408,7 @@ export function SoloRace({
             />
           </div>
 
-          <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
+          <div className="w-full max-w-[var(--race-field-w)] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
             <div
               className="relative min-h-[360px] overflow-hidden rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
               style={{
@@ -474,7 +474,7 @@ export function SoloRace({
           </div>
 
           {!hasRaceStarted && (
-            <div className="w-full max-w-[440px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
+            <div className="w-full max-w-[var(--world-best-w)] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
               <SoloRaceWorldBest
                 onStartRace={startRace}
                 snippetId={snippet.id}
