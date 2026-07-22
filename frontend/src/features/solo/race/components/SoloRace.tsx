@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -262,6 +263,33 @@ export function SoloRace({
 
   const preventDefault = (event: SyntheticEvent) => event.preventDefault();
 
+  // The code block is taller than its card on long snippets. Once the cursor
+  // passes the middle, the block slides up so what comes next stays visible.
+  const codeViewportRef = useRef<HTMLDivElement>(null);
+  const codeContentRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLSpanElement>(null);
+  const [codeOffset, setCodeOffset] = useState(0);
+
+  useLayoutEffect(() => {
+    const viewport = codeViewportRef.current;
+    const content = codeContentRef.current;
+    const cursor = cursorRef.current;
+    if (!viewport || !content || !cursor) {
+      return;
+    }
+
+    const viewportHeight = viewport.clientHeight;
+    if (viewportHeight === 0) {
+      return;
+    }
+
+    // offsetTop is layout based, so it is unaffected by the transform that is
+    // animating underneath it and stays correct mid-transition.
+    const furthestOffset = Math.max(0, content.offsetHeight - viewportHeight);
+    const desiredOffset = cursor.offsetTop - viewportHeight / 2;
+    setCodeOffset(Math.min(furthestOffset, Math.max(0, desiredOffset)));
+  }, [state.acceptedPrefix, state.currentInput, state.targetCode]);
+
   const typedLength = codePointLength(state.acceptedPrefix);
   const totalLength = Math.max(codePointLength(state.targetCode), 1);
   const progressPercent = Math.max(
@@ -317,12 +345,15 @@ export function SoloRace({
             {incorrectPart}
           </span>
         )}
-        <span className="text-slate-200/40">
-          {!incorrectPart && !isLocked && (
-            <span className="inline-block h-[1.15em] w-[2px] translate-y-[0.2em] animate-pulse bg-emerald-400" />
-          )}
-          {rest}
-        </span>
+        <span
+          className={`inline-block h-[1.15em] translate-y-[0.2em] ${
+            !incorrectPart && !isLocked
+              ? 'w-[2px] animate-pulse bg-emerald-400'
+              : 'w-0'
+          }`}
+          ref={cursorRef}
+        />
+        <span className="text-slate-200/40">{rest}</span>
       </pre>
     );
   };
@@ -363,12 +394,20 @@ export function SoloRace({
 
           <div className="w-full max-w-[611px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
             <div
-              className="relative min-h-[360px] rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
+              className="relative min-h-[360px] overflow-hidden rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
               style={{
                 boxShadow: '0px 30px 80px -20px rgba(219, 39, 119, 0.7)',
               }}
             >
-              {renderCode()}
+              <div className="h-full overflow-hidden" ref={codeViewportRef}>
+                <div
+                  className="relative transition-transform duration-200 ease-out"
+                  ref={codeContentRef}
+                  style={{ transform: `translateY(-${codeOffset}px)` }}
+                >
+                  {renderCode()}
+                </div>
+              </div>
 
               {errorMessage ? (
                 <div className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100">

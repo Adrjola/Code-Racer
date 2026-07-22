@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   raceReducer,
   initialState,
+  MAX_INCORRECT_INPUT,
 } from '../../../../features/solo/race/reducer/race.reducer';
 import type { RaceSnippet } from '../../../../features/solo/race/types/race.types';
 
@@ -266,5 +267,44 @@ describe('raceReducer', () => {
     const state = raceReducer(initialState, { type: 'TRANSPORT_FAILURE' });
     expect(state.transportError).toBe('transport_failure');
     expect(state.isOffline).toBe(true);
+  });
+});
+
+describe('incorrect input cap', () => {
+  const snippet: RaceSnippet = { id: 's1', code: 'abc', type: 'EASY' };
+
+  const started = () =>
+    raceReducer(initialState, {
+      type: 'SET_RACE',
+      snippet,
+      startedAt: '2026-01-01T00:00:00Z',
+    });
+
+  it('stops collecting wrong characters once the cap is reached', () => {
+    let state = started();
+
+    // Every one of these is wrong: the snippet starts with "a". Newlines are
+    // the damaging case because each one grows the rendered code by a line.
+    for (let i = 0; i < MAX_INCORRECT_INPUT + 20; i += 1) {
+      state = raceReducer(state, { type: 'INPUT', char: '\n' });
+    }
+
+    expect(state.currentInput).toHaveLength(MAX_INCORRECT_INPUT);
+    expect(state.hasError).toBe(true);
+  });
+
+  it('accepts input again once the mistake is deleted', () => {
+    let state = started();
+
+    for (let i = 0; i < MAX_INCORRECT_INPUT; i += 1) {
+      state = raceReducer(state, { type: 'INPUT', char: 'z' });
+    }
+    for (let i = 0; i < MAX_INCORRECT_INPUT; i += 1) {
+      state = raceReducer(state, { type: 'DELETE' });
+    }
+    state = raceReducer(state, { type: 'INPUT', char: 'a' });
+
+    expect(state.currentInput).toBe('');
+    expect(state.acceptedPrefix).toBe('a');
   });
 });
