@@ -87,6 +87,42 @@ export function RankBarsIcon({ className = '' }: IconProps) {
   );
 }
 
+/** Trophy/score icon for the Score/Code toggle. */
+export function ScoreIcon({ className = '' }: IconProps) {
+  return (
+    <svg
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      viewBox="0 0 16 16"
+    >
+      <path d="M5 2h6v4a3 3 0 0 1-6 0V2ZM5 3H3.5a1.5 1.5 0 0 0 0 3H5M11 3h1.5a1.5 1.5 0 0 1 0 3H11M6 9.5l-1 4.5h6l-1-4.5" />
+    </svg>
+  );
+}
+
+/** Code brackets icon for the Score/Code toggle. */
+export function CodeIcon({ className = '' }: IconProps) {
+  return (
+    <svg
+      aria-hidden
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      viewBox="0 0 16 16"
+    >
+      <path d="M5.5 4L2 8l3.5 4M10.5 4L14 8l-3.5 4" />
+    </svg>
+  );
+}
+
 export function RestartIcon({ className = '' }: IconProps) {
   return (
     <svg
