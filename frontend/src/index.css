@@ -16,6 +16,13 @@ html {
   --canvas-scale: 1;
   --fit-scale: 1;
 
+  /* Race layout, on the 1920x1080 design canvas. The playing field, the stats
+     row above it, and the result card all share one width; the world-best panel
+     takes the rest of the row beside the field. */
+  --design-canvas-w: 1920px;
+  --race-field-w: 868.63px;
+  --world-best-w: 440px;
+
   background: #0e0c16;
   scrollbar-gutter: stable;
 }

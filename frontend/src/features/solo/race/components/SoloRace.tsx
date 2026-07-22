@@ -394,11 +394,16 @@ export function SoloRace({
       )}
 
       <div
-        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10 lg:min-h-0 lg:flex-1"
+        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-0 lg:flex lg:min-h-0 lg:max-w-none lg:flex-1 lg:items-center lg:justify-center lg:overflow-hidden lg:px-0"
         onClick={focusInput}
       >
-        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:h-full lg:gap-0">
-          <div className="w-full max-w-[868.63px] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
+        {/* From lg up the body is a fixed 1920-wide design canvas scaled by
+            --fit-scale (min(innerWidth/1920, innerHeight/1080), set in main.tsx),
+            the same way the result screen and every other page fit themselves to
+            the viewport. The absolute offsets inside are canvas coordinates.
+            Below lg it stays a fluid flow column. */}
+        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:h-[940px] lg:w-[1920px] lg:shrink-0 lg:origin-center lg:gap-0 lg:[transform:scale(var(--fit-scale))]">
+          <div className="w-full max-w-[var(--race-field-w)] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
             <SoloRaceStatsRow
               cpm={cpm}
               currentLine={line}
@@ -408,7 +413,7 @@ export function SoloRace({
             />
           </div>
 
-          <div className="w-full max-w-[611px] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
+          <div className="w-full max-w-[var(--race-field-w)] lg:absolute lg:left-1/2 lg:top-[125px] lg:-translate-x-1/2">
             <div
               className="relative min-h-[360px] overflow-hidden rounded-2xl border border-[#2D2544] bg-[#0E0A1F] p-5 sm:p-8 lg:h-[667px] lg:min-h-0"
               style={{
@@ -474,7 +479,7 @@ export function SoloRace({
           </div>
 
           {!hasRaceStarted && (
-            <div className="w-full max-w-[487px] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
+            <div className="w-full max-w-[var(--world-best-w)] lg:absolute lg:right-[38px] lg:top-[120px] lg:w-auto">
               <SoloRaceWorldBest
                 onStartRace={startRace}
                 snippetId={snippet.id}
