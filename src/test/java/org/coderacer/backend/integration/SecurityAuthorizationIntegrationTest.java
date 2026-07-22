@@ -67,6 +67,15 @@ class SecurityAuthorizationIntegrationTest {
   }
 
   @Test
+  void openApiDocsAreAccessibleWithoutToken() {
+    ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs", String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).contains("\"title\":\"Code Racer API\"");
+    assertThat(response.getBody()).contains("\"bearerAuth\"");
+  }
+
+  @Test
   void adminSnippetsRouteRequiresAuthentication() {
     ResponseEntity<String> response =
         restTemplate.getForEntity("/api/admin/snippets", String.class);

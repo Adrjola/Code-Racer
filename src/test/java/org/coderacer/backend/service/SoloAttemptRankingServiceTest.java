@@ -191,7 +191,6 @@ class SoloAttemptRankingServiceTest {
   }
 
   private CodeSnippet snippet() {
-    Category category = Category.JAVA;
     CodeSnippet created = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, Category.JAVA);
     ReflectionTestUtils.setField(created, "id", snippetId);
     return created;
