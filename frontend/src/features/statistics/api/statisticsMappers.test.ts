@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   formatRelativeTime,
   toPersonalActivityEntries,
+  toPersonalActivityEntriesFromHistory,
   toPersonalStatsSummary,
 } from './statisticsMappers';
-import type { DifficultyStatistics, SnippetStatistics } from './statisticsApi';
+import type {
+  DifficultyStatistics,
+  SnippetStatistics,
+  SoloAttemptHistoryEntry,
+} from './statisticsApi';
 
 function difficultyStats(
   overrides: Partial<DifficultyStatistics> = {},
@@ -74,8 +79,8 @@ describe('toPersonalActivityEntries', () => {
       {
         category: 'JAVA',
         cpm: 452,
+        id: 'snippet-1',
         relativeTime: '5 min ago',
-        snippetId: 'snippet-1',
         snippetName: 'Two Sum',
         time: '0:41.201',
       },
@@ -104,6 +109,92 @@ describe('toPersonalActivityEntries', () => {
 
   it('returns an empty list for an empty input', () => {
     expect(toPersonalActivityEntries([])).toEqual([]);
+  });
+});
+
+function historyEntry(
+  overrides: Partial<SoloAttemptHistoryEntry> = {},
+): SoloAttemptHistoryEntry {
+  return {
+    attemptId: 'attempt-1',
+    cpm: 452,
+    difficulty: 'EASY',
+    durationMs: 41_201,
+    finishedAt: '2026-07-22T12:00:00Z',
+    snippet: {
+      category: 'JAVA',
+      snippetId: 'snippet-1',
+      title: 'Two Sum',
+    },
+    ...overrides,
+  };
+}
+
+describe('toPersonalActivityEntriesFromHistory', () => {
+  it('maps attempt fields, formats duration, and reformats the raw category', () => {
+    const now = new Date('2026-07-22T12:05:00Z');
+
+    const entries = toPersonalActivityEntriesFromHistory([historyEntry()], now);
+
+    expect(entries).toEqual([
+      {
+        category: 'JAVA',
+        cpm: 452,
+        id: 'attempt-1',
+        relativeTime: '5 min ago',
+        snippetName: 'Two Sum',
+        time: '0:41.201',
+      },
+    ]);
+  });
+
+  it('replaces underscores in multi-word category enum values', () => {
+    const entries = toPersonalActivityEntriesFromHistory([
+      historyEntry({
+        snippet: {
+          category: 'REST_APIS',
+          snippetId: 'snippet-2',
+          title: 'Ping',
+        },
+      }),
+    ]);
+
+    expect(entries[0].category).toBe('REST APIS');
+  });
+
+  it('keys each entry by attemptId so repeat runs on the same snippet stay distinct', () => {
+    const entries = toPersonalActivityEntriesFromHistory([
+      historyEntry({ attemptId: 'attempt-1' }),
+      historyEntry({ attemptId: 'attempt-2' }),
+    ]);
+
+    expect(entries.map((entry) => entry.id)).toEqual([
+      'attempt-1',
+      'attempt-2',
+    ]);
+  });
+
+  it('preserves the API-provided order instead of resorting', () => {
+    const entries = toPersonalActivityEntriesFromHistory([
+      historyEntry({
+        attemptId: 'attempt-2',
+        snippet: {
+          category: 'SQL',
+          snippetId: 'snippet-2',
+          title: 'Group By Count',
+        },
+      }),
+      historyEntry({ attemptId: 'attempt-1' }),
+    ]);
+
+    expect(entries.map((entry) => entry.snippetName)).toEqual([
+      'Group By Count',
+      'Two Sum',
+    ]);
+  });
+
+  it('returns an empty list for an empty input', () => {
+    expect(toPersonalActivityEntriesFromHistory([])).toEqual([]);
   });
 });
 

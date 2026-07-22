@@ -1,6 +1,10 @@
 import { formatDuration } from '../utils/formatDuration';
 import type { PersonalActivityEntry, PersonalStatsSummary } from '../types';
-import type { DifficultyStatistics, SnippetStatistics } from './statisticsApi';
+import type {
+  DifficultyStatistics,
+  SnippetStatistics,
+  SoloAttemptHistoryEntry,
+} from './statisticsApi';
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -36,10 +40,29 @@ export function toPersonalActivityEntries(
   return snippets.map((snippet) => ({
     category: snippet.categoryName.toUpperCase(),
     cpm: snippet.bestCpm,
+    id: snippet.snippetId,
     relativeTime: formatRelativeTime(snippet.bestFinishedAt, now),
-    snippetId: snippet.snippetId,
     snippetName: snippet.snippetTitle,
     time: formatDuration(snippet.bestDurationMs),
+  }));
+}
+
+/**
+ * Maps the recent-attempts list onto the same snippet log shape as the Best view, already
+ * API-sorted most-recent-first. Unlike Best, the same snippet can appear more than once here, so
+ * each row's id is the attempt's id rather than the snippet's.
+ */
+export function toPersonalActivityEntriesFromHistory(
+  attempts: SoloAttemptHistoryEntry[],
+  now: Date = new Date(),
+): PersonalActivityEntry[] {
+  return attempts.map((attempt) => ({
+    category: attempt.snippet.category.replace(/_/g, ' '),
+    cpm: attempt.cpm,
+    id: attempt.attemptId,
+    relativeTime: formatRelativeTime(attempt.finishedAt, now),
+    snippetName: attempt.snippet.title,
+    time: formatDuration(attempt.durationMs),
   }));
 }
 

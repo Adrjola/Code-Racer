@@ -6,6 +6,7 @@ import clockIcon from '@/assets/icons/clock.svg';
 import type { PersonalActivityEntry } from '../types';
 
 type PersonalActivityGridProps = {
+  ariaLabel?: string;
   entries: PersonalActivityEntry[];
 };
 
@@ -87,18 +88,18 @@ function PersonalActivityCard({ entry }: { entry: PersonalActivityEntry }) {
   );
 }
 
-export function PersonalActivityGrid({ entries }: PersonalActivityGridProps) {
+export function PersonalActivityGrid({
+  ariaLabel = 'Recent activity',
+  entries,
+}: PersonalActivityGridProps) {
   return (
-    <div>
-      <p className="mb-4 font-sans text-xs text-[#8589a3]">SNIPPET LOG</p>
-      <ul
-        aria-label="Recent activity"
-        className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-[108px]"
-      >
-        {entries.map((entry) => (
-          <PersonalActivityCard entry={entry} key={entry.snippetId} />
-        ))}
-      </ul>
-    </div>
+    <ul
+      aria-label={ariaLabel}
+      className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-[108px]"
+    >
+      {entries.map((entry) => (
+        <PersonalActivityCard entry={entry} key={entry.id} />
+      ))}
+    </ul>
   );
 }

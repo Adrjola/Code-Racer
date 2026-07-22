@@ -142,3 +142,107 @@ describe('statisticsApi.getSnippetStatistics', () => {
     await expect(statisticsApi.getSnippetStatistics()).resolves.toEqual([]);
   });
 });
+
+describe('statisticsApi.getAttemptHistory', () => {
+  it('returns the page content from the response', async () => {
+    saveSession(session());
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, () =>
+        HttpResponse.json({
+          data: {
+            content: [
+              {
+                attemptId: 'attempt-1',
+                cpm: 452,
+                difficulty: 'EASY',
+                durationMs: 41_201,
+                finishedAt: '2026-07-22T12:00:00Z',
+                snippet: {
+                  category: 'JAVA',
+                  snippetId: 'snippet-1',
+                  title: 'Two Sum',
+                },
+              },
+            ],
+            page: { number: 0, size: 10, totalElements: 1, totalPages: 1 },
+          },
+        }),
+      ),
+    );
+
+    const history = await statisticsApi.getAttemptHistory('EASY');
+
+    expect(history).toEqual([
+      {
+        attemptId: 'attempt-1',
+        cpm: 452,
+        difficulty: 'EASY',
+        durationMs: 41_201,
+        finishedAt: '2026-07-22T12:00:00Z',
+        snippet: {
+          category: 'JAVA',
+          snippetId: 'snippet-1',
+          title: 'Two Sum',
+        },
+      },
+    ]);
+  });
+
+  it('requests only completed attempts for the given difficulty', async () => {
+    saveSession(session());
+    let requestUrl: URL | undefined;
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, ({ request }) => {
+        requestUrl = new URL(request.url);
+        return HttpResponse.json({
+          data: {
+            content: [],
+            page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
+          },
+        });
+      }),
+    );
+
+    await statisticsApi.getAttemptHistory('HARD');
+
+    expect(requestUrl?.searchParams.get('state')).toBe('COMPLETED');
+    expect(requestUrl?.searchParams.get('difficulty')).toBe('HARD');
+  });
+
+  it('rejects with a session-expired error when unauthorized', async () => {
+    saveSession(session());
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, () =>
+        HttpResponse.json(
+          {
+            code: 'AUTHENTICATION_REQUIRED',
+            instance: '/api/solo-attempts',
+            message: 'expired',
+            status: 401,
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+
+    await expect(statisticsApi.getAttemptHistory('EASY')).rejects.toMatchObject(
+      { code: 'AUTHENTICATION_REQUIRED' },
+    );
+  });
+
+  it('returns an empty list when there are no completed attempts', async () => {
+    saveSession(session());
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, () =>
+        HttpResponse.json({
+          data: {
+            content: [],
+            page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
+          },
+        }),
+      ),
+    );
+
+    await expect(statisticsApi.getAttemptHistory('EASY')).resolves.toEqual([]);
+  });
+});

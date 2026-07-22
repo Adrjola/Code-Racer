@@ -5,16 +5,19 @@ import type { AuthSession } from '@/features/auth/session';
 import type { Difficulty } from '@/features/solo/api/soloApi';
 import {
   toPersonalActivityEntries,
+  toPersonalActivityEntriesFromHistory,
   toPersonalStatsSummary,
 } from '../api/statisticsMappers';
 import { getMockGlobalRanking } from '../data/mockGlobalRanking';
 import { usePersonalStatistics } from '../hooks/usePersonalStatistics';
+import { useSnippetHistory } from '../hooks/useSnippetHistory';
 import { DifficultyTabs } from '../components/DifficultyTabs';
 import { GlobalRankingTable } from '../components/GlobalRankingTable';
 import { PersonalActivityGrid } from '../components/PersonalActivityGrid';
 import { PersonalStatsSummaryGrid } from '../components/PersonalStatsSummaryGrid';
+import { SnippetViewTabs } from '../components/SnippetViewTabs';
 import { ViewTabs } from '../components/ViewTabs';
-import type { StatsView } from '../types';
+import type { SnippetView, StatsView } from '../types';
 
 type StatisticsPageProps = {
   onGoHome: () => void;
@@ -25,6 +28,7 @@ type StatisticsPageProps = {
 
 const VIEWS: StatsView[] = ['GLOBAL', 'PERSONAL'];
 const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
+const SNIPPET_VIEWS: SnippetView[] = ['BEST', 'HISTORY'];
 
 function readView(params: URLSearchParams): StatsView {
   const value = params.get('view');
@@ -36,6 +40,13 @@ function readDifficulty(params: URLSearchParams): Difficulty {
   return DIFFICULTIES.includes(value as Difficulty)
     ? (value as Difficulty)
     : 'EASY';
+}
+
+function readSnippetView(params: URLSearchParams): SnippetView {
+  const value = params.get('snippetView');
+  return SNIPPET_VIEWS.includes(value as SnippetView)
+    ? (value as SnippetView)
+    : 'BEST';
 }
 
 function useNaturalHeight() {
@@ -69,6 +80,9 @@ export default function StatisticsPage({
   const [difficulty, setDifficulty] = useState<Difficulty>(() =>
     readDifficulty(new URLSearchParams(window.location.search)),
   );
+  const [snippetView, setSnippetView] = useState<SnippetView>(() =>
+    readSnippetView(new URLSearchParams(window.location.search)),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
@@ -78,25 +92,40 @@ export default function StatisticsPage({
     snippetStats,
     status: personalStatus,
   } = usePersonalStatistics(onSessionExpired);
+  const isHistory = snippetView === 'HISTORY';
+  const {
+    entries: historyEntries,
+    retry: retryHistory,
+    status: historyStatus,
+  } = useSnippetHistory(
+    difficulty,
+    view === 'PERSONAL' && personalStatus === 'success' && isHistory,
+    onSessionExpired,
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     params.set('view', view);
     params.set('difficulty', difficulty);
+    params.set('snippetView', snippetView);
     const nextUrl = `${window.location.pathname}?${params.toString()}`;
     if (nextUrl !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(null, '', nextUrl);
     }
-  }, [difficulty, view]);
+  }, [difficulty, snippetView, view]);
 
   const ranking =
     view === 'GLOBAL' ? getMockGlobalRanking(difficulty) : undefined;
   const activity =
-    view === 'PERSONAL' && personalStatus === 'success'
-      ? toPersonalActivityEntries(
-          snippetStats.filter((snippet) => snippet.difficulty === difficulty),
-        )
-      : [];
+    view !== 'PERSONAL' || personalStatus !== 'success'
+      ? []
+      : isHistory
+        ? historyStatus === 'success'
+          ? toPersonalActivityEntriesFromHistory(historyEntries)
+          : []
+        : toPersonalActivityEntries(
+            snippetStats.filter((snippet) => snippet.difficulty === difficulty),
+          );
   const statsSummary =
     view === 'PERSONAL' && personalStatus === 'success'
       ? toPersonalStatsSummary(
@@ -105,7 +134,7 @@ export default function StatisticsPage({
       : undefined;
 
   return (
-    <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
+    <div className="min-h-[100dvh] bg-surface pb-16 font-sans text-text-primary lg:pb-24">
       <div
         className="sticky top-0 z-10 bg-surface lg:overflow-hidden lg:[height:calc(var(--stats-header-h)*var(--stats-scale))]"
         style={{ '--stats-header-h': `${headerHeight}px` } as CSSProperties}
@@ -233,16 +262,58 @@ export default function StatisticsPage({
               </div>
             )}
 
-          {view === 'PERSONAL' &&
-            personalStatus === 'success' &&
-            activity.length > 0 && <PersonalActivityGrid entries={activity} />}
+          {view === 'PERSONAL' && personalStatus === 'success' && (
+            <div className="mb-4 flex flex-col gap-3">
+              <SnippetViewTabs onChange={setSnippetView} view={snippetView} />
+              <p className="font-sans text-xs text-[#8589a3]">SNIPPET LOG</p>
+            </div>
+          )}
 
           {view === 'PERSONAL' &&
             personalStatus === 'success' &&
-            !statsSummary &&
-            activity.length === 0 && (
+            isHistory &&
+            historyStatus === 'loading' && (
               <p className="text-text-muted" role="status">
-                No activity yet for this difficulty.
+                Loading recent attempts…
+              </p>
+            )}
+
+          {view === 'PERSONAL' &&
+            personalStatus === 'success' &&
+            isHistory &&
+            historyStatus === 'error' && (
+              <div className="flex flex-col items-start gap-3" role="alert">
+                <p className="text-text-muted">
+                  Couldn&apos;t load your recent attempts. Check your connection
+                  and try again.
+                </p>
+                <button
+                  className="rounded-[9px] border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[12px] font-bold tracking-wide text-text-primary hover:border-white/20"
+                  onClick={retryHistory}
+                  type="button"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+          {view === 'PERSONAL' &&
+            personalStatus === 'success' &&
+            activity.length > 0 && (
+              <PersonalActivityGrid
+                ariaLabel={isHistory ? 'Recent activity' : 'Personal bests'}
+                entries={activity}
+              />
+            )}
+
+          {view === 'PERSONAL' &&
+            personalStatus === 'success' &&
+            activity.length === 0 &&
+            (isHistory ? historyStatus === 'success' : !statsSummary) && (
+              <p className="text-text-muted" role="status">
+                {isHistory
+                  ? 'No completed attempts yet for this difficulty.'
+                  : 'No activity yet for this difficulty.'}
               </p>
             )}
         </main>

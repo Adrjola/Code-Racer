@@ -11,6 +11,7 @@ import type { Difficulty } from '@/features/solo/api/soloApi';
 import type {
   DifficultyStatistics,
   SnippetStatistics,
+  SoloAttemptHistoryEntry,
 } from '../api/statisticsApi';
 import { server } from '@/test/server';
 import StatisticsPage from './StatisticsPage';
@@ -62,6 +63,42 @@ function mockSnippetStatistics(snippets: SnippetStatistics[]) {
   server.use(
     http.get(`${API_URL}/api/solo-attempts/snippet-statistics`, () =>
       HttpResponse.json({ data: { snippets } }),
+    ),
+  );
+}
+
+function historyEntry(
+  overrides: Partial<SoloAttemptHistoryEntry> = {},
+): SoloAttemptHistoryEntry {
+  return {
+    attemptId: 'attempt-1',
+    cpm: 452,
+    difficulty: 'EASY',
+    durationMs: 41_201,
+    finishedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    snippet: {
+      category: 'JAVA',
+      snippetId: 'snippet-1',
+      title: 'Two Sum',
+    },
+    ...overrides,
+  };
+}
+
+function mockAttemptHistory(entries: SoloAttemptHistoryEntry[]) {
+  server.use(
+    http.get(`${API_URL}/api/solo-attempts`, () =>
+      HttpResponse.json({
+        data: {
+          content: entries,
+          page: {
+            number: 0,
+            size: 10,
+            totalElements: entries.length,
+            totalPages: 1,
+          },
+        },
+      }),
     ),
   );
 }
@@ -286,6 +323,184 @@ describe('StatisticsPage', () => {
 
     expect(window.location.search).toContain('view=PERSONAL');
     expect(window.location.search).toContain('difficulty=HARD');
+  });
+
+  it('defaults the snippet log to Best and only fetches history once selected', async () => {
+    let historyRequests = 0;
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, () => {
+        historyRequests += 1;
+        return HttpResponse.json({
+          data: {
+            content: [],
+            page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
+          },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+
+    expect(await screen.findByRole('tab', { name: 'BEST' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tab', { name: 'HISTORY' })).toHaveAttribute(
+      'aria-selected',
+      'false',
+    );
+    expect(historyRequests).toBe(0);
+  });
+
+  it('switches to History and shows the fetched attempts', async () => {
+    mockAttemptHistory([historyEntry()]);
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+
+    expect(await screen.findByText('Two Sum')).toBeInTheDocument();
+    expect(screen.getByText('452')).toBeInTheDocument();
+    expect(screen.getByText('0:41.201')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recent activity')).toBeInTheDocument();
+  });
+
+  it('shows a loading state before the history resolves', async () => {
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, async () => {
+        await new Promise(() => {});
+        return HttpResponse.json({ data: { content: [], page: {} } });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+
+    expect(screen.getByText(/loading recent attempts/i)).toBeInTheDocument();
+  });
+
+  it('shows a placeholder when history has no completed attempts', async () => {
+    mockAttemptHistory([]);
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+
+    expect(
+      await screen.findByText(/no completed attempts yet for this difficulty/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows an error with a retry that refetches history', async () => {
+    let attempts = 0;
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return HttpResponse.error();
+        }
+        return HttpResponse.json({
+          data: { content: [historyEntry()], page: {} },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+
+    const retry = await screen.findByRole('button', { name: /try again/i });
+    await user.click(retry);
+
+    expect(await screen.findByText('Two Sum')).toBeInTheDocument();
+  });
+
+  it('calls onSessionExpired when the history request is unauthorized', async () => {
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, () =>
+        HttpResponse.json(
+          {
+            code: 'AUTHENTICATION_REQUIRED',
+            instance: '/api/solo-attempts',
+            message: 'expired',
+            status: 401,
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+    const onSessionExpired = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <StatisticsPage
+        onGoHome={vi.fn()}
+        onLogout={vi.fn()}
+        onSessionExpired={onSessionExpired}
+        session={session()}
+      />,
+    );
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+
+    await waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
+  });
+
+  it('refetches history when the difficulty changes while History is selected', async () => {
+    const requestedDifficulties: (string | null)[] = [];
+    server.use(
+      http.get(`${API_URL}/api/solo-attempts`, ({ request }) => {
+        requestedDifficulties.push(
+          new URL(request.url).searchParams.get('difficulty'),
+        );
+        return HttpResponse.json({
+          data: {
+            content: [],
+            page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
+          },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+    await screen.findByText(/no completed attempts yet/i);
+    await user.click(screen.getByRole('tab', { name: /tryhard/i }));
+    await screen.findByText(/no completed attempts yet/i);
+
+    expect(requestedDifficulties).toEqual(['EASY', 'MEDIUM']);
+  });
+
+  it('persists the snippet view in the URL and restores it on load', async () => {
+    const user = userEvent.setup();
+    renderStatistics();
+
+    await user.click(screen.getByRole('tab', { name: /personal/i }));
+    await user.click(await screen.findByRole('tab', { name: 'HISTORY' }));
+
+    expect(window.location.search).toContain('snippetView=HISTORY');
+
+    mockAttemptHistory([]);
+    window.history.replaceState(
+      null,
+      '',
+      '/statistics?view=PERSONAL&difficulty=EASY&snippetView=HISTORY',
+    );
+    renderStatistics();
+
+    expect(await screen.findByRole('tab', { name: 'HISTORY' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   it('goes to the homepage when the logo is clicked', async () => {

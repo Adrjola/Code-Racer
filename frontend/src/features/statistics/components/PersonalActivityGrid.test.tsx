@@ -7,16 +7,16 @@ const entries: PersonalActivityEntry[] = [
   {
     category: 'JAVA',
     cpm: 452,
+    id: 'snippet-1',
     relativeTime: '5 min ago',
-    snippetId: 'snippet-1',
     snippetName: 'Two Sum',
     time: '0:41:221',
   },
   {
     category: 'SQL',
     cpm: 438,
+    id: 'snippet-2',
     relativeTime: '2 hrs ago',
-    snippetId: 'snippet-2',
     snippetName: 'Group By Count',
     time: '0:41:221',
   },
@@ -45,8 +45,8 @@ describe('PersonalActivityGrid', () => {
           {
             category: 'RUST',
             cpm: 300,
+            id: 'snippet-3',
             relativeTime: '1 day ago',
-            snippetId: 'snippet-3',
             snippetName: 'Ownership Basics',
             time: '1:00:000',
           },
