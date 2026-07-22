@@ -47,7 +47,7 @@ export interface SoloAttemptRankingResponse {
 export interface SoloWorldBestResponse {
   cpm: number | null;
   cpmHolderName: string | null;
-  time: string | null;
+  durationMs: number | null;
   timeHolderName: string | null;
 }
 
@@ -111,8 +111,11 @@ export const soloRaceApi = {
     ).data;
   },
 
-  async getWorldBest(): Promise<SoloWorldBestResponse> {
-    return (await get<SoloWorldBestResponse>('/api/solo-attempts/world-best'))
-      .data;
+  async getWorldBest(snippetId: string): Promise<SoloWorldBestResponse> {
+    return (
+      await get<SoloWorldBestResponse>(
+        `/api/solo-attempts/world-best?snippetId=${snippetId}`,
+      )
+    ).data;
   },
 };
