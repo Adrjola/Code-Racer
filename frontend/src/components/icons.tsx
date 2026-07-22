@@ -174,3 +174,19 @@ export function EyeIcon({ className = 'size-4' }: ModeIconProps = {}) {
     </svg>
   );
 }
+
+export function CloseIcon({ className = 'size-4' }: ModeIconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}

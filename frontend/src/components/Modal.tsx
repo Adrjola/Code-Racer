@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { CloseIcon } from './icons';
 
 type ModalProps = {
   children: ReactNode;
@@ -57,9 +58,22 @@ export default function Modal({
         role="dialog"
         tabIndex={-1}
       >
-        <h2 className="text-lg font-extrabold text-text-primary" id={headingId}>
-          {title}
-        </h2>
+        <div className="flex items-start justify-between gap-4">
+          <h2
+            className="text-lg font-extrabold text-text-primary"
+            id={headingId}
+          >
+            {title}
+          </h2>
+          <button
+            aria-label="Close"
+            className="-mt-1 -mr-1 shrink-0 rounded-[8px] p-1.5 text-text-muted transition-colors duration-150 hover:bg-white/5 hover:text-text-primary"
+            onClick={onClose}
+            type="button"
+          >
+            <CloseIcon />
+          </button>
+        </div>
         {description && (
           <p
             className="mt-1.5 text-sm leading-[1.5] text-text-secondary"
