@@ -189,6 +189,7 @@ export default function HomePage({
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
+      {header}
       {/* From lg up the content is laid out on a fixed 1920px canvas and scaled
           by --stats-scale (innerWidth / 1920, set in main.tsx), so the page
           looks identical at any width or zoom. Below lg it flows fluidly. */}
@@ -200,7 +201,6 @@ export default function HomePage({
           className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--stats-scale))]"
           ref={canvasRef}
         >
-          {header}
           <main className="w-full py-[clamp(2rem,5dvh,3.5rem)] lg:py-14">
             <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-5 px-[clamp(1rem,5vw,2.5rem)] lg:px-10">
               {noticeBanner}

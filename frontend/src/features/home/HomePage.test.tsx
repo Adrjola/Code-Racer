@@ -75,9 +75,7 @@ describe('HomePage', () => {
     const user = userEvent.setup();
     renderHome({ onPlaySolo });
 
-    // Nav order with the shared header: logo, statistics trophy, dashboard,
-    // log out, then the solo card.
-    await user.tab();
+    // Nav order: logo, statistics trophy, log out, then the solo card.
     await user.tab();
     await user.tab();
     await user.tab();

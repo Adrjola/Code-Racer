@@ -43,6 +43,7 @@ function renderPage(
 ) {
   const props = {
     onGoHome: vi.fn(),
+    onGoStatistics: vi.fn(),
     onLogout: vi.fn(),
     onSelect: vi.fn(),
     onSessionExpired: vi.fn(),

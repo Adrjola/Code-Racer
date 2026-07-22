@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -107,6 +107,7 @@ function renderStatistics(overrides: Partial<{ session: AuthSession }> = {}) {
   return render(
     <StatisticsPage
       onGoHome={vi.fn()}
+      onGoStatistics={vi.fn()}
       onLogout={vi.fn()}
       onSessionExpired={vi.fn()}
       session={overrides.session ?? session()}
@@ -286,6 +287,7 @@ describe('StatisticsPage', () => {
     render(
       <StatisticsPage
         onGoHome={vi.fn()}
+        onGoStatistics={vi.fn()}
         onLogout={vi.fn()}
         onSessionExpired={onSessionExpired}
         session={session()}
@@ -441,6 +443,7 @@ describe('StatisticsPage', () => {
     render(
       <StatisticsPage
         onGoHome={vi.fn()}
+        onGoStatistics={vi.fn()}
         onLogout={vi.fn()}
         onSessionExpired={onSessionExpired}
         session={session()}
@@ -509,6 +512,7 @@ describe('StatisticsPage', () => {
     render(
       <StatisticsPage
         onGoHome={onGoHome}
+        onGoStatistics={vi.fn()}
         onLogout={vi.fn()}
         onSessionExpired={vi.fn()}
         session={session()}
@@ -520,31 +524,25 @@ describe('StatisticsPage', () => {
     expect(onGoHome).toHaveBeenCalledTimes(1);
   });
 
-  it('no longer has a Homepage item in the menu', async () => {
-    const user = userEvent.setup();
-    renderStatistics();
-
-    await user.click(screen.getByRole('button', { name: /menu/i }));
-
-    expect(
-      screen.queryByRole('button', { name: /^homepage$/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('logs out from the menu', async () => {
+  it('logs out from the header', async () => {
     const onLogout = vi.fn();
     const user = userEvent.setup();
     render(
       <StatisticsPage
         onGoHome={vi.fn()}
+        onGoStatistics={vi.fn()}
         onLogout={onLogout}
         onSessionExpired={vi.fn()}
         session={session()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /menu/i }));
     await user.click(screen.getByRole('button', { name: /log out/i }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: /flee in shame/i,
+      }),
+    );
 
     expect(onLogout).toHaveBeenCalledTimes(1);
   });

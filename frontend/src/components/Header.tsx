@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import dashboardNavIcon from '@/assets/icons/dashboard-nav.svg';
-import { TrophyIcon } from '@/components/icons';
+import statisticsNavIcon from '@/assets/icons/dashboard-nav.svg';
 import logoutNavIcon from '@/assets/icons/logout-nav.svg';
 import { useDesignScale } from '@/hooks/useDesignScale';
 import Logo from './Logo';
@@ -39,10 +38,10 @@ const navLinkClassName =
 
 const navIconButtonClassName = 'size-10 shrink-0 transition hover:opacity-90';
 
-const flowHeaderClassName =
+export const flowHeaderClassName =
   'relative lg:h-[calc(88px*var(--header-scale))] lg:overflow-hidden';
 
-const flowInnerClassName =
+export const flowInnerClassName =
   'mx-auto flex w-full max-w-[100rem] items-center gap-4 px-4 py-3.5 md:px-10 md:py-6 lg:absolute lg:left-1/2 lg:top-0 lg:h-[88px] lg:w-[1920px] lg:max-w-none lg:origin-top lg:[transform:translateX(-50%)_scale(var(--header-scale))]';
 
 const overlayWrapperClassName =
@@ -59,14 +58,12 @@ const overlayNavClassName =
 function NavContent({
   isAdmin,
   onGoAdmin,
-  onGoDashboard,
   onGoStatistics,
   username,
   onOpenLogoutConfirm,
 }: {
   isAdmin: boolean;
   onGoAdmin?: () => void;
-  onGoDashboard: () => void;
   onGoStatistics?: () => void;
   username: string;
   onOpenLogoutConfirm: () => void;
@@ -76,11 +73,11 @@ function NavContent({
       {onGoStatistics && (
         <button
           aria-label="Statistics"
-          className="flex size-10 shrink-0 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
+          className={navIconButtonClassName}
           onClick={onGoStatistics}
           type="button"
         >
-          <TrophyIcon className="size-5" />
+          <img alt="" className="block size-full" src={statisticsNavIcon} />
         </button>
       )}
       {isAdmin && onGoAdmin && (
@@ -88,14 +85,6 @@ function NavContent({
           Admin
         </button>
       )}
-      <button
-        aria-label="Dashboard"
-        className={navIconButtonClassName}
-        onClick={onGoDashboard}
-        type="button"
-      >
-        <img alt="" className="block size-full" src={dashboardNavIcon} />
-      </button>
       <div className="flex h-10 min-w-0 items-center gap-[9px] rounded-[9px] border border-pink-400/20 bg-pink-400/5 px-[13px] py-[6px]">
         <span className="sr-only font-mono text-[10.5px] tracking-[0.63px] text-text-muted md:not-sr-only">
           USER:
@@ -165,7 +154,6 @@ export default function Header(props: HeaderProps) {
             <NavContent
               isAdmin={isAdmin}
               onGoAdmin={onGoAdmin}
-              onGoDashboard={onGoDashboard}
               onGoStatistics={onGoStatistics}
               onOpenLogoutConfirm={() => setShowLogoutConfirm(true)}
               username={username}
@@ -193,7 +181,6 @@ export default function Header(props: HeaderProps) {
           <NavContent
             isAdmin={isAdmin}
             onGoAdmin={onGoAdmin}
-            onGoDashboard={onGoDashboard}
             onGoStatistics={onGoStatistics}
             onOpenLogoutConfirm={() => setShowLogoutConfirm(true)}
             username={username}

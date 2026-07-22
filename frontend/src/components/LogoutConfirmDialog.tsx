@@ -1,9 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import type { CSSProperties } from 'react';
 import sessionTerminateIcon from '@/assets/icons/session-terminate.svg';
-import { useDesignScale } from '@/hooks/useDesignScale';
-
-const DESIGN_WIDTH = 520;
 
 type LogoutConfirmDialogProps = {
   onCancel: () => void;
@@ -16,7 +12,6 @@ export default function LogoutConfirmDialog({
 }: LogoutConfirmDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const headingId = useId();
-  const scale = useDesignScale(DESIGN_WIDTH);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -41,12 +36,11 @@ export default function LogoutConfirmDialog({
           onCancel();
         }
       }}
-      style={{ '--dialog-scale': scale } as CSSProperties}
     >
       <div
         aria-labelledby={headingId}
         aria-modal
-        className="w-full max-w-[32.5rem] overflow-hidden rounded-2xl border border-pink-400/20 bg-surface shadow-[0_0_60px_-20px_rgb(219_39_119_/_0.6)] outline-none lg:w-[520px] lg:origin-center lg:[transform:scale(var(--dialog-scale))]"
+        className="w-full max-w-[32.5rem] overflow-hidden rounded-2xl border border-pink-400/20 bg-surface shadow-[0_0_60px_-20px_rgb(219_39_119_/_0.6)] outline-none lg:w-[520px]"
         ref={panelRef}
         role="dialog"
         tabIndex={-1}

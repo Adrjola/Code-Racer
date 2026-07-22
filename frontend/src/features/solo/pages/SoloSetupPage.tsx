@@ -20,6 +20,7 @@ import playTriangleIcon from '@/assets/icons/play-triangle.svg';
 
 type SoloSetupPageProps = {
   onGoHome: () => void;
+  onGoStatistics: () => void;
   onLogout: () => void;
   onSelect: (selection: SoloSelection) => void;
   onSessionExpired: () => void;
@@ -238,6 +239,7 @@ function useNaturalHeight() {
 
 export default function SoloSetupPage({
   onGoHome,
+  onGoStatistics,
   onLogout,
   onSelect,
   onSessionExpired,
@@ -318,6 +320,7 @@ export default function SoloSetupPage({
       <div className="sticky top-0 z-10 bg-surface">
         <Header
           onGoDashboard={onGoHome}
+          onGoStatistics={onGoStatistics}
           onLogout={onLogout}
           username={session.user.username}
         />
