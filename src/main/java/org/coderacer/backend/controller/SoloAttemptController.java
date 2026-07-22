@@ -9,6 +9,7 @@ import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.dto.GlobalStatisticsResponse;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.ProgressAckResponse;
+import org.coderacer.backend.dto.SnippetStatisticsResponse;
 import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
@@ -23,6 +24,7 @@ import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.GlobalStatisticsService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
+import org.coderacer.backend.service.SnippetStatisticsService;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
 import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
@@ -50,6 +52,7 @@ public class SoloAttemptController {
   private final SoloAttemptHistoryService historyService;
   private final PersonalStatisticsService statisticsService;
   private final GlobalStatisticsService globalStatisticsService;
+  private final SnippetStatisticsService snippetStatisticsService;
   private final SoloAttemptRankingService rankingService;
   private final CurrentJwtUserProvider currentJwtUserProvider;
   private final SoloAttemptMapper mapper;
@@ -120,6 +123,14 @@ public class SoloAttemptController {
   @GetMapping("/global-statistics")
   public BaseResponse<GlobalStatisticsResponse> globalStatistics() {
     return new BaseResponse<>(globalStatisticsService.compute(), MDC.get("correlationId"));
+  }
+
+  @GetMapping("/snippet-statistics")
+  public BaseResponse<SnippetStatisticsResponse> snippetStatistics() {
+    UUID userId = currentJwtUserProvider.resolve();
+    return new BaseResponse<>(
+        new SnippetStatisticsResponse(snippetStatisticsService.forUser(userId)),
+        MDC.get("correlationId"));
   }
 
   @GetMapping("/{id}/ranking")

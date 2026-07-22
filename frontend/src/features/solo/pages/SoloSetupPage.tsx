@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Logo from '@/components/Logo';
 import { TrophyIcon } from '@/components/icons';
 import type { AuthSession } from '@/features/auth/session';
+import { isSessionExpiredError } from '@/lib/apiClient';
 import {
   fetchCategories,
-  isSessionExpiredError,
   readableSoloError,
   type Category,
   type CategoryOption,
@@ -19,7 +19,7 @@ import checkmarkIcon from '@/assets/icons/checkmark.svg';
 import playTriangleIcon from '@/assets/icons/play-triangle.svg';
 
 type SoloSetupPageProps = {
-  onGoDashboard: () => void;
+  onGoHome: () => void;
   onLogout: () => void;
   onSelect: (selection: SoloSelection) => void;
   onSessionExpired: () => void;
@@ -238,7 +238,7 @@ function useNaturalHeight() {
 }
 
 export default function SoloSetupPage({
-  onGoDashboard,
+  onGoHome,
   onLogout,
   onSelect,
   onSessionExpired,
@@ -335,7 +335,7 @@ export default function SoloSetupPage({
           style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >
           <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
-            <Logo onClick={onGoDashboard} />
+            <Logo onClick={onGoHome} />
             <div className="flex items-center gap-4">
               <span
                 aria-hidden="true"

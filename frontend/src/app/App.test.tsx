@@ -483,7 +483,7 @@ describe('App', () => {
     await submitValidLogin(user);
 
     expect(
-      await screen.findByRole('heading', { name: /welcome, player/i }),
+      await screen.findByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem('code-racer.auth-session')).toContain(
       'jwt-token',
@@ -538,7 +538,7 @@ describe('App', () => {
   });
 
   it('redirects protected routes to login without rendering protected content', () => {
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
@@ -547,7 +547,7 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/please log in/i);
     expect(
-      screen.queryByRole('heading', { name: /welcome, player/i }),
+      screen.queryByRole('heading', { name: /choose a race mode/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -603,7 +603,7 @@ describe('App', () => {
   it('updates the login notice when a protected route redirects to login again', async () => {
     const user = userEvent.setup();
     saveSession(session());
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
@@ -624,12 +624,12 @@ describe('App', () => {
         user: userResponse({ role: 'ADMIN', username: 'admin' }),
       }),
     );
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, admin/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^admin$/i }));
     expect(
@@ -642,7 +642,7 @@ describe('App', () => {
 
   it('redirects expired sessions back to login', () => {
     saveSession(session({ expiresAt: Date.now() - 1 }));
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
@@ -656,12 +656,12 @@ describe('App', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-17T12:00:00Z'));
     saveSession(session({ expiresAt: Date.now() + 1_000 }));
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, player/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
 
     await act(async () => {
@@ -682,10 +682,10 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, player/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/admin access/i);
-    await waitFor(() => expect(window.location.pathname).toBe('/dashboard'));
+    await waitFor(() => expect(window.location.pathname).toBe('/home'));
   });
 
   it('toggles password visibility with the eye button', async () => {
