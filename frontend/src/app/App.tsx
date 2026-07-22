@@ -188,32 +188,6 @@ export default function App() {
     soloSelection,
   } = state;
 
-  if (window.location.search.includes('headerPreview')) {
-    const previewSession: AuthSession = {
-      accessToken: 'preview',
-      expiresAt: Date.now() + 60_000,
-      tokenType: 'Bearer',
-      user: {
-        createdAt: new Date().toISOString(),
-        email: 'player@example.com',
-        emailVerified: true,
-        id: 'preview-user',
-        role: 'USER',
-        updatedAt: new Date().toISOString(),
-        username: 'PowerPuffGirl',
-      },
-    };
-    return (
-      <SoloSetupPage
-        onGoDashboard={() => {}}
-        onLogout={() => {}}
-        onSelect={() => {}}
-        onSessionExpired={() => {}}
-        session={previewSession}
-      />
-    );
-  }
-
   const commitRoute = useCallback(
     (
       requestedRoute: Route,
