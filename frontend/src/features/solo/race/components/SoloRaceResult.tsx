@@ -134,7 +134,7 @@ export function SoloRaceResult({
         <Header variant="minimal" />
       </div>
 
-<style>
+      <style>
         {`
           .benji-scroll { scrollbar-width: thin; scrollbar-color: rgba(244,114,182,0.4) transparent; }
           .benji-scroll::-webkit-scrollbar { width: 6px; }
