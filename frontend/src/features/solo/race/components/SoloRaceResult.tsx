@@ -134,7 +134,7 @@ export function SoloRaceResult({
         <Header variant="minimal" />
       </div>
 
-      <style>
+<style>
         {`
           .benji-scroll { scrollbar-width: thin; scrollbar-color: rgba(244,114,182,0.4) transparent; }
           .benji-scroll::-webkit-scrollbar { width: 6px; }
@@ -145,7 +145,7 @@ export function SoloRaceResult({
       </style>
       <div className="relative h-[1080px] w-[1920px] shrink-0 origin-center overflow-hidden [transform:scale(var(--fit-scale))]">
         {snippetCode != null && (
-          <div className="absolute top-[164px] left-[558px] flex w-[804px]">
+          <div className="absolute top-[164px] left-[calc((var(--design-canvas-w)_-_var(--race-field-w))_/_2)] flex w-[var(--race-field-w)]">
             <SegmentedToggle<ResultView>
               ariaLabel="Result view"
               first={{
@@ -163,7 +163,7 @@ export function SoloRaceResult({
             />
           </div>
         )}
-        <div className="absolute top-[224px] left-[558px] h-[667px] w-[804px] rounded-[16px] bg-[rgb(255_255_255_/_0.002)] shadow-[0_30px_80px_-20px_rgb(219_39_119_/_0.7)]">
+        <div className="absolute top-[224px] left-[calc((var(--design-canvas-w)_-_var(--race-field-w))_/_2)] h-[667px] w-[var(--race-field-w)] rounded-[16px] bg-[rgb(255_255_255_/_0.002)] shadow-[0_30px_80px_-20px_rgb(219_39_119_/_0.7)]">
           <span
             className={`${cornerClassName} top-0 left-0 rounded-tl-[6px] border-t-2 border-l-2`}
           />
