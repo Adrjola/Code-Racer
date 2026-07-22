@@ -9,10 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.SoloAttemptRankingResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.exception.ConflictException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -191,12 +191,8 @@ class SoloAttemptRankingServiceTest {
   }
 
   private CodeSnippet snippet() {
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName("Java");
-    category.setActive(true);
-
-    CodeSnippet created = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
+    Category category = Category.JAVA;
+    CodeSnippet created = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, Category.JAVA);
     ReflectionTestUtils.setField(created, "id", snippetId);
     return created;
   }

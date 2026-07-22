@@ -469,10 +469,10 @@ describe('App', () => {
     server.use(
       http.get(`${API_URL}/api/categories`, () =>
         HttpResponse.json({
-          data: {
-            content: [],
-            page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
-          },
+          data: [
+            { category: 'JAVA', displayName: 'Java' },
+            { category: 'SQL', displayName: 'SQL' },
+          ],
         }),
       ),
     );
@@ -509,16 +509,6 @@ describe('App', () => {
 
   it('restores valid admin sessions and allows admin navigation', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get(`${API_URL}/api/admin/categories`, () =>
-        HttpResponse.json({
-          data: {
-            content: [],
-            page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
-          },
-        }),
-      ),
-    );
     saveSession(
       session({
         user: userResponse({ role: 'ADMIN', username: 'admin' }),
@@ -536,7 +526,7 @@ describe('App', () => {
       await screen.findByRole('heading', { name: /admin console/i }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', { name: /^categories$/i }),
+      await screen.findByRole('heading', { name: /^snippets$/i }),
     ).toBeInTheDocument();
   });
 

@@ -33,7 +33,7 @@ export default function SoloPreviewPage({
 }: SoloPreviewPageProps) {
   const { refresh, resetStart, snippetPhase, start, startPhase } =
     useSoloPreview({
-      categoryId: selection.categoryId,
+      category: selection.category,
       difficulty: selection.difficulty,
       onSessionExpired,
     });

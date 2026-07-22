@@ -23,7 +23,7 @@ const result: SoloAttemptResultResponse = {
   durationMs: 45_000,
   finishedAt: '2026-07-17T12:00:45Z',
   snippet: {
-    categoryId: 'c1',
+    category: 'JAVA',
     snippetId: 'g1',
     title: 'FizzBuzz',
   },

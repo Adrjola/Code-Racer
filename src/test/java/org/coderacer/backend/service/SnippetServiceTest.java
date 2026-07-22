@@ -14,18 +14,16 @@ import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.dto.CreateSnippetRequest;
 import org.coderacer.backend.dto.SnippetResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
 import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.SnippetMapper;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.util.Sha256Hasher;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -39,40 +37,28 @@ import org.springframework.test.util.ReflectionTestUtils;
 class SnippetServiceTest {
 
   @Mock private CodeSnippetRepository repository;
-  @Mock private CategoryRepository categoryRepository;
   @Mock private SnippetMapper mapper;
   @InjectMocks private SnippetService service;
 
   private final UUID revisionId = UUID.randomUUID();
-  private final UUID categoryId = UUID.randomUUID();
-  private Category category;
-
-  @BeforeEach
-  void setUp() {
-    category = new Category();
-    category.setId(categoryId);
-    category.setName("Java");
-    category.setActive(true);
-  }
 
   @Test
   void create_canonicalizesLineEndingsBeforeStoring() {
-    givenCategoryIsAvailable();
     givenContentIsNotDuplicated();
     when(repository.saveAndFlush(any(CodeSnippet.class))).thenAnswer(inv -> inv.getArgument(0));
 
-    service.create(new CreateSnippetRequest("Title", "a\r\nb\rc\nd", Difficulty.EASY, categoryId));
+    service.create(
+        new CreateSnippetRequest("Title", "a\r\nb\rc\nd", Difficulty.EASY, Category.JAVA));
 
     assertThat(savedSnippet().getSource()).isEqualTo("a\nb\nc\nd");
   }
 
   @Test
   void create_storesSnippetAsActive() {
-    givenCategoryIsAvailable();
     givenContentIsNotDuplicated();
     when(repository.saveAndFlush(any(CodeSnippet.class))).thenAnswer(inv -> inv.getArgument(0));
 
-    service.create(new CreateSnippetRequest("Title", "code", Difficulty.HARD, categoryId));
+    service.create(new CreateSnippetRequest("Title", "code", Difficulty.HARD, Category.JAVA));
 
     CodeSnippet saved = savedSnippet();
     assertThat(saved.getLifecycle()).isEqualTo(SnippetLifecycle.ACTIVE);
@@ -81,7 +67,6 @@ class SnippetServiceTest {
 
   @Test
   void create_measuresTitleInCodePointsNotUtf16Units() {
-    givenCategoryIsAvailable();
     givenContentIsNotDuplicated();
     when(repository.saveAndFlush(any(CodeSnippet.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -89,7 +74,7 @@ class SnippetServiceTest {
     assertThat(title.codePointCount(0, title.length())).isEqualTo(150);
     assertThat(title.length()).isEqualTo(300);
 
-    service.create(new CreateSnippetRequest(title, "code", Difficulty.EASY, categoryId));
+    service.create(new CreateSnippetRequest(title, "code", Difficulty.EASY, Category.JAVA));
 
     assertThat(savedSnippet().getTitle()).isEqualTo(title);
   }
@@ -99,7 +84,8 @@ class SnippetServiceTest {
     assertThatThrownBy(
             () ->
                 service.create(
-                    new CreateSnippetRequest("a".repeat(201), "code", Difficulty.EASY, categoryId)))
+                    new CreateSnippetRequest(
+                        "a".repeat(201), "code", Difficulty.EASY, Category.JAVA)))
         .isInstanceOf(ValidationException.class);
     verify(repository, never()).saveAndFlush(any());
   }
@@ -110,7 +96,7 @@ class SnippetServiceTest {
             () ->
                 service.create(
                     new CreateSnippetRequest(
-                        "Title", "a".repeat(10001), Difficulty.EASY, categoryId)))
+                        "Title", "a".repeat(10001), Difficulty.EASY, Category.JAVA)))
         .isInstanceOf(ValidationException.class);
   }
 
@@ -122,13 +108,12 @@ class SnippetServiceTest {
     assertThatThrownBy(
             () ->
                 service.create(
-                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, categoryId)))
+                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, Category.JAVA)))
         .isInstanceOf(ConflictException.class);
   }
 
   @Test
   void create_mapsDatabaseDuplicateRaceToConflict() {
-    givenCategoryIsAvailable();
     givenContentIsNotDuplicated();
     when(repository.saveAndFlush(any(CodeSnippet.class)))
         .thenThrow(new DataIntegrityViolationException("uq_code_snippet_active_content_hash"));
@@ -136,32 +121,7 @@ class SnippetServiceTest {
     assertThatThrownBy(
             () ->
                 service.create(
-                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, categoryId)))
-        .isInstanceOf(ConflictException.class);
-  }
-
-  @Test
-  void create_rejectsUnknownCategory() {
-    givenContentIsNotDuplicated();
-    when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
-
-    assertThatThrownBy(
-            () ->
-                service.create(
-                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, categoryId)))
-        .isInstanceOf(ResourceNotFoundException.class);
-  }
-
-  @Test
-  void create_rejectsInactiveCategory() {
-    category.setActive(false);
-    givenContentIsNotDuplicated();
-    when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-
-    assertThatThrownBy(
-            () ->
-                service.create(
-                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, categoryId)))
+                    new CreateSnippetRequest("Title", "code", Difficulty.EASY, Category.JAVA)))
         .isInstanceOf(ConflictException.class);
   }
 
@@ -189,15 +149,15 @@ class SnippetServiceTest {
     CodeSnippet current = existingSnippet("code", Difficulty.EASY, SnippetLifecycle.ACTIVE);
     when(repository.findById(revisionId)).thenReturn(Optional.of(current));
     when(repository.findFirstEligibleAtOrAfter(
-            eq(categoryId), eq("EASY"), eq(current.getContentHash()), anyDouble()))
+            eq("JAVA"), eq("EASY"), eq(current.getContentHash()), anyDouble()))
         .thenReturn(Optional.of(current));
     when(mapper.toResponse(current)).thenReturn(response(current));
 
-    service.randomEligible(categoryId, Difficulty.EASY, revisionId);
+    service.randomEligible(Category.JAVA, Difficulty.EASY, revisionId);
 
     verify(repository)
         .findFirstEligibleAtOrAfter(
-            eq(categoryId), eq("EASY"), eq(current.getContentHash()), anyDouble());
+            eq("JAVA"), eq("EASY"), eq(current.getContentHash()), anyDouble());
   }
 
   @Test
@@ -225,10 +185,6 @@ class SnippetServiceTest {
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
-  private void givenCategoryIsAvailable() {
-    when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-  }
-
   private void givenContentIsNotDuplicated() {
     when(repository.existsByContentHashAndLifecycle(any(), eq(SnippetLifecycle.ACTIVE)))
         .thenReturn(false);
@@ -248,7 +204,8 @@ class SnippetServiceTest {
 
   private CodeSnippet existingSnippet(
       String source, Difficulty difficulty, SnippetLifecycle lifecycle) {
-    CodeSnippet snippet = new CodeSnippet("Title", source, sha256Hex(source), difficulty, category);
+    CodeSnippet snippet =
+        new CodeSnippet("Title", source, sha256Hex(source), difficulty, Category.JAVA);
     if (lifecycle == SnippetLifecycle.DELETED) {
       snippet.softDelete();
     }
@@ -263,7 +220,7 @@ class SnippetServiceTest {
         snippet.getSource(),
         snippet.getDifficulty(),
         snippet.getLifecycle(),
-        categoryId,
+        Category.JAVA,
         null,
         null);
   }

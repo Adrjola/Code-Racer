@@ -29,13 +29,13 @@ describe('apiRequest', () => {
     storeSession();
     let authorization: string | null = null;
     server.use(
-      http.get(`${API_URL}/api/admin/categories`, ({ request }) => {
+      http.get(`${API_URL}/api/admin/snippets`, ({ request }) => {
         authorization = request.headers.get('Authorization');
         return HttpResponse.json({ data: 'ok' });
       }),
     );
 
-    await apiRequest('/api/admin/categories', { auth: true });
+    await apiRequest('/api/admin/snippets', { auth: true });
 
     expect(authorization).toBe('Bearer jwt-token');
   });
@@ -57,7 +57,7 @@ describe('apiRequest', () => {
 
   it('fails fast when an authenticated request has no session', async () => {
     await expect(
-      apiRequest('/api/admin/categories', { auth: true }),
+      apiRequest('/api/admin/snippets', { auth: true }),
     ).rejects.toMatchObject({ code: 'SESSION_EXPIRED', status: 401 });
   });
 
@@ -65,20 +65,20 @@ describe('apiRequest', () => {
     storeSession({ expiresAt: Date.now() - 1 });
 
     await expect(
-      apiRequest('/api/admin/categories', { auth: true }),
+      apiRequest('/api/admin/snippets', { auth: true }),
     ).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
   });
 
   it('returns nothing for a 204 response without parsing a body', async () => {
     storeSession();
     server.use(
-      http.delete(`${API_URL}/api/admin/categories/1`, () =>
+      http.delete(`${API_URL}/api/admin/snippets/1`, () =>
         HttpResponse.text(null, { status: 204 }),
       ),
     );
 
     await expect(
-      apiRequest('/api/admin/categories/1', { auth: true, method: 'DELETE' }),
+      apiRequest('/api/admin/snippets/1', { auth: true, method: 'DELETE' }),
     ).resolves.toBeUndefined();
   });
 

@@ -2,17 +2,16 @@ import { apiRequest, ApiRequestError } from '@/lib/apiClient';
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
-export type Category = {
-  active: boolean;
-  createdAt: string;
-  description: string;
-  id: string;
-  name: string;
-  updatedAt: string;
+export type Category = 'JAVA' | 'REST_APIS' | 'SQL' | 'TESTING';
+
+/** Mirrors the backend's CategoryResponse, built from the fixed enum. */
+export type CategoryOption = {
+  category: Category;
+  displayName: string;
 };
 
 export type SnippetPreview = {
-  categoryId: string;
+  category: Category;
   createdAt: string;
   difficulty: Difficulty;
   id: string;
@@ -30,13 +29,13 @@ export type StartSoloAttemptResponse = {
 };
 
 export type FetchRandomSnippetParams = {
-  categoryId?: string;
+  category?: Category;
   difficulty?: Difficulty;
   excludeId?: string;
 };
 
 export type SoloSelection = {
-  categoryId: string;
+  category: Category;
   categoryName: string;
   difficulty: Difficulty;
 };
@@ -45,29 +44,18 @@ type BaseResponse<T> = {
   data: T;
 };
 
-type PagedModel<T> = {
-  content: T[];
-  page: {
-    number: number;
-    size: number;
-    totalElements: number;
-    totalPages: number;
-  };
-};
-
-export async function fetchCategories(): Promise<Category[]> {
-  const response = await apiRequest<BaseResponse<PagedModel<Category>>>(
-    '/api/categories?size=100',
-  );
-  return response.data.content;
+export async function fetchCategories(): Promise<CategoryOption[]> {
+  const response =
+    await apiRequest<BaseResponse<CategoryOption[]>>('/api/categories');
+  return response.data;
 }
 
 export async function fetchRandomSnippet(
   params: FetchRandomSnippetParams = {},
 ): Promise<SnippetPreview> {
   const query = new URLSearchParams();
-  if (params.categoryId) {
-    query.set('categoryId', params.categoryId);
+  if (params.category) {
+    query.set('category', params.category);
   }
   if (params.difficulty) {
     query.set('difficulty', params.difficulty);

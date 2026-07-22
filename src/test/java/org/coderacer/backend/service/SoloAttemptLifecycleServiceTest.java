@@ -10,11 +10,11 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.exception.IllegalSoloAttemptStateTransitionException;
 import org.coderacer.backend.exception.SoloAttemptNotFoundException;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -43,10 +43,7 @@ class SoloAttemptLifecycleServiceTest {
   private SoloAttempt newAttempt() {
     User user = new User();
     ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName("Java");
-    category.setActive(true);
+    Category category = Category.JAVA;
     CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
     SoloAttempt attempt = new SoloAttempt(user, snippet, Difficulty.EASY, startedAt);

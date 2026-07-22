@@ -4,19 +4,7 @@ export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
 export type SnippetLifecycle = 'ACTIVE' | 'DELETED';
 
-export type Category = {
-  id: string;
-  name: string;
-  description: string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CategoryValues = {
-  name: string;
-  description: string;
-};
+export type Category = 'JAVA' | 'REST_APIS' | 'SQL' | 'TESTING';
 
 export type Snippet = {
   id: string;
@@ -24,7 +12,7 @@ export type Snippet = {
   source: string;
   difficulty: Difficulty;
   lifecycle: SnippetLifecycle;
-  categoryId: string;
+  category: Category;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,11 +21,11 @@ export type SnippetValues = {
   title: string;
   source: string;
   difficulty: Difficulty;
-  categoryId: string;
+  category: Category | '';
 };
 
 export type SnippetFilters = {
-  categoryId?: string;
+  category?: Category;
   difficulty?: Difficulty;
   lifecycle?: SnippetLifecycle;
 };
@@ -46,30 +34,6 @@ export type PageRequest = {
   page?: number;
   size?: number;
 };
-
-export function listCategories(pageRequest: PageRequest = {}) {
-  return get<Page<Category>>('/api/admin/categories', pageRequest);
-}
-
-export function createCategory(values: CategoryValues) {
-  return send<Category>('/api/admin/categories', 'POST', values);
-}
-
-export function updateCategory(id: string, values: CategoryValues) {
-  return send<Category>(`/api/admin/categories/${id}`, 'PUT', values);
-}
-
-export function restoreCategory(id: string) {
-  return send<Category>(`/api/admin/categories/${id}/restore`, 'POST');
-}
-
-/** Soft-deletes the category, which is how a category is deactivated. */
-export function deleteCategory(id: string) {
-  return apiRequest<void>(`/api/admin/categories/${id}`, {
-    auth: true,
-    method: 'DELETE',
-  });
-}
 
 export function listSnippets(
   filters: SnippetFilters = {},
