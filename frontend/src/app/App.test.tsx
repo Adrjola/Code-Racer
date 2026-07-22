@@ -358,8 +358,10 @@ describe('App', () => {
 
         return HttpResponse.json(
           {
-            message:
-              'If an account with the provided email exists, a password reset email will be sent.',
+            data: {
+              message:
+                'If an account with the provided email exists, a password reset email will be sent.',
+            },
           },
           { status: 202 },
         );

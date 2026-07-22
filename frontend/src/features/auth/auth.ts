@@ -112,7 +112,7 @@ export async function resendVerificationEmail(
 export async function requestPasswordReset(
   values: ForgotPasswordValues,
 ): Promise<string> {
-  const response = await apiRequest<ForgotPasswordResponse>(
+  const response = await apiRequest<BaseResponse<ForgotPasswordResponse>>(
     '/api/auth/forgot-password',
     {
       body: JSON.stringify({ email: values.email }),
@@ -120,7 +120,7 @@ export async function requestPasswordReset(
     },
   );
 
-  return response.message;
+  return response.data.message;
 }
 
 export async function resetPassword(values: ResetPasswordValues) {
