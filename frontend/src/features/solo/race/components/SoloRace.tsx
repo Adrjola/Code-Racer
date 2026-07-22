@@ -394,10 +394,15 @@ export function SoloRace({
       )}
 
       <div
-        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10 lg:min-h-0 lg:flex-1"
+        className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-0 lg:flex lg:min-h-0 lg:max-w-none lg:flex-1 lg:items-center lg:justify-center lg:overflow-hidden lg:px-0"
         onClick={focusInput}
       >
-        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:h-full lg:gap-0">
+        {/* From lg up the body is a fixed 1920-wide design canvas scaled by
+            --fit-scale (min(innerWidth/1920, innerHeight/1080), set in main.tsx),
+            the same way the result screen and every other page fit themselves to
+            the viewport. The absolute offsets inside are canvas coordinates.
+            Below lg it stays a fluid flow column. */}
+        <div className="flex flex-col items-center gap-6 lg:relative lg:block lg:h-[940px] lg:w-[1920px] lg:shrink-0 lg:origin-center lg:gap-0 lg:[transform:scale(var(--fit-scale))]">
           <div className="w-full max-w-[var(--race-field-w)] lg:absolute lg:left-1/2 lg:top-[37px] lg:-translate-x-1/2">
             <SoloRaceStatsRow
               cpm={cpm}
