@@ -174,6 +174,7 @@ class GroqAiAdapterTest {
 
     assertThatThrownBy(() -> adapter.explain("code"))
         .isInstanceOf(AiProviderException.class)
+        .hasMessageContaining("rejected the request")
         .extracting(e -> ((AiProviderException) e).getStatus())
         .isEqualTo(HttpStatus.BAD_GATEWAY);
   }
@@ -237,5 +238,53 @@ class GroqAiAdapterTest {
     String body = request.getBody().readUtf8();
     assertThat(body).contains("test-model");
     assertThat(body).contains("int x = 1;");
+    assertThat(body).contains("<<<SNIPPET-");
+  }
+
+  @Test
+  void explain_snippetWithBackticks_usesUnguessableDelimiter() throws Exception {
+    server.enqueue(
+        new MockResponse()
+            .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .setBody(VALID_AI_RESPONSE));
+
+    adapter.explain("String s = \"```\"; // close fence");
+
+    var request = server.takeRequest();
+    String body = request.getBody().readUtf8();
+    assertThat(body).contains("<<<SNIPPET-");
+    assertThat(body).contains(">>>");
+  }
+
+  @Test
+  void explain_clientError401_throwsGenericMessage() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401));
+
+    assertThatThrownBy(() -> adapter.explain("code"))
+        .isInstanceOf(AiProviderException.class)
+        .hasMessageContaining("rejected the request")
+        .satisfies(e -> assertThat(e.getMessage()).doesNotContain("401"));
+  }
+
+  @Test
+  void explain_emptyResponseBody_throwsInvalidResponse() throws Exception {
+    server.enqueue(
+        new MockResponse()
+            .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .setBody(""));
+
+    assertThatThrownBy(() -> adapter.explain("code")).isInstanceOf(AiProviderException.class);
+  }
+
+  @Test
+  void explain_noChoicesField_throwsInvalidResponse() throws Exception {
+    server.enqueue(
+        new MockResponse()
+            .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .setBody("{\"result\":\"ok\"}"));
+
+    assertThatThrownBy(() -> adapter.explain("code"))
+        .isInstanceOf(AiProviderException.class)
+        .hasMessageContaining("no choices");
   }
 }
