@@ -348,6 +348,118 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('requests a password reset email from the forgot password page', async () => {
+    const user = await goToLogin();
+    server.use(
+      http.post(`${API_URL}/api/auth/forgot-password`, async ({ request }) => {
+        await expect(request.json()).resolves.toMatchObject({
+          email: 'player@example.com',
+        });
+
+        return HttpResponse.json(
+          {
+            data: {
+              message:
+                'If an account with the provided email exists, a password reset email will be sent.',
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Forgot?' }));
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.click(screen.getByRole('button', { name: /send reset link/i }));
+
+    expect(
+      await screen.findByText(/password reset email will be sent/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /try again in 2:00/i }),
+    ).toBeDisabled();
+  });
+
+  it('resets a password from a valid reset link and returns to login', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '/reset-password?token=reset-token');
+    server.use(
+      http.post(`${API_URL}/api/auth/reset-password`, async ({ request }) => {
+        await expect(request.json()).resolves.toMatchObject({
+          confirmPassword: 'NewPassword123',
+          newPassword: 'NewPassword123',
+          token: 'reset-token',
+        });
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: /reset your password/i }),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('New password'), 'NewPassword123');
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'NewPassword123',
+    );
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    expect(
+      await screen.findByRole('heading', { name: /password changed/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /password has been changed/i,
+    );
+
+    await user.click(screen.getByRole('button', { name: /back to log in/i }));
+
+    expect(
+      screen.getByRole('heading', { name: /welcome back/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/password changed/i);
+  });
+
+  it('shows a safe message for invalid password reset links', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(
+      null,
+      '',
+      '/reset-password?token=expired-token',
+    );
+    server.use(
+      http.post(`${API_URL}/api/auth/reset-password`, () =>
+        HttpResponse.json(
+          {
+            code: 'PASSWORD_RESET_FAILED',
+            instance: '/api/auth/reset-password',
+            message: 'Password reset link is invalid or expired',
+            status: 400,
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText('New password'), 'NewPassword123');
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'NewPassword123',
+    );
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    expect(
+      await screen.findByText(/password reset link is invalid or expired/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /reset your password/i }),
+    ).toBeInTheDocument();
+  });
+
   it('logs in a verified user, stores the session, and logs out', async () => {
     const user = await goToLogin();
     server.use(
@@ -371,7 +483,7 @@ describe('App', () => {
     await submitValidLogin(user);
 
     expect(
-      await screen.findByRole('heading', { name: /welcome, player/i }),
+      await screen.findByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem('code-racer.auth-session')).toContain(
       'jwt-token',
@@ -427,7 +539,7 @@ describe('App', () => {
   });
 
   it('redirects protected routes to login without rendering protected content', () => {
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
@@ -436,7 +548,7 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/please log in/i);
     expect(
-      screen.queryByRole('heading', { name: /welcome, player/i }),
+      screen.queryByRole('heading', { name: /choose a race mode/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -492,7 +604,7 @@ describe('App', () => {
   it('updates the login notice when a protected route redirects to login again', async () => {
     const user = userEvent.setup();
     saveSession(session());
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
@@ -514,12 +626,12 @@ describe('App', () => {
         user: userResponse({ role: 'ADMIN', username: 'admin' }),
       }),
     );
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, admin/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^admin$/i }));
     expect(
@@ -532,7 +644,7 @@ describe('App', () => {
 
   it('redirects expired sessions back to login', () => {
     saveSession(session({ expiresAt: Date.now() - 1 }));
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
@@ -546,12 +658,12 @@ describe('App', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-17T12:00:00Z'));
     saveSession(session({ expiresAt: Date.now() + 1_000 }));
-    window.history.replaceState(null, '', '/dashboard');
+    window.history.replaceState(null, '', '/home');
 
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, player/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
 
     await act(async () => {
@@ -572,10 +684,10 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome, player/i }),
+      screen.getByRole('heading', { name: /choose a race mode/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(/admin access/i);
-    await waitFor(() => expect(window.location.pathname).toBe('/dashboard'));
+    await waitFor(() => expect(window.location.pathname).toBe('/home'));
   });
 
   it('toggles password visibility with the eye button', async () => {

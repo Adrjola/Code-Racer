@@ -17,6 +17,16 @@ export type RegistrationValues = {
   username: string;
 };
 
+export type ForgotPasswordValues = {
+  email: string;
+};
+
+export type ResetPasswordValues = {
+  confirmPassword: string;
+  newPassword: string;
+  token: string;
+};
+
 export type ResendVerificationValues = {
   email: string;
 };
@@ -29,6 +39,10 @@ type LoginResponse = {
 };
 
 type EmailVerificationResendResponse = {
+  message: string;
+};
+
+type ForgotPasswordResponse = {
   message: string;
 };
 
@@ -95,6 +109,27 @@ export async function resendVerificationEmail(
   return response.data.message;
 }
 
+export async function requestPasswordReset(
+  values: ForgotPasswordValues,
+): Promise<string> {
+  const response = await apiRequest<BaseResponse<ForgotPasswordResponse>>(
+    '/api/auth/forgot-password',
+    {
+      body: JSON.stringify({ email: values.email }),
+      method: 'POST',
+    },
+  );
+
+  return response.data.message;
+}
+
+export async function resetPassword(values: ResetPasswordValues) {
+  await apiRequest<void>('/api/auth/reset-password', {
+    body: JSON.stringify(values),
+    method: 'POST',
+  });
+}
+
 export function readableAuthError(error: unknown): string {
   if (!(error instanceof ApiRequestError)) {
     return 'Cannot reach the server. Check your connection and try again.';
@@ -109,6 +144,8 @@ export function readableAuthError(error: unknown): string {
       return 'A user with this email or username already exists.';
     case 'EMAIL_VERIFICATION_FAILED':
       return 'This verification link is invalid or expired. Request a new verification email and try again.';
+    case 'PASSWORD_RESET_FAILED':
+      return 'This password reset link is invalid or expired. Request a new password reset email and try again.';
     case 'INVALID_INPUT':
     case 'VALIDATION_FAILED':
       return error.message;

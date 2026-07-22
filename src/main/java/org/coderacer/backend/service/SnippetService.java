@@ -153,7 +153,7 @@ public class SnippetService {
   }
 
   private static String hash(String canonicalSource) {
-    return Sha256Hasher.hashHex(canonicalSource);
+    return Sha256Hasher.hash(canonicalSource);
   }
 
   private static int codePointLength(String text) {

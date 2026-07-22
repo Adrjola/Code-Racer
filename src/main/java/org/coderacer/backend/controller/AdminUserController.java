@@ -1,12 +1,11 @@
 package org.coderacer.backend.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AdminUserResponse;
 import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.security.CurrentUserProvider;
+import org.coderacer.backend.security.CurrentJwtUserProvider;
 import org.coderacer.backend.service.AdminUserService;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Pageable;
@@ -26,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminUserController {
 
   private final AdminUserService service;
-  private final CurrentUserProvider currentUserProvider;
+  private final CurrentJwtUserProvider currentJwtUserProvider;
 
   @GetMapping
   public BaseResponse<PagedModel<AdminUserResponse>> list(
@@ -43,8 +42,8 @@ public class AdminUserController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> delete(@PathVariable UUID id, HttpServletRequest request) {
-    service.delete(id, currentUserProvider.resolve(request));
+  public ResponseEntity<Void> delete(@PathVariable UUID id) {
+    service.delete(id, currentJwtUserProvider.resolve());
     return ResponseEntity.noContent().build();
   }
 

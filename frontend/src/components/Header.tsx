@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import dashboardNavIcon from '@/assets/icons/dashboard-nav.svg';
+import { TrophyIcon } from '@/components/icons';
 import logoutNavIcon from '@/assets/icons/logout-nav.svg';
 import { useDesignScale } from '@/hooks/useDesignScale';
 import Logo from './Logo';
@@ -20,6 +21,8 @@ type HeaderProps = SharedHeaderProps &
         isAdmin?: boolean;
         onGoAdmin?: () => void;
         onGoDashboard: () => void;
+        /** Rendered only where statistics are reachable, matching the design. */
+        onGoStatistics?: () => void;
         onLogout: () => void;
         username: string;
         variant?: 'full';
@@ -55,17 +58,29 @@ function NavContent({
   isAdmin,
   onGoAdmin,
   onGoDashboard,
+  onGoStatistics,
   username,
   onOpenLogoutConfirm,
 }: {
   isAdmin: boolean;
   onGoAdmin?: () => void;
   onGoDashboard: () => void;
+  onGoStatistics?: () => void;
   username: string;
   onOpenLogoutConfirm: () => void;
 }) {
   return (
     <>
+      {onGoStatistics && (
+        <button
+          aria-label="Statistics"
+          className="flex size-10 shrink-0 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
+          onClick={onGoStatistics}
+          type="button"
+        >
+          <TrophyIcon className="size-5" />
+        </button>
+      )}
       {isAdmin && onGoAdmin && (
         <button className={navLinkClassName} onClick={onGoAdmin} type="button">
           Admin
@@ -137,6 +152,7 @@ export default function Header(props: HeaderProps) {
     isAdmin = false,
     onGoAdmin,
     onGoDashboard,
+    onGoStatistics,
     onLogout,
     username,
   } = props;
@@ -153,6 +169,7 @@ export default function Header(props: HeaderProps) {
               isAdmin={isAdmin}
               onGoAdmin={onGoAdmin}
               onGoDashboard={onGoDashboard}
+              onGoStatistics={onGoStatistics}
               onOpenLogoutConfirm={() => setShowLogoutConfirm(true)}
               username={username}
             />
@@ -180,6 +197,7 @@ export default function Header(props: HeaderProps) {
             isAdmin={isAdmin}
             onGoAdmin={onGoAdmin}
             onGoDashboard={onGoDashboard}
+            onGoStatistics={onGoStatistics}
             onOpenLogoutConfirm={() => setShowLogoutConfirm(true)}
             username={username}
           />

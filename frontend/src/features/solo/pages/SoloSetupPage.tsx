@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Header from '@/components/Header';
 import type { AuthSession } from '@/features/auth/session';
+import { isSessionExpiredError } from '@/lib/apiClient';
 import {
   fetchCategories,
-  isSessionExpiredError,
   readableSoloError,
   type Category,
   type CategoryOption,
@@ -19,7 +19,7 @@ import checkmarkIcon from '@/assets/icons/checkmark.svg';
 import playTriangleIcon from '@/assets/icons/play-triangle.svg';
 
 type SoloSetupPageProps = {
-  onGoDashboard: () => void;
+  onGoHome: () => void;
   onLogout: () => void;
   onSelect: (selection: SoloSelection) => void;
   onSessionExpired: () => void;
@@ -237,7 +237,7 @@ function useNaturalHeight() {
 }
 
 export default function SoloSetupPage({
-  onGoDashboard,
+  onGoHome,
   onLogout,
   onSelect,
   onSessionExpired,
@@ -315,7 +315,7 @@ export default function SoloSetupPage({
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
       <div className="sticky top-0 z-10 bg-surface">
         <Header
-          onGoDashboard={onGoDashboard}
+          onGoDashboard={onGoHome}
           onLogout={onLogout}
           scale={scale}
           username={session.user.username}

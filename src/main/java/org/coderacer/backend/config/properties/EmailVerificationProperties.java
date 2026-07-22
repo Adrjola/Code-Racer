@@ -1,27 +1,15 @@
 package org.coderacer.backend.config.properties;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
+import org.hibernate.validator.constraints.time.DurationMin;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "app.email-verification")
 public record EmailVerificationProperties(
-    Duration tokenTtl, Duration resendCooldown, @NotBlank String verificationUrl) {
-
-  public EmailVerificationProperties {
-    if (tokenTtl == null) {
-      tokenTtl = Duration.ofHours(24);
-    }
-    if (resendCooldown == null) {
-      resendCooldown = Duration.ofMinutes(2);
-    }
-    if (tokenTtl.isZero() || tokenTtl.isNegative()) {
-      throw new IllegalArgumentException("Email verification token TTL must be positive");
-    }
-    if (resendCooldown.isNegative()) {
-      throw new IllegalArgumentException("Email verification resend cooldown cannot be negative");
-    }
-  }
-}
+    @NotNull @DurationMin(seconds = 1) Duration tokenTtl,
+    @NotNull @DurationMin Duration resendCooldown,
+    @NotBlank String verificationUrl) {}

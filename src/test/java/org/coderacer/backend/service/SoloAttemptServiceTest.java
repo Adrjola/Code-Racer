@@ -84,8 +84,7 @@ class SoloAttemptServiceTest {
   }
 
   private Category category() {
-    Category category = Category.JAVA;
-    return category;
+    return Category.JAVA;
   }
 
   private CodeSnippet snippet() {

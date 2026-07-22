@@ -1,26 +1,81 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AuthLayout from '@/components/AuthLayout';
 import GradientButton from '@/components/GradientButton';
 import TextField from '@/components/TextField';
 import { MailIcon } from '@/components/icons';
+import { readableAuthError, requestPasswordReset } from '@/features/auth/auth';
 import { emailError } from '@/features/auth/validation';
 
 type ForgotPasswordPageProps = {
   onBackToLogin: () => void;
 };
 
+const RESET_EMAIL_COOLDOWN_SECONDS = 120;
+
+function formatCooldown(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = String(seconds % 60).padStart(2, '0');
+  return `${minutes}:${remainingSeconds}`;
+}
+
 export default function ForgotPasswordPage({
   onBackToLogin,
 }: ForgotPasswordPageProps) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>();
+  const [message, setMessage] = useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  const isCoolingDown = cooldownSeconds > 0;
+  let submitLabel = 'Send reset link';
+  if (isCoolingDown) {
+    submitLabel = `Try again in ${formatCooldown(cooldownSeconds)}`;
+  }
+  if (isSubmitting) {
+    submitLabel = 'Sending...';
+  }
+
+  useEffect(() => {
+    if (!isCoolingDown) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setCooldownSeconds((seconds) => Math.max(seconds - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isCoolingDown]);
 
   const handleChange = (value: string) => {
     setEmail(value);
     setError(undefined);
+    setMessage(undefined);
   };
 
-  const handleSubmit = () => setError(emailError(email));
+  const handleSubmit = async () => {
+    if (isCoolingDown) {
+      return;
+    }
+
+    const nextError = emailError(email);
+    setError(nextError);
+    if (nextError) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage(undefined);
+    try {
+      setMessage(await requestPasswordReset({ email }));
+      setCooldownSeconds(RESET_EMAIL_COOLDOWN_SECONDS);
+    } catch (error) {
+      setMessage(readableAuthError(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <AuthLayout
@@ -40,6 +95,7 @@ export default function ForgotPasswordPage({
     >
       <TextField
         autoComplete="email"
+        disabled={isSubmitting || isCoolingDown}
         error={error}
         icon={<MailIcon />}
         id="forgot-email"
@@ -50,8 +106,19 @@ export default function ForgotPasswordPage({
         type="email"
         value={email}
       />
-      <GradientButton className="mt-[clamp(1.5rem,5dvh,3.5rem)] lg:mt-[56px]">
-        Send reset link
+      {message && (
+        <p
+          className="mt-4 rounded-[10px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-[13px] leading-[1.45] text-text-secondary"
+          role="status"
+        >
+          {message}
+        </p>
+      )}
+      <GradientButton
+        className="mt-[clamp(1.5rem,5dvh,3.5rem)] lg:mt-[56px]"
+        disabled={isSubmitting || isCoolingDown}
+      >
+        {submitLabel}
       </GradientButton>
     </AuthLayout>
   );

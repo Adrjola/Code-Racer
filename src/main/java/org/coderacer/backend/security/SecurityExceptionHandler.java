@@ -24,7 +24,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
   public void commence(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException ex)
       throws IOException {
-    writeProblem(
+    writeResponse(
         response,
         HttpStatus.UNAUTHORIZED,
         "Authentication is required",
@@ -36,7 +36,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
   public void handle(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
       throws IOException {
-    writeProblem(
+    writeResponse(
         response,
         HttpStatus.FORBIDDEN,
         "You do not have permission to access this resource",
@@ -44,7 +44,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
         request);
   }
 
-  private void writeProblem(
+  private void writeResponse(
       HttpServletResponse response,
       HttpStatus status,
       String message,

@@ -90,13 +90,6 @@ function hasCode(error: unknown, code: string): boolean {
   return error instanceof ApiRequestError && error.code === code;
 }
 
-export function isSessionExpiredError(error: unknown): boolean {
-  return (
-    hasCode(error, 'AUTHENTICATION_REQUIRED') ||
-    hasCode(error, 'SESSION_EXPIRED')
-  );
-}
-
 export function isNoEligibleSnippetError(error: unknown): boolean {
   return hasCode(error, 'NO_ELIGIBLE_SNIPPET');
 }

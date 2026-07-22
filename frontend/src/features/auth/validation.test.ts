@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { emailError, validateLogin, validateRegistration } from './validation';
+import {
+  emailError,
+  validateLogin,
+  validatePasswordReset,
+  validateRegistration,
+} from './validation';
 
 describe('auth validation', () => {
   it('rejects missing and malformed email addresses', () => {
@@ -28,6 +33,30 @@ describe('auth validation', () => {
     });
   });
 
+  it('validates password reset fields centrally', () => {
+    expect(
+      validatePasswordReset({
+        confirmPassword: 'DifferentPass123',
+        newPassword: 'StrongerPass123',
+        token: 'reset-token',
+      }),
+    ).toMatchObject({
+      confirmPassword: 'Passwords do not match',
+    });
+
+    expect(
+      validatePasswordReset({
+        confirmPassword: '',
+        newPassword: '',
+        token: '',
+      }),
+    ).toMatchObject({
+      confirmPassword: 'Please confirm your password',
+      newPassword: 'Password is required',
+      token: 'Reset token is required',
+    });
+  });
+
   it('matches the backend password and username rules', () => {
     expect(
       validateRegistration({
@@ -37,7 +66,7 @@ describe('auth validation', () => {
         username: 'bad space',
       }),
     ).toMatchObject({
-      password: 'Password must be between 8 and 16 characters',
+      password: 'Password must be between 8 and 72 characters',
       username:
         'Username must be 3 to 20 characters and use letters, numbers, underscores, or hyphens',
     });
@@ -53,13 +82,15 @@ describe('auth validation', () => {
 
     expect(
       validateRegistration({
-        confirmPassword: 'LongPassword12345',
+        confirmPassword:
+          'VeryLongPassword1234567890VeryLongPassword1234567890VeryLongPassword1234567890',
         email: 'racer@example.com',
-        password: 'LongPassword12345',
+        password:
+          'VeryLongPassword1234567890VeryLongPassword1234567890VeryLongPassword1234567890',
         username: 'speed_racer',
       }),
     ).toMatchObject({
-      password: 'Password must be between 8 and 16 characters',
+      password: 'Password must be between 8 and 72 characters',
     });
   });
 });

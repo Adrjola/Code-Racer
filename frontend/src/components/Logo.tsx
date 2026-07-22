@@ -40,7 +40,7 @@ export default function Logo({ onClick }: LogoProps) {
   if (onClick) {
     return (
       <button
-        aria-label="Go to dashboard"
+        aria-label="Go to homepage"
         className={wrapperClassName}
         onClick={onClick}
         type="button"

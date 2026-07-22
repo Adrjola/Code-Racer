@@ -2,6 +2,7 @@ package org.coderacer.backend.security;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -19,8 +20,10 @@ import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -47,12 +50,16 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info")
                     .permitAll()
+                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                    .permitAll()
                     .requestMatchers(
                         HttpMethod.POST,
                         "/api/auth/register",
                         "/api/auth/login",
                         "/api/auth/email-verification/confirm",
-                        "/api/auth/email-verification/resend")
+                        "/api/auth/email-verification/resend",
+                        "/api/auth/forgot-password",
+                        "/api/auth/reset-password")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/categories/**")
                     .permitAll()
@@ -80,7 +87,12 @@ public class SecurityConfig {
   }
 
   @Bean
-  JwtDecoder jwtDecoder(SecretKey jwtSecretKey, JwtAccountValidator validator) {
+  JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
+    return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
+  }
+
+  @Bean
+  JwtDecoder jwtDecoder(SecretKey jwtSecretKey, JwtUserStatusValidator validator) {
     NimbusJwtDecoder decoder =
         NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
     decoder.setJwtValidator(
@@ -91,7 +103,7 @@ public class SecurityConfig {
   @Bean
   Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
     JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    authoritiesConverter.setAuthoritiesClaimName("roles");
+    authoritiesConverter.setAuthoritiesClaimName(JwtTokenService.ROLES_CLAIM);
     authoritiesConverter.setAuthorityPrefix("ROLE_");
 
     JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();

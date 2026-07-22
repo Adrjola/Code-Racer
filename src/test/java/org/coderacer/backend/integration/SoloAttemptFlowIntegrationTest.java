@@ -23,7 +23,7 @@ import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.SoloAttemptRepository;
 import org.coderacer.backend.repository.UserRepository;
-import org.coderacer.backend.security.JwtService;
+import org.coderacer.backend.security.JwtTokenService;
 import org.coderacer.backend.support.IntegrationTest;
 import org.coderacer.backend.support.MutableClock;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ class SoloAttemptFlowIntegrationTest {
   @Autowired private CodeSnippetRepository codeSnippetRepository;
   @Autowired private SoloAttemptRepository soloAttemptRepository;
   @Autowired private MutableClock clock;
-  @Autowired private JwtService jwtService;
+  @Autowired private JwtTokenService jwtTokenService;
 
   private User newUser(String username) {
     User user = new User();
@@ -100,7 +100,7 @@ class SoloAttemptFlowIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("X-User-Id", spoofedHeaderUser.getId().toString());
-    headers.setBearerAuth(jwtService.createAccessToken(tokenUser));
+    headers.setBearerAuth(jwtTokenService.createAccessToken(tokenUser));
     return headers;
   }
 

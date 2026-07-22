@@ -17,8 +17,10 @@ html {
   --auth-scale: 1;
   --landing-scale: 1;
   --page-scale: 1;
+  --stats-scale: 1;
 
   background: #0e0c16;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -40,4 +42,56 @@ body {
   input {
     font: inherit;
   }
+
+  input,
+  textarea {
+    caret-color: #e7e5ef;
+  }
+
+  input::selection,
+  textarea::selection {
+    background: rgb(244 114 182 / 0.28);
+    color: #e7e5ef;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #11101a inset;
+    -webkit-text-fill-color: #e7e5ef;
+    caret-color: #e7e5ef;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+}
+
+@keyframes draw-outline {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Gradient stroke that follows the element's own border-radius. Only the 1px
+   ring shows the gradient (from --card-border-gradient); the element keeps its
+   own background. A transparent border can't hold a gradient and border-image
+   ignores rounded corners, so this masks a padded ::before down to the edge. */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: var(--gradient-border-width, 1px);
+  border-radius: inherit;
+  background: var(--card-border-gradient);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }

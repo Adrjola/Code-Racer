@@ -13,7 +13,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.util.IdentifierNormalizer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
@@ -58,6 +57,9 @@ public class User {
   @Column(name = "verification_email_resent_at")
   private Instant verificationEmailResentAt;
 
+  @Column(name = "password_reset_email_sent_at")
+  private Instant passwordResetEmailResentAt;
+
   public boolean canAuthenticate() {
     return emailVerified && !deleted;
   }
@@ -76,9 +78,23 @@ public class User {
     this.verificationEmailResentAt = resentAt;
   }
 
+  public boolean canResendPasswordResetEmail(Instant now, Duration cooldown) {
+    return cooldown.isZero()
+        || passwordResetEmailResentAt == null
+        || !passwordResetEmailResentAt.plus(cooldown).isAfter(now);
+  }
+
+  public void markPasswordResetEmailResent(Instant resentAt) {
+    this.passwordResetEmailResentAt = resentAt;
+  }
+
   public void setUsername(String username) {
     this.username = username;
-    this.usernameNormalized = IdentifierNormalizer.normalize(username);
+    this.usernameNormalized = normalize(username);
+  }
+
+  private String normalize(String value) {
+    return value.trim().toLowerCase();
   }
 
   @CreationTimestamp

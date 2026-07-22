@@ -38,6 +38,15 @@ describe('readableAuthError', () => {
     ).toMatch(/verification link is invalid or expired/i);
     expect(
       readableAuthError(
+        new ApiRequestError(
+          'Password reset link is invalid or expired',
+          'PASSWORD_RESET_FAILED',
+          400,
+        ),
+      ),
+    ).toMatch(/password reset link is invalid or expired/i);
+    expect(
+      readableAuthError(
         new ApiRequestError('Validation failed', 'INVALID_INPUT', 400),
       ),
     ).toBe('Validation failed');
