@@ -4,12 +4,15 @@ import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AdminUserResponse;
+import org.coderacer.backend.dto.AdminUserUpdateRequest;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
 import org.coderacer.backend.exception.SelfActionForbiddenException;
+import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
@@ -22,6 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AdminUserService {
+
+  private static final Pattern EMAIL_PATTERN =
+      Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern USERNAME_PATTERN =
+      Pattern.compile("^[A-Z0-9][A-Z0-9_-]{2,19}$", Pattern.CASE_INSENSITIVE);
 
   private final UserRepository repository;
   private final UserMapper mapper;
@@ -58,6 +66,67 @@ public class AdminUserService {
     }
     user.setDeleted(false);
     return mapper.toAdminResponse(repository.saveAndFlush(user));
+  }
+
+  @Transactional
+  public AdminUserResponse update(UUID id, AdminUserUpdateRequest request) {
+    User user = findOrThrow(id);
+
+    String email = normalize(trim(request.email()));
+    String username = trim(request.username());
+    String usernameNormalized = normalize(username);
+    validateEmail(email);
+    validateUsername(username);
+
+    if (!email.equals(user.getEmail()) && repository.existsByEmailAndIdNot(email, id)) {
+      throw duplicateUserConflict();
+    }
+    if (!usernameNormalized.equals(user.getUsernameNormalized())
+        && repository.existsByUsernameNormalizedAndIdNot(usernameNormalized, id)) {
+      throw duplicateUserConflict();
+    }
+
+    user.setEmail(email);
+    user.setUsername(username);
+    return mapper.toAdminResponse(repository.saveAndFlush(user));
+  }
+
+  private void validateEmail(String email) {
+    List<String> errors = new ArrayList<>();
+    if (email.isBlank()) {
+      errors.add("email must not be blank");
+    } else if (email.length() > 120 || !EMAIL_PATTERN.matcher(email).matches()) {
+      errors.add("email must be a valid email address");
+    }
+    if (!errors.isEmpty()) {
+      throw new ValidationException("Validation failed: " + String.join("; ", errors));
+    }
+  }
+
+  private void validateUsername(String username) {
+    List<String> errors = new ArrayList<>();
+    if (username.isBlank()) {
+      errors.add("username must not be blank");
+    } else if (!USERNAME_PATTERN.matcher(username).matches()) {
+      errors.add(
+          "username must be 3 to 20 characters and contain only letters, numbers, underscores, or hyphens");
+    }
+    if (!errors.isEmpty()) {
+      throw new ValidationException("Validation failed: " + String.join("; ", errors));
+    }
+  }
+
+  private ConflictException duplicateUserConflict() {
+    return new ConflictException(
+        "A user with this email or username already exists", "USER_ALREADY_EXISTS");
+  }
+
+  private String normalize(String value) {
+    return value.trim().toLowerCase();
+  }
+
+  private String trim(String value) {
+    return value == null ? "" : value.trim();
   }
 
   private void requireNotSelf(UUID targetId, UUID currentAdminId, String action) {
