@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
  * Live typing progress for races in flight. The state lives on the attempt row rather than in
  * memory, so a backend restart no longer loses a race that is still being typed.
  *
- * <p>Transactions are joined rather than started fresh: the TTL sweeper already holds one and has
- * already touched the rows this store locks.
+ * <p>Each method is transactional in its own right, so it joins an ambient transaction when the
+ * caller already has one - the TTL sweeper, which has already touched these rows - and otherwise
+ * opens its own. Progress submission is the latter case: it drives the store per keystroke batch
+ * without a surrounding transaction, so each call is a short transaction of its own.
  */
 @Component
 @RequiredArgsConstructor

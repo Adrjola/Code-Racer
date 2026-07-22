@@ -161,7 +161,7 @@ public class SoloAttemptService {
    */
   private void releaseStaleAttempt(UUID userId, Instant now) {
     soloAttemptRepository
-        .findFirstByUserIdAndStateIn(
+        .findFirstWithLockByUserIdAndStateIn(
             userId, List.of(SoloAttemptState.COUNTDOWN, SoloAttemptState.ACTIVE))
         .filter(existing -> staleness.isStale(existing, now))
         .ifPresent(

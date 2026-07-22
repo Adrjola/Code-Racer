@@ -140,7 +140,7 @@ class SoloAttemptServiceTest {
     when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
     when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
     SoloAttempt stranded = liveAttempt(now.minusSeconds(120), SoloAttemptState.COUNTDOWN);
-    when(soloAttemptRepository.findFirstByUserIdAndStateIn(eq(userId), any()))
+    when(soloAttemptRepository.findFirstWithLockByUserIdAndStateIn(eq(userId), any()))
         .thenReturn(Optional.of(stranded));
     when(soloAttemptRepository.saveAndFlush(any(SoloAttempt.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -157,7 +157,7 @@ class SoloAttemptServiceTest {
     when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
     SoloAttempt stranded = liveAttempt(now.minusSeconds(300), SoloAttemptState.ACTIVE);
     stranded.recordProgress(5, 1, now.minusSeconds(120));
-    when(soloAttemptRepository.findFirstByUserIdAndStateIn(eq(userId), any()))
+    when(soloAttemptRepository.findFirstWithLockByUserIdAndStateIn(eq(userId), any()))
         .thenReturn(Optional.of(stranded));
     when(soloAttemptRepository.saveAndFlush(any(SoloAttempt.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -173,7 +173,7 @@ class SoloAttemptServiceTest {
     when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
     SoloAttempt busy = liveAttempt(now.minusSeconds(30), SoloAttemptState.ACTIVE);
     busy.recordProgress(12, 3, now.minusSeconds(2));
-    when(soloAttemptRepository.findFirstByUserIdAndStateIn(eq(userId), any()))
+    when(soloAttemptRepository.findFirstWithLockByUserIdAndStateIn(eq(userId), any()))
         .thenReturn(Optional.of(busy));
     when(soloAttemptRepository.saveAndFlush(any(SoloAttempt.class)))
         .thenThrow(new DataIntegrityViolationException("duplicate active attempt"));
