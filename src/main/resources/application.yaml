@@ -3,21 +3,21 @@ spring:
     name: code-racer-backend
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:code_racer}
-    username: ${POSTGRES_USER:code_racer}
-    password: ${POSTGRES_PASSWORD:change-me}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:1025}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          auth: ${MAIL_SMTP_AUTH:false}
+          auth: ${MAIL_SMTP_AUTH}
           starttls:
-            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE}
 
   jpa:
     open-in-view: false
@@ -39,31 +39,31 @@ logging:
 
 app:
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+    allowed-origins: ${ALLOWED_ORIGINS}
   email:
     delivery:
-      mode: ${APP_EMAIL_DELIVERY_MODE:smtp}
-      from: ${APP_EMAIL_FROM:no-reply@coderacer.local}
+      mode: ${APP_EMAIL_DELIVERY_MODE}
+      from: ${APP_EMAIL_FROM}
   email-verification:
-    verification-url: ${APP_EMAIL_VERIFICATION_URL:http://localhost:5173/verify-email}
-    token-ttl: ${APP_EMAIL_VERIFICATION_TOKEN_TTL:24h}
-    resend-cooldown: ${APP_EMAIL_VERIFICATION_RESEND_COOLDOWN:2m}
+    verification-url: ${APP_EMAIL_VERIFICATION_URL}
+    token-ttl: ${APP_EMAIL_VERIFICATION_TOKEN_TTL}
+    resend-cooldown: ${APP_EMAIL_VERIFICATION_RESEND_COOLDOWN}
   password-reset:
-    token-ttl: ${APP_PASSWORD_RESET_TOKEN_TTL:30m}
-    resend-cooldown: ${APP_PASSWORD_RESET_RESEND_COOLDOWN:2m}
-    reset-url: ${APP_PASSWORD_RESET_URL:http://localhost:5173/reset-password}
+    token-ttl: ${APP_PASSWORD_RESET_TOKEN_TTL}
+    resend-cooldown: ${APP_PASSWORD_RESET_RESEND_COOLDOWN}
+    reset-url: ${APP_PASSWORD_RESET_URL}
   ai:
-    enabled: ${APP_AI_ENABLED:false}
-    api-key: ${APP_AI_API_KEY:}
-    base-url: ${APP_AI_BASE_URL:https://api.groq.com/openai}
-    model-id: ${APP_AI_MODEL_ID:meta-llama/llama-4-scout-17b-16e-instruct}
+    enabled: ${APP_AI_ENABLED}
+    api-key: ${APP_AI_API_KEY}
+    base-url: ${APP_AI_BASE_URL}
+    model-id: ${APP_AI_MODEL_ID}
   security:
     jwt:
-      secret: ${APP_JWT_SECRET:}
-      access-token-ttl: ${APP_JWT_ACCESS_TOKEN_TTL:4h}
+      secret: ${APP_JWT_SECRET}
+      access-token-ttl: ${APP_JWT_ACCESS_TOKEN_TTL}
   admin:
     bootstrap:
-      enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED:false}
-      email: ${APP_ADMIN_EMAIL:}
-      username: ${APP_ADMIN_USERNAME:}
-      password: ${APP_ADMIN_PASSWORD:}
+      enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED}
+      email: ${APP_ADMIN_EMAIL}
+      username: ${APP_ADMIN_USERNAME}
+      password: ${APP_ADMIN_PASSWORD}

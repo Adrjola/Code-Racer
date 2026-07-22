@@ -130,13 +130,13 @@ On PowerShell:
 Copy-Item .env.example .env
 ```
 
-2. Adjust the local PostgreSQL and email values in `.env` if necessary. Set
-   `APP_JWT_SECRET` to a strong deployment-specific value before running the
-   backend; known example or development JWT secrets are rejected outside
-   dev/local/test profiles. Local verification emails are sent to Mailpit through the
-   SMTP settings in `.env.example`; production environments must provide their
-   real SMTP host, credentials, sender address, and frontend verification URL.
-   To bootstrap an
+2. Fill in every required value in `.env`. Secrets such as
+   `POSTGRES_PASSWORD`, `APP_JWT_SECRET`, SMTP credentials, and admin bootstrap
+   credentials must stay in `.env` only; `.env.example` documents the structure
+   without real secret values. Local verification emails are sent to Mailpit by
+   default through the SMTP settings in `.env.example`. To test real email
+   delivery locally, replace the Mailpit SMTP values with real SMTP credentials
+   in `.env`. To bootstrap an
    initial administrator on an empty environment, set
    `APP_ADMIN_BOOTSTRAP_ENABLED=true` and provide `APP_ADMIN_EMAIL`,
    `APP_ADMIN_USERNAME`, and `APP_ADMIN_PASSWORD`. Leave bootstrap disabled
@@ -197,37 +197,44 @@ Required `production` Environment Secrets:
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `MAIL_HOST`
+- `MAIL_PORT`
 - `MAIL_USERNAME`
 - `MAIL_PASSWORD`
+- `MAIL_SMTP_AUTH`
+- `MAIL_SMTP_STARTTLS_ENABLE`
+- `APP_EMAIL_DELIVERY_MODE`
 - `APP_EMAIL_FROM`
 - `APP_EMAIL_VERIFICATION_URL`
 - `APP_PASSWORD_RESET_URL`
 - `APP_JWT_SECRET`
+- `APP_JWT_ACCESS_TOKEN_TTL`
 - `ALLOWED_ORIGINS`
+- `APP_ADMIN_BOOTSTRAP_ENABLED`
 
 Optional `production` Environment Secrets:
 
-- `MAIL_PORT` defaults to `587`
-- `MAIL_SMTP_AUTH` defaults to `true`
-- `MAIL_SMTP_STARTTLS_ENABLE` defaults to `true`
-- `APP_EMAIL_DELIVERY_MODE` defaults to `smtp`
-- `APP_JWT_ACCESS_TOKEN_TTL` defaults to `15m`
-- `APP_ADMIN_BOOTSTRAP_ENABLED` defaults to `false`
 - `APP_ADMIN_EMAIL`
 - `APP_ADMIN_USERNAME`
 - `APP_ADMIN_PASSWORD`
+- `APP_AI_API_KEY`
 
-Optional `production` Environment Variables:
+Required `production` Environment Variables:
 
-- `SERVER_PORT` defaults to `3600`
-- `APP_PUBLIC_URL` defaults to `https://team6.acnbootcamp.lv`
+- `SERVER_PORT`
+- `APP_PUBLIC_URL`
+- `APP_EMAIL_VERIFICATION_TOKEN_TTL`
+- `APP_EMAIL_VERIFICATION_RESEND_COOLDOWN`
+- `APP_PASSWORD_RESET_TOKEN_TTL`
+- `APP_PASSWORD_RESET_RESEND_COOLDOWN`
+- `APP_AI_ENABLED`
+- `APP_AI_BASE_URL`
+- `APP_AI_MODEL_ID`
 
 For the first production deploy only, set `APP_ADMIN_BOOTSTRAP_ENABLED=true`
 and provide the admin email, username, and password. After the first admin user
 exists, set `APP_ADMIN_BOOTSTRAP_ENABLED=false` again.
 
-Use the `workflow_dispatch` input `server_port` to choose the public port on the
-server for a manual deployment. The internship Cloudflare Tunnel maps
+The internship Cloudflare Tunnel maps
 `https://team6.acnbootcamp.lv` to port `3600` on the host machine. The container
 listens on port `8080` internally; the workflow maps host port `3600` to it.
 
