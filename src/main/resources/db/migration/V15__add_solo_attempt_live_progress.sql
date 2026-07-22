@@ -10,9 +10,3 @@ ALTER TABLE solo_attempts
 ALTER TABLE solo_attempts
     ADD CONSTRAINT chk_solo_attempts_accepted_offset_non_negative CHECK (accepted_offset >= 0),
     ADD CONSTRAINT chk_solo_attempts_last_sequence_non_negative CHECK (last_sequence >= 0);
-
--- The TTL sweeper looks for live attempts that have gone quiet, which is a scan
--- over the same two columns every time it runs.
-CREATE INDEX idx_solo_attempts_state_last_progress_at
-    ON solo_attempts (state, last_progress_at)
-    WHERE state IN ('COUNTDOWN', 'ACTIVE');
