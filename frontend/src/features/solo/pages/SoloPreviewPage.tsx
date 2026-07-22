@@ -21,11 +21,6 @@ type SoloPreviewPageProps = {
 const messageClassName =
   'flex min-h-[60dvh] items-center justify-center px-4 text-center font-mono text-sm text-text-muted';
 
-/**
- * One screen for the whole run: it previews a snippet for the chosen selection,
- * starts the attempt, counts down to the server's startedAt, races, and then
- * shows the result the server scored.
- */
 export default function SoloPreviewPage({
   onExitRace,
   onSessionExpired,
@@ -64,8 +59,6 @@ export default function SoloPreviewPage({
     [snippetPhase],
   );
 
-  // An unfinished attempt has to be abandoned, or it stays ACTIVE and the next
-  // start is rejected with ONE_ACTIVE_ATTEMPT_ALLOWED.
   const endAttempt = async () => {
     if (!attempt || result) {
       return;
@@ -73,10 +66,6 @@ export default function SoloPreviewPage({
     await soloRaceApi.abandonAttempt(attempt.attemptId).catch(() => undefined);
   };
 
-  // Every way of leaving the race - homepage, browser back, logout, session
-  // expiry - unmounts this page. Refs hold the latest attempt/result so the
-  // unmount cleanup can abandon a still-running attempt on the way out, which
-  // the explicit leave handlers alone would miss.
   const attemptRef = useRef<StartSoloAttemptResponse | null>(null);
   const resultRef = useRef<SoloAttemptResultResponse | null>(null);
   useEffect(() => {
@@ -116,6 +105,7 @@ export default function SoloPreviewPage({
         onNewSnippet={newSnippet}
         onRaceAgain={raceAgain}
         result={result}
+        snippetCode={snippet?.code ?? null}
       />
     );
   }
