@@ -190,6 +190,81 @@ describe('useExactCodeTypingEngine logic engine', () => {
     unmount();
   });
 
+  it('never queues a character the reducer refused', async () => {
+    const sendProgressBatch = vi.fn(async ({ events }) => ({
+      version: events[events.length - 1].version,
+      serverOffset: events[events.length - 1].version,
+    }));
+    const transport: ExactCodeTypingEngineTransport = {
+      sendProgressBatch,
+      submitCompletion: vi.fn(async () => undefined),
+    };
+
+    // A stable startedAt: a fresh one each render re-fires SET_RACE and wipes
+    // the accepted prefix between renders.
+    const startedAt = new Date().toISOString();
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, startedAt, transport),
+    );
+
+    await waitFor(() => {
+      expect(result.current.state.targetCode).toBe('ab');
+    });
+
+    // Three synchronous calls, the way Tab expands to spaces. Only the first
+    // two match "ab"; the third must not reach the server.
+    act(() => {
+      result.current.handleInput('a');
+      result.current.handleInput('b');
+      result.current.handleInput('b');
+    });
+
+    await act(async () => {
+      await result.current.flushNow();
+    });
+
+    const sent = sendProgressBatch.mock.calls
+      .flatMap((call) => call[0].events)
+      .map((event: { value: string }) => event.value)
+      .join('');
+    expect(sent).toBe('ab');
+    expect(result.current.state.acceptedPrefix).toBe('ab');
+    unmount();
+  });
+
+  it('stops retrying a batch the server keeps rejecting', async () => {
+    const sendProgressBatch = vi.fn(async () => {
+      throw new Error('rejected');
+    });
+    const transport: ExactCodeTypingEngineTransport = {
+      sendProgressBatch,
+      submitCompletion: vi.fn(async () => undefined),
+    };
+
+    const { result, unmount } = renderHook(() =>
+      useExactCodeTypingEngine(snippet, new Date().toISOString(), transport),
+    );
+
+    await waitFor(() => {
+      expect(result.current.state.targetCode).toBe('ab');
+    });
+
+    act(() => {
+      result.current.handleInput('a');
+    });
+
+    // A permanently rejected batch used to be re-queued and retried forever.
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await act(async () => {
+        await result.current.flushNow();
+      });
+    }
+
+    expect(sendProgressBatch.mock.calls.length).toBeLessThanOrEqual(4);
+    expect(result.current.state.isExpired).toBe(true);
+    unmount();
+  });
+
   it('does not queue progress for incorrect input', async () => {
     const sendProgressBatch = vi.fn(async ({ events }) => ({
       version: events[events.length - 1].version,

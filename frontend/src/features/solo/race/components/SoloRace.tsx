@@ -263,6 +263,13 @@ export function SoloRace({
 
   const preventDefault = (event: SyntheticEvent) => event.preventDefault();
 
+  // A race the engine gave up on accepts no more input, so say so rather than
+  // leaving the player typing into a screen that silently ignores them.
+  const stoppedMessage = state.isExpired
+    ? 'Lost contact with the server, so this race was stopped. Restart to try again.'
+    : null;
+  const noticeMessage = errorMessage ?? stoppedMessage;
+
   // The code block is taller than its card on long snippets. Once the cursor
   // passes the middle, the block slides up so what comes next stays visible.
   const codeViewportRef = useRef<HTMLDivElement>(null);
@@ -409,9 +416,12 @@ export function SoloRace({
                 </div>
               </div>
 
-              {errorMessage ? (
-                <div className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100">
-                  {errorMessage}
+              {noticeMessage ? (
+                <div
+                  className="pointer-events-none absolute inset-x-8 top-8 z-10 rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 py-3 text-sm text-rose-100"
+                  role="alert"
+                >
+                  {noticeMessage}
                 </div>
               ) : null}
 

@@ -44,9 +44,12 @@ export default function SoloPreviewPage({
   const transport = useMemo(
     () =>
       attempt
-        ? createSoloRaceTransport(attempt.attemptId, { onResult: setResult })
+        ? createSoloRaceTransport(attempt.attemptId, {
+            onResult: setResult,
+            onSessionExpired,
+          })
         : undefined,
-    [attempt],
+    [attempt, onSessionExpired],
   );
 
   const snippet: RaceSnippet | null = useMemo(

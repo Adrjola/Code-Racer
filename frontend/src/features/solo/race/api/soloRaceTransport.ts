@@ -1,3 +1,4 @@
+import { isSessionExpiredError } from '@/features/solo/api/soloApi';
 import {
   isProgressAck,
   soloRaceApi,
@@ -10,6 +11,8 @@ import type {
 } from '../types/race.types';
 
 export type SoloRaceTransportOptions = {
+  /** Called when the server rejects progress because the session is no longer valid. */
+  onSessionExpired?: () => void;
   /**
    * Called once the server reports the attempt COMPLETED. The result carries the
    * authoritative duration and cpm, so the UI never computes them itself.
@@ -35,11 +38,21 @@ export function createSoloRaceTransport(
       const last = batch.events[batch.events.length - 1];
       const characters = batch.events.map((event) => event.value).join('');
       const nextSequence = sequence + 1;
-      const response = await soloRaceApi.submitProgress(
-        attemptId,
-        nextSequence,
-        characters,
-      );
+      let response;
+      try {
+        response = await soloRaceApi.submitProgress(
+          attemptId,
+          nextSequence,
+          characters,
+        );
+      } catch (error: unknown) {
+        // A token that expires mid-race fails every send from here on, so send
+        // the player to log in rather than letting the race die silently.
+        if (isSessionExpiredError(error)) {
+          options.onSessionExpired?.();
+        }
+        throw error;
+      }
 
       // Advance only once the server has taken the delta, so a failed send is
       // retried under the same number instead of skipping one.
