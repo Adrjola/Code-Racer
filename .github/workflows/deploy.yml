@@ -5,7 +5,6 @@ on:
     branches: [ main ]
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,19 +22,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Check Docker availability
-        shell: bash
-        run: docker version
-
       - name: Build application image
         shell: bash
         run: docker build --pull -t code-racer-pr-check:${{ github.sha }} .
 
   deploy:
     name: deploy
-    if: >
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
     environment:
       name: production
@@ -45,31 +38,28 @@ jobs:
       APP_NETWORK_NAME: code-racer-net
       DB_CONTAINER_NAME: code-racer-postgres
       DB_VOLUME_NAME: code-racer-postgres-data
-      SERVER_PORT: ${{ vars.SERVER_PORT }}
-      APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL }}
-      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      MAIL_HOST: ${{ secrets.MAIL_HOST }}
-      MAIL_PORT: ${{ secrets.MAIL_PORT }}
-      MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+      MAIL_HOST: ${{ vars.MAIL_HOST }}
+      MAIL_PORT: ${{ vars.MAIL_PORT }}
+      MAIL_USERNAME: ${{ vars.MAIL_USERNAME }}
       MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-      MAIL_SMTP_AUTH: ${{ secrets.MAIL_SMTP_AUTH }}
-      MAIL_SMTP_STARTTLS_ENABLE: ${{ secrets.MAIL_SMTP_STARTTLS_ENABLE }}
-      APP_EMAIL_DELIVERY_MODE: ${{ secrets.APP_EMAIL_DELIVERY_MODE }}
-      APP_EMAIL_FROM: ${{ secrets.APP_EMAIL_FROM }}
-      APP_EMAIL_VERIFICATION_URL: ${{ secrets.APP_EMAIL_VERIFICATION_URL }}
+      MAIL_SMTP_AUTH: ${{ vars.MAIL_SMTP_AUTH }}
+      MAIL_SMTP_STARTTLS_ENABLE: ${{ vars.MAIL_SMTP_STARTTLS_ENABLE }}
+      APP_EMAIL_FROM: ${{ vars.APP_EMAIL_FROM }}
+      APP_EMAIL_VERIFICATION_URL: ${{ vars.APP_EMAIL_VERIFICATION_URL }}
       APP_EMAIL_VERIFICATION_TOKEN_TTL: ${{ vars.APP_EMAIL_VERIFICATION_TOKEN_TTL }}
       APP_EMAIL_VERIFICATION_RESEND_COOLDOWN: ${{ vars.APP_EMAIL_VERIFICATION_RESEND_COOLDOWN }}
-      APP_PASSWORD_RESET_URL: ${{ secrets.APP_PASSWORD_RESET_URL }}
+      APP_PASSWORD_RESET_URL: ${{ vars.APP_PASSWORD_RESET_URL }}
       APP_PASSWORD_RESET_TOKEN_TTL: ${{ vars.APP_PASSWORD_RESET_TOKEN_TTL }}
       APP_PASSWORD_RESET_RESEND_COOLDOWN: ${{ vars.APP_PASSWORD_RESET_RESEND_COOLDOWN }}
       APP_JWT_SECRET: ${{ secrets.APP_JWT_SECRET }}
-      APP_JWT_ACCESS_TOKEN_TTL: ${{ secrets.APP_JWT_ACCESS_TOKEN_TTL }}
-      ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
-      APP_ADMIN_BOOTSTRAP_ENABLED: ${{ secrets.APP_ADMIN_BOOTSTRAP_ENABLED }}
-      APP_ADMIN_EMAIL: ${{ secrets.APP_ADMIN_EMAIL }}
-      APP_ADMIN_USERNAME: ${{ secrets.APP_ADMIN_USERNAME }}
+      APP_JWT_ACCESS_TOKEN_TTL: ${{ vars.APP_JWT_ACCESS_TOKEN_TTL }}
+      ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+      APP_ADMIN_BOOTSTRAP_ENABLED: ${{ vars.APP_ADMIN_BOOTSTRAP_ENABLED }}
+      APP_ADMIN_EMAIL: ${{ vars.APP_ADMIN_EMAIL }}
+      APP_ADMIN_USERNAME: ${{ vars.APP_ADMIN_USERNAME }}
       APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
       APP_AI_ENABLED: ${{ vars.APP_AI_ENABLED }}
       APP_AI_API_KEY: ${{ secrets.APP_AI_API_KEY }}
@@ -79,41 +69,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Extract deployment information
-        id: deployment-info
-        shell: bash
-        run: |
-          BRANCH="${GITHUB_REF_NAME}"
-
-          COMMIT=$(git rev-parse --short HEAD)
-          TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-          if ! [[ "$SERVER_PORT" =~ ^[0-9]+$ ]] || [ "$SERVER_PORT" -lt 1 ] || [ "$SERVER_PORT" -gt 65535 ]; then
-            echo "::error::SERVER_PORT must be a number between 1 and 65535"
-            exit 1
-          fi
-
-          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
-          echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
-          echo "server_port=$SERVER_PORT" >> "$GITHUB_OUTPUT"
-
-          echo "Deployment Info:"
-          echo "  Branch: $BRANCH"
-          echo "  Commit: $COMMIT"
-          echo "  Timestamp: $TIMESTAMP"
-          echo "  Public port: $SERVER_PORT"
-          echo "  Public URL: $APP_PUBLIC_URL"
 
       - name: Validate deployment configuration
         shell: bash
         run: |
           REQUIRED_VARS=(
-            SERVER_PORT
-            APP_PUBLIC_URL
             POSTGRES_DB
             POSTGRES_USER
             POSTGRES_PASSWORD
@@ -123,7 +83,6 @@ jobs:
             MAIL_PASSWORD
             MAIL_SMTP_AUTH
             MAIL_SMTP_STARTTLS_ENABLE
-            APP_EMAIL_DELIVERY_MODE
             APP_EMAIL_FROM
             APP_EMAIL_VERIFICATION_URL
             APP_EMAIL_VERIFICATION_TOKEN_TTL
@@ -136,6 +95,7 @@ jobs:
             ALLOWED_ORIGINS
             APP_ADMIN_BOOTSTRAP_ENABLED
             APP_AI_ENABLED
+            APP_AI_API_KEY
             APP_AI_BASE_URL
             APP_AI_MODEL_ID
           )
@@ -152,17 +112,11 @@ jobs:
             exit 1
           fi
 
-      - name: Check Docker availability
-        shell: bash
-        run: docker version
-
       - name: Build application image
         shell: bash
-        env:
-          APP_IMAGE_TAG: ${{ env.APP_IMAGE_NAME }}:${{ steps.deployment-info.outputs.commit }}
         run: |
           docker build --pull \
-            -t "$APP_IMAGE_TAG" \
+            -t "$APP_IMAGE_NAME:$GITHUB_SHA" \
             -t "$APP_IMAGE_NAME:latest" \
             .
 
@@ -220,18 +174,12 @@ jobs:
 
       - name: Start application container
         shell: bash
-        env:
-          SERVER_PORT: ${{ steps.deployment-info.outputs.server_port }}
-          DEPLOYMENT_BRANCH: ${{ steps.deployment-info.outputs.branch }}
-          DEPLOYMENT_COMMIT: ${{ steps.deployment-info.outputs.commit }}
-          DEPLOYMENT_TIMESTAMP: ${{ steps.deployment-info.outputs.timestamp }}
-          APP_IMAGE_TAG: ${{ env.APP_IMAGE_NAME }}:${{ steps.deployment-info.outputs.commit }}
         run: |
           docker run -d \
             --name "$APP_CONTAINER_NAME" \
             --network "$APP_NETWORK_NAME" \
             --restart unless-stopped \
-            -p "$SERVER_PORT:8080" \
+            -p 3600:8080 \
             -e SPRING_PROFILES_ACTIVE=prod \
             -e POSTGRES_HOST="$DB_CONTAINER_NAME" \
             -e POSTGRES_PORT=5432 \
@@ -244,7 +192,6 @@ jobs:
             -e MAIL_PASSWORD \
             -e MAIL_SMTP_AUTH \
             -e MAIL_SMTP_STARTTLS_ENABLE \
-            -e APP_EMAIL_DELIVERY_MODE \
             -e APP_EMAIL_FROM \
             -e APP_EMAIL_VERIFICATION_URL \
             -e APP_EMAIL_VERIFICATION_TOKEN_TTL \
@@ -263,18 +210,13 @@ jobs:
             -e APP_AI_API_KEY \
             -e APP_AI_BASE_URL \
             -e APP_AI_MODEL_ID \
-            -e DEPLOYMENT_BRANCH \
-            -e DEPLOYMENT_COMMIT \
-            -e DEPLOYMENT_TIMESTAMP \
-            "$APP_IMAGE_TAG"
+            "$APP_IMAGE_NAME:$GITHUB_SHA"
 
-          echo "Application container started on public port $SERVER_PORT"
+          echo "Application container started on public port 3600"
           docker ps --filter "name=$APP_CONTAINER_NAME"
 
       - name: Verify deployment
         shell: bash
-        env:
-          SERVER_PORT: ${{ steps.deployment-info.outputs.server_port }}
         run: |
           for i in {1..30}; do
             if ! docker ps --format '{{.Names}}' | grep -qx "$APP_CONTAINER_NAME"; then
@@ -285,7 +227,6 @@ jobs:
 
             if docker exec "$APP_CONTAINER_NAME" curl --fail --silent http://localhost:8080/actuator/health >/dev/null; then
               echo "Application health check passed"
-              echo "URL: $APP_PUBLIC_URL"
               exit 0
             fi
 

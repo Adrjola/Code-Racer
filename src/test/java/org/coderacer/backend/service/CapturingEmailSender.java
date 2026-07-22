@@ -2,11 +2,11 @@ package org.coderacer.backend.service;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "app.email.delivery.mode", havingValue = "captured")
+@Primary
 public class CapturingEmailSender implements EmailSender {
 
   private final List<EmailMessage> sentMessages = new CopyOnWriteArrayList<>();
