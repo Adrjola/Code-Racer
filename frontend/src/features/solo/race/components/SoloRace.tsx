@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
   type SyntheticEvent,
 } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useCountdown } from '../hooks/useCountdown';
 import { useExactCodeTypingEngine } from '../hooks/useExactCodeTypingEngine';
 import type {
@@ -48,6 +49,7 @@ export function SoloRace({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [hasRaceStarted, setHasRaceStarted] = useState(false);
   const [isBootstrappingRace, setIsBootstrappingRace] = useState(false);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
 
   const countdown = useCountdown(
     hasRaceStarted && startedAt ? startedAt : null,
@@ -55,7 +57,8 @@ export function SoloRace({
   const isCountdownActive = countdown !== null && countdown > 0;
   const raceStartedAtMs =
     hasRaceStarted && startedAt ? Date.parse(startedAt) : null;
-  const isLocked = !hasRaceStarted || !startedAt || isCountdownActive;
+  const isLocked =
+    !hasRaceStarted || !startedAt || isCountdownActive || isLeaveConfirmOpen;
 
   const focusInput = useCallback(() => {
     if (!isLocked) {
@@ -94,7 +97,7 @@ export function SoloRace({
     setNowMs(Date.now());
   };
 
-  const goToLobby = async () => {
+  const leaveToLobby = async () => {
     if (isBootstrappingRace) {
       return;
     }
@@ -111,6 +114,27 @@ export function SoloRace({
     }
 
     terminateRaceToMenu();
+  };
+
+  // Leaving mid-race abandons the attempt, so a stray Escape asks first. A race
+  // that has not started or has already finished has nothing to lose.
+  const isRaceInProgress = hasRaceStarted && !state.isFinished;
+
+  const goToLobby = () => {
+    if (isRaceInProgress) {
+      setIsLeaveConfirmOpen(true);
+      return;
+    }
+    void leaveToLobby();
+  };
+
+  const cancelLeave = () => {
+    setIsLeaveConfirmOpen(false);
+  };
+
+  const confirmLeave = () => {
+    setIsLeaveConfirmOpen(false);
+    void leaveToLobby();
   };
 
   const restartRace = async () => {
@@ -160,7 +184,11 @@ export function SoloRace({
 
     if (event.key === 'Escape') {
       event.preventDefault();
-      void goToLobby();
+      // The confirmation dialog closes itself on Escape from a window listener.
+      // Without this the keypress that opens it also reaches that listener and
+      // shuts it again in the same tick, so the dialog never appears.
+      event.stopPropagation();
+      goToLobby();
       return;
     }
 
@@ -254,6 +282,17 @@ export function SoloRace({
   return (
     <div className="min-h-screen w-full bg-[#08051A] text-slate-50">
       <SoloRaceHeader onLobby={goToLobby} onRestart={restartRace} />
+
+      {isLeaveConfirmOpen && (
+        <ConfirmDialog
+          confirmLabel="Leave race"
+          confirmVariant="secondary"
+          description="This race will be abandoned and the time will not count."
+          onCancel={cancelLeave}
+          onConfirm={confirmLeave}
+          title="Leave the race?"
+        />
+      )}
 
       <div
         className="mx-auto mt-6 w-full max-w-[1920px] px-4 sm:px-6 lg:mt-10"

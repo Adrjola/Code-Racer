@@ -187,8 +187,44 @@ describe('SoloRace Component', () => {
       fireEvent.keyDown(textarea, { key: 'Escape' });
     });
 
+    // Escape asks first now, so nothing is abandoned until it is confirmed.
+    expect(onLobbyNavigate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /leave race/i }));
+    });
+
     expect(onLobbyNavigate).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /start race/i })).toBeDefined();
+    vi.useRealTimers();
+  });
+
+  it('stays in the race when the leave confirmation is cancelled', async () => {
+    vi.useFakeTimers();
+    mockEngine(baseHookState);
+    const onLobbyNavigate = vi.fn();
+
+    render(
+      <SoloRace
+        snippet={mockSnippet}
+        startedAt={startedAt}
+        onLobbyNavigate={onLobbyNavigate}
+      />,
+    );
+    const textarea = screen.getByRole('textbox', { hidden: true });
+
+    fireEvent.click(screen.getByRole('button', { name: /start race/i }));
+    finishStartCountdown();
+
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: 'Escape' });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    });
+
+    expect(onLobbyNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /start race/i })).toBeNull();
     vi.useRealTimers();
   });
 
