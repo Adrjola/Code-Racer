@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isSessionExpiredError } from '@/lib/apiClient';
 import {
   fetchRandomSnippet,
   isNoEligibleSnippetError,
-  isSessionExpiredError,
   isSnippetUnavailableError,
   readableSoloError,
   startSoloAttempt,

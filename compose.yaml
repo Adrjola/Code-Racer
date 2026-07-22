@@ -58,6 +58,10 @@ services:
       APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_AI_ENABLED: ${APP_AI_ENABLED:-false}
+      APP_AI_API_KEY: ${APP_AI_API_KEY:-}
+      APP_AI_BASE_URL: ${APP_AI_BASE_URL:-https://api.groq.com/openai}
+      APP_AI_MODEL_ID: ${APP_AI_MODEL_ID:-meta-llama/llama-4-scout-17b-16e-instruct}
 
     depends_on:
       database:

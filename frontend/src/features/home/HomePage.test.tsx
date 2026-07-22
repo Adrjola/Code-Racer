@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthSession, CurrentUser } from '@/features/auth/session';
-import DashboardPage from './DashboardPage';
+import HomePage from './HomePage';
 
 function userResponse(overrides: Partial<CurrentUser> = {}): CurrentUser {
   return {
@@ -27,40 +27,41 @@ function session(overrides: Partial<AuthSession> = {}): AuthSession {
   };
 }
 
-function renderDashboard(
+function renderHome(
   overrides: Partial<{
     onPlaySolo: () => void;
     session: AuthSession;
   }> = {},
 ) {
   return render(
-    <DashboardPage
+    <HomePage
       onGoAdmin={vi.fn()}
-      onGoDashboard={vi.fn()}
+      onGoHome={vi.fn()}
+      onGoStatistics={vi.fn()}
       onLogout={vi.fn()}
       onPlaySolo={overrides.onPlaySolo ?? vi.fn()}
       session={overrides.session ?? session()}
-      view="dashboard"
+      view="home"
     />,
   );
 }
 
-describe('DashboardPage', () => {
+describe('HomePage', () => {
   it('shows both race mode cards for a regular user', () => {
-    renderDashboard();
+    renderHome();
 
     expect(
       screen.getByRole('button', { name: /\.\/solo_race.*run/is }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /\.\/multiplayer.*run/is }),
+      screen.getByRole('button', { name: /\.\/multiplayer.*coming soon/is }),
     ).toBeInTheDocument();
   });
 
   it('starts solo setup when the solo card is activated', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
-    renderDashboard({ onPlaySolo });
+    renderHome({ onPlaySolo });
 
     await user.click(
       screen.getByRole('button', { name: /\.\/solo_race.*run/is }),
@@ -72,9 +73,10 @@ describe('DashboardPage', () => {
   it('activates the solo card from the keyboard', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
-    renderDashboard({ onPlaySolo });
+    renderHome({ onPlaySolo });
 
-    // Nav order: Dashboard, Log out, then the solo card.
+    // Nav order: logo, statistics trophy, log out, then the solo card.
+    await user.tab();
     await user.tab();
     await user.tab();
     await user.tab();
@@ -87,14 +89,65 @@ describe('DashboardPage', () => {
     expect(onPlaySolo).toHaveBeenCalledTimes(1);
   });
 
-  it('does not affect solo when the multiplayer card is clicked', async () => {
+  it('has no separate Homepage link since this page is the homepage', () => {
+    renderHome();
+
+    expect(
+      screen.queryByRole('button', { name: /^homepage$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('goes to statistics when the trophy icon is clicked', async () => {
+    const onGoStatistics = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <HomePage
+        onGoAdmin={vi.fn()}
+        onGoHome={vi.fn()}
+        onGoStatistics={onGoStatistics}
+        onLogout={vi.fn()}
+        onPlaySolo={vi.fn()}
+        session={session()}
+        view="home"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /statistics/i }));
+
+    expect(onGoStatistics).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes to the homepage when the logo is clicked', async () => {
+    const onGoHome = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <HomePage
+        onGoAdmin={vi.fn()}
+        onGoHome={onGoHome}
+        onGoStatistics={vi.fn()}
+        onLogout={vi.fn()}
+        onPlaySolo={vi.fn()}
+        session={session()}
+        view="home"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /go to homepage/i }));
+
+    expect(onGoHome).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the multiplayer card while it is coming soon', async () => {
     const onPlaySolo = vi.fn();
     const user = userEvent.setup();
-    renderDashboard({ onPlaySolo });
+    renderHome({ onPlaySolo });
 
-    await user.click(
-      screen.getByRole('button', { name: /\.\/multiplayer.*run/is }),
-    );
+    const multiplayer = screen.getByRole('button', {
+      name: /\.\/multiplayer.*coming soon/is,
+    });
+    expect(multiplayer).toBeDisabled();
+
+    await user.click(multiplayer);
 
     expect(onPlaySolo).not.toHaveBeenCalled();
   });

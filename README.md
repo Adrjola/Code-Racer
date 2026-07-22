@@ -29,6 +29,7 @@ separate npm application under `frontend/`.
 |   `-- workflows/
 |       `-- ci.yml
 |-- docs/
+|   |-- api-conventions.md
 |   |-- testing.md
 |   `-- working_agreements.md
 |-- frontend/

@@ -1,4 +1,4 @@
-import Logo from '@/components/Logo';
+import Header from '@/components/Header';
 import type { SoloAttemptResultResponse } from '../api/soloRaceApi';
 import { useAttemptRanking } from '../hooks/useAttemptRanking';
 import { formatDurationPrecise } from '../utils/formatDuration';
@@ -66,11 +66,16 @@ export function SoloRaceResult({
     // in layout, so in flow it would push the page taller than the screen and
     // leave it scrollable.
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-surface">
-      <div className="relative h-[1080px] w-[1920px] shrink-0 origin-center [transform:scale(var(--page-scale))]">
-        <header className="absolute top-[24px] left-[40px]">
-          <Logo />
-        </header>
+      {/*
+       * Outside the canvas: it is centred and scaled to fit, so a logo placed
+       * inside it drifts away from the top-left corner as the window shape
+       * changes instead of sitting where every other page puts it.
+       */}
+      <div className="absolute inset-x-0 top-0 z-10">
+        <Header variant="minimal" />
+      </div>
 
+      <div className="relative h-[1080px] w-[1920px] shrink-0 origin-center [transform:scale(var(--fit-scale))]">
         <div className="absolute top-[224px] left-[558px] h-[667px] w-[804px] rounded-[16px] bg-[rgb(255_255_255_/_0.002)] shadow-[0_30px_80px_-20px_rgb(219_39_119_/_0.7)]">
           <span
             className={`${cornerClassName} top-0 left-0 rounded-tl-[6px] border-t-2 border-l-2`}

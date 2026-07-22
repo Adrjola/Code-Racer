@@ -44,7 +44,7 @@ function withCategories() {
         data: {
           cpm: null,
           cpmHolderName: null,
-          time: null,
+          durationMs: null,
           timeHolderName: null,
         },
       }),
@@ -114,6 +114,29 @@ describe('SoloPreviewPage', () => {
     expect(urls[0]).toContain('difficulty=EASY');
   });
 
+  it('requests world best scoped to the previewed snippet', async () => {
+    let worldBestUrl: string | undefined;
+    server.use(
+      http.get(RANDOM_URL, () => HttpResponse.json({ data: snippet })),
+      http.get(WORLD_BEST_URL, ({ request }) => {
+        worldBestUrl = request.url;
+        return HttpResponse.json({
+          data: {
+            cpm: null,
+            cpmHolderName: null,
+            durationMs: null,
+            timeHolderName: null,
+          },
+        });
+      }),
+    );
+    renderPage();
+
+    await screen.findByRole('button', { name: /start race/i });
+
+    expect(worldBestUrl).toContain(`snippetId=${snippet.id}`);
+  });
+
   it('returns to the pre-start screen on restart without fetching a new snippet', async () => {
     let fetches = 0;
     server.use(
@@ -125,14 +148,44 @@ describe('SoloPreviewPage', () => {
     renderPage();
 
     await screen.findByRole('button', { name: /start race/i });
-    const fetchesBefore = fetches;
-    await userEvent.click(screen.getByRole('button', { name: /restart/i }));
+    // Nothing has been raced yet, so there is nothing to restart.
+    expect(screen.queryByRole('button', { name: /^restart$/i })).toBeNull();
 
-    // Still on the pre-start screen, same snippet, no extra request.
+    const fetchesBefore = fetches;
+    await userEvent.click(screen.getByRole('button', { name: /new snippet/i }));
+
     expect(
       await screen.findByRole('button', { name: /start race/i }),
     ).toBeInTheDocument();
-    expect(fetches).toBe(fetchesBefore);
+    expect(fetches).toBe(fetchesBefore + 1);
+  });
+
+  it('starts the race when Enter is pressed on the pre-start screen', async () => {
+    let startCalls = 0;
+    server.use(
+      http.get(RANDOM_URL, () => HttpResponse.json({ data: snippet })),
+      http.post(START_URL, () => {
+        startCalls += 1;
+        return HttpResponse.json(
+          {
+            data: {
+              attemptId: 'a1',
+              codeSnippetId: 's1',
+              difficulty: 'EASY',
+              startedAt: new Date(Date.now() + 3_000).toISOString(),
+            },
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderPage();
+
+    await screen.findByRole('button', { name: /start race/i });
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => expect(startCalls).toBe(1));
+    expect(screen.queryByRole('button', { name: /start race/i })).toBeNull();
   });
 
   it('shows an empty state when no snippet matches', async () => {

@@ -12,7 +12,7 @@ import type { SoloSelection } from '@/features/solo/api/soloApi';
 import { useSoloPreview } from '@/features/solo/hooks/useSoloPreview';
 
 type SoloPreviewPageProps = {
-  /** Leaves the race for the dashboard, which is the real mode-select screen. */
+  /** Leaves the race for the homepage, which is the real mode-select screen. */
   onExitRace: () => void;
   onSessionExpired: () => void;
   selection: SoloSelection;
@@ -44,9 +44,12 @@ export default function SoloPreviewPage({
   const transport = useMemo(
     () =>
       attempt
-        ? createSoloRaceTransport(attempt.attemptId, { onResult: setResult })
+        ? createSoloRaceTransport(attempt.attemptId, {
+            onResult: setResult,
+            onSessionExpired,
+          })
         : undefined,
-    [attempt],
+    [attempt, onSessionExpired],
   );
 
   const snippet: RaceSnippet | null = useMemo(
@@ -70,7 +73,7 @@ export default function SoloPreviewPage({
     await soloRaceApi.abandonAttempt(attempt.attemptId).catch(() => undefined);
   };
 
-  // Every way of leaving the race - dashboard, browser back, logout, session
+  // Every way of leaving the race - homepage, browser back, logout, session
   // expiry - unmounts this page. Refs hold the latest attempt/result so the
   // unmount cleanup can abandon a still-running attempt on the way out, which
   // the explicit leave handlers alone would miss.
@@ -149,6 +152,7 @@ export default function SoloPreviewPage({
         await endAttempt();
         onExitRace();
       }}
+      onNewSnippet={newSnippet}
       onRestartRace={raceAgain}
       onStartRace={start}
       snippet={snippet}

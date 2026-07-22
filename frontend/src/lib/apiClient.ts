@@ -36,6 +36,14 @@ export class ApiRequestError extends Error {
   }
 }
 
+export function isSessionExpiredError(error: unknown): boolean {
+  return (
+    error instanceof ApiRequestError &&
+    (error.code === 'AUTHENTICATION_REQUIRED' ||
+      error.code === 'SESSION_EXPIRED')
+  );
+}
+
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '') ??
   (import.meta.env.PROD ? '' : 'http://localhost:8080');

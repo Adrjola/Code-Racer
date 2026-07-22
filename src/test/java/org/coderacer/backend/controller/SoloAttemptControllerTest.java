@@ -14,15 +14,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.coderacer.backend.dto.DifficultyGlobalStatistics;
 import org.coderacer.backend.dto.DifficultyStatistics;
-import org.coderacer.backend.dto.FastestTimeRecord;
-import org.coderacer.backend.dto.GlobalStatisticsResponse;
-import org.coderacer.backend.dto.HighestCpmRecord;
+import org.coderacer.backend.dto.GlobalLeaderboardEntry;
+import org.coderacer.backend.dto.GlobalLeaderboardResponse;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
+import org.coderacer.backend.dto.SnippetStatistics;
 import org.coderacer.backend.dto.SoloAttemptRankingResponse;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.SoloAttemptSnippetSummary;
+import org.coderacer.backend.dto.WorldBestResponse;
 import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -37,12 +37,14 @@ import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
-import org.coderacer.backend.service.GlobalStatisticsService;
+import org.coderacer.backend.service.GlobalLeaderboardService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
+import org.coderacer.backend.service.SnippetStatisticsService;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
 import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
+import org.coderacer.backend.service.WorldBestService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -58,9 +60,12 @@ class SoloAttemptControllerTest {
   private final SoloAttemptService service = mock(SoloAttemptService.class);
   private final SoloAttemptHistoryService historyService = mock(SoloAttemptHistoryService.class);
   private final PersonalStatisticsService statisticsService = mock(PersonalStatisticsService.class);
-  private final GlobalStatisticsService globalStatisticsService =
-      mock(GlobalStatisticsService.class);
+  private final GlobalLeaderboardService globalLeaderboardService =
+      mock(GlobalLeaderboardService.class);
+  private final WorldBestService worldBestService = mock(WorldBestService.class);
   private final SoloAttemptRankingService rankingService = mock(SoloAttemptRankingService.class);
+  private final SnippetStatisticsService snippetStatisticsService =
+      mock(SnippetStatisticsService.class);
   private final CurrentJwtUserProvider currentJwtUserProvider = mock(CurrentJwtUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
   private MockMvc mockMvc;
@@ -73,7 +78,9 @@ class SoloAttemptControllerTest {
                     service,
                     historyService,
                     statisticsService,
-                    globalStatisticsService,
+                    globalLeaderboardService,
+                    worldBestService,
+                    snippetStatisticsService,
                     rankingService,
                     currentJwtUserProvider,
                     mapper))
@@ -400,55 +407,107 @@ class SoloAttemptControllerTest {
   }
 
   @Test
-  void globalStatistics_returns200WithRecordsForEachDifficulty() throws Exception {
-    Instant recordedAt = Instant.parse("2026-01-01T00:00:45Z");
-    when(globalStatisticsService.compute())
+  void globalLeaderboard_returns200WithRankedEntriesForTheRequestedDifficulty() throws Exception {
+    when(globalLeaderboardService.forDifficulty(Difficulty.EASY, 20))
         .thenReturn(
-            new GlobalStatisticsResponse(
+            new GlobalLeaderboardResponse(
+                Difficulty.EASY,
                 List.of(
-                    new DifficultyGlobalStatistics(
-                        Difficulty.EASY,
-                        new FastestTimeRecord("alice", 20_000L, recordedAt),
-                        new HighestCpmRecord("bob", 500, recordedAt)),
-                    new DifficultyGlobalStatistics(Difficulty.MEDIUM, null, null),
-                    new DifficultyGlobalStatistics(Difficulty.HARD, null, null))));
+                    new GlobalLeaderboardEntry(1, "alice", 10_000L, 600),
+                    new GlobalLeaderboardEntry(2, "bob", 20_000L, 400))));
 
     mockMvc
-        .perform(get("/api/solo-attempts/global-statistics"))
+        .perform(get("/api/solo-attempts/global-leaderboard").param("difficulty", "EASY"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.difficulties.length()").value(3))
-        .andExpect(jsonPath("$.data.difficulties[0].difficulty").value("EASY"))
-        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.username").value("alice"))
-        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.durationMs").value(20_000))
-        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.username").value("bob"))
-        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.cpm").value(500))
-        .andExpect(jsonPath("$.data.difficulties[1].fastestTime").doesNotExist())
-        .andExpect(jsonPath("$.data.difficulties[1].highestCpm").doesNotExist());
+        .andExpect(jsonPath("$.data.difficulty").value("EASY"))
+        .andExpect(jsonPath("$.data.entries.length()").value(2))
+        .andExpect(jsonPath("$.data.entries[0].rank").value(1))
+        .andExpect(jsonPath("$.data.entries[0].username").value("alice"))
+        .andExpect(jsonPath("$.data.entries[0].durationMs").value(10_000))
+        .andExpect(jsonPath("$.data.entries[0].cpm").value(600))
+        .andExpect(jsonPath("$.data.entries[1].username").value("bob"));
   }
 
   @Test
-  void globalStatistics_responseOmitsEmailAndAdminFields() throws Exception {
-    Instant recordedAt = Instant.parse("2026-01-01T00:00:45Z");
-    when(globalStatisticsService.compute())
-        .thenReturn(
-            new GlobalStatisticsResponse(
-                List.of(
-                    new DifficultyGlobalStatistics(
-                        Difficulty.EASY,
-                        new FastestTimeRecord("alice", 20_000L, recordedAt),
-                        new HighestCpmRecord("alice", 300, recordedAt)),
-                    new DifficultyGlobalStatistics(Difficulty.MEDIUM, null, null),
-                    new DifficultyGlobalStatistics(Difficulty.HARD, null, null))));
+  void globalLeaderboard_passesThroughACustomLimit() throws Exception {
+    when(globalLeaderboardService.forDifficulty(Difficulty.HARD, 5))
+        .thenReturn(new GlobalLeaderboardResponse(Difficulty.HARD, List.of()));
 
     mockMvc
-        .perform(get("/api/solo-attempts/global-statistics"))
+        .perform(
+            get("/api/solo-attempts/global-leaderboard")
+                .param("difficulty", "HARD")
+                .param("limit", "5"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.email").doesNotExist())
-        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.enabled").doesNotExist())
-        .andExpect(jsonPath("$.data.difficulties[0].fastestTime.role").doesNotExist())
-        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.email").doesNotExist())
-        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.enabled").doesNotExist())
-        .andExpect(jsonPath("$.data.difficulties[0].highestCpm.role").doesNotExist());
+        .andExpect(jsonPath("$.data.entries.length()").value(0));
+  }
+
+  @Test
+  void worldBest_returns200WithRecordsForTheRequestedSnippet() throws Exception {
+    UUID snippetId = UUID.randomUUID();
+    when(worldBestService.forSnippet(snippetId))
+        .thenReturn(new WorldBestResponse(600, "alice", 17_000L, "bob"));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/world-best").param("snippetId", snippetId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.cpm").value(600))
+        .andExpect(jsonPath("$.data.cpmHolderName").value("alice"))
+        .andExpect(jsonPath("$.data.durationMs").value(17_000))
+        .andExpect(jsonPath("$.data.timeHolderName").value("bob"));
+  }
+
+  @Test
+  void worldBest_returnsNullsWhenTheSnippetHasNoCompletedAttempts() throws Exception {
+    UUID snippetId = UUID.randomUUID();
+    when(worldBestService.forSnippet(snippetId))
+        .thenReturn(new WorldBestResponse(null, null, null, null));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/world-best").param("snippetId", snippetId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.cpm").doesNotExist())
+        .andExpect(jsonPath("$.data.timeHolderName").doesNotExist());
+  }
+
+  @Test
+  void snippetStatistics_returns200WithBestPerSnippetForTheResolvedUser() throws Exception {
+    UUID userId = UUID.randomUUID();
+    Instant finishedAt = Instant.parse("2026-01-01T00:00:45Z");
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
+    when(snippetStatisticsService.forUser(userId))
+        .thenReturn(
+            List.of(
+                new SnippetStatistics(
+                    UUID.randomUUID(),
+                    "Two Sum",
+                    "JAVA",
+                    Difficulty.EASY,
+                    41_000L,
+                    452,
+                    finishedAt)));
+
+    mockMvc
+        .perform(get("/api/solo-attempts/snippet-statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.snippets.length()").value(1))
+        .andExpect(jsonPath("$.data.snippets[0].snippetTitle").value("Two Sum"))
+        .andExpect(jsonPath("$.data.snippets[0].categoryName").value("JAVA"))
+        .andExpect(jsonPath("$.data.snippets[0].difficulty").value("EASY"))
+        .andExpect(jsonPath("$.data.snippets[0].bestDurationMs").value(41_000))
+        .andExpect(jsonPath("$.data.snippets[0].bestCpm").value(452));
+  }
+
+  @Test
+  void snippetStatistics_returns200WithEmptyListWhenNoCompletedAttempts() throws Exception {
+    UUID userId = UUID.randomUUID();
+    when(currentJwtUserProvider.resolve()).thenReturn(userId);
+    when(snippetStatisticsService.forUser(userId)).thenReturn(List.of());
+
+    mockMvc
+        .perform(get("/api/solo-attempts/snippet-statistics"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.snippets").isEmpty());
   }
 
   @Test

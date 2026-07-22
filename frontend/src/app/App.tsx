@@ -18,10 +18,11 @@ import RegisterPage from '@/features/auth/pages/RegisterPage';
 import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
-import DashboardPage from '@/features/dashboard/DashboardPage';
+import HomePage from '@/features/home/HomePage';
 import type { SoloSelection } from '@/features/solo/api/soloApi';
 import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
 import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
+import StatisticsPage from '@/features/statistics/pages/StatisticsPage';
 
 // Loaded lazily so three.js — the 3D mascot's dependency — ships as its own
 // chunk and only gets downloaded when someone actually visits the landing page.
@@ -29,8 +30,8 @@ const LandingPage = lazy(() => import('@/features/landing/LandingPage'));
 
 type Route =
   | 'admin'
-  | 'dashboard'
   | 'forgot'
+  | 'home'
   | 'landing'
   | 'login'
   | 'notFound'
@@ -40,10 +41,11 @@ type Route =
   | 'resetPassword'
   | 'soloPreview'
   | 'soloSetup'
+  | 'statistics'
   | 'verify';
 
 type AppState = {
-  dashboardNotice?: string;
+  homeNotice?: string;
   loginNotice?: string;
   pendingEmail?: string;
   route: Route;
@@ -51,7 +53,7 @@ type AppState = {
   soloSelection?: SoloSelection;
 };
 
-type RouteResult = Pick<AppState, 'dashboardNotice' | 'loginNotice' | 'route'>;
+type RouteResult = Pick<AppState, 'homeNotice' | 'loginNotice' | 'route'>;
 
 const LOGIN_REQUIRED_MESSAGE = 'Please log in to continue.';
 const ADMIN_REQUIRED_MESSAGE = 'Admin access requires an admin account.';
@@ -67,8 +69,8 @@ function routeFromPath(pathname: string): Route {
       return 'resetPassword';
     case '/admin':
       return 'admin';
-    case '/dashboard':
-      return 'dashboard';
+    case '/home':
+      return 'home';
     case '/forgot-password':
       return 'forgot';
     case '/login':
@@ -79,6 +81,8 @@ function routeFromPath(pathname: string): Route {
       return 'soloSetup';
     case '/solo/preview':
       return 'soloPreview';
+    case '/statistics':
+      return 'statistics';
     case '/verify-email-pending':
       return 'pending';
     case '/verify-email':
@@ -94,10 +98,10 @@ function pathFromRoute(route: Route): string {
   switch (route) {
     case 'admin':
       return '/admin';
-    case 'dashboard':
-      return '/dashboard';
     case 'forgot':
       return '/forgot-password';
+    case 'home':
+      return '/home';
     case 'landing':
       return '/';
     case 'login':
@@ -116,6 +120,8 @@ function pathFromRoute(route: Route): string {
       return '/solo/preview';
     case 'soloSetup':
       return '/solo';
+    case 'statistics':
+      return '/statistics';
     case 'verify':
       return '/verify-email';
   }
@@ -124,10 +130,11 @@ function pathFromRoute(route: Route): string {
 function isProtected(route: Route) {
   return (
     route === 'admin' ||
-    route === 'dashboard' ||
+    route === 'home' ||
     route === 'playSolo' ||
     route === 'soloPreview' ||
-    route === 'soloSetup'
+    route === 'soloSetup' ||
+    route === 'statistics'
   );
 }
 
@@ -141,7 +148,7 @@ function isAuthRoute(route: Route) {
 }
 
 function defaultAuthenticatedRoute(session: AuthSession): Route {
-  return session.user.role === 'ADMIN' ? 'admin' : 'dashboard';
+  return session.user.role === 'ADMIN' ? 'admin' : 'home';
 }
 
 function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
@@ -159,7 +166,7 @@ function resolveRoute(route: Route, session: AuthSession | null): RouteResult {
   }
 
   if (session && route === 'admin' && session.user.role !== 'ADMIN') {
-    return { dashboardNotice: ADMIN_REQUIRED_MESSAGE, route: 'dashboard' };
+    return { homeNotice: ADMIN_REQUIRED_MESSAGE, route: 'home' };
   }
 
   return { route };
@@ -186,7 +193,7 @@ function createInitialState(): AppState {
 export default function App() {
   const [state, setState] = useState<AppState>(createInitialState);
   const {
-    dashboardNotice,
+    homeNotice,
     loginNotice,
     pendingEmail,
     route,
@@ -199,7 +206,7 @@ export default function App() {
       requestedRoute: Route,
       nextSession: AuthSession | null,
       replace = false,
-      notices: Pick<AppState, 'dashboardNotice' | 'loginNotice'> = {},
+      notices: Pick<AppState, 'homeNotice' | 'loginNotice'> = {},
     ) => {
       const activeSession =
         nextSession && isSessionExpired(nextSession) ? null : nextSession;
@@ -222,7 +229,7 @@ export default function App() {
 
       setState((current) => ({
         ...current,
-        dashboardNotice: notices.dashboardNotice ?? routeResult.dashboardNotice,
+        homeNotice: notices.homeNotice ?? routeResult.homeNotice,
         loginNotice: notices.loginNotice ?? routeResult.loginNotice,
         route: nextRoute,
         session: activeSession,
@@ -299,16 +306,29 @@ export default function App() {
     commitRoute('soloPreview', session);
   };
 
-  if (session && (route === 'admin' || route === 'dashboard')) {
+  if (session && (route === 'admin' || route === 'home')) {
     return (
-      <DashboardPage
-        notice={dashboardNotice}
+      <HomePage
+        notice={homeNotice}
         onGoAdmin={() => navigate('admin')}
-        onGoDashboard={() => navigate('dashboard')}
+        onGoHome={() => navigate('home')}
+        onGoStatistics={() => navigate('statistics')}
         onLogout={handleLogout}
         onPlaySolo={() => navigate('soloSetup')}
         session={session}
-        view={route === 'admin' ? 'admin' : 'dashboard'}
+        view={route === 'admin' ? 'admin' : 'home'}
+      />
+    );
+  }
+
+  if (session && route === 'statistics') {
+    return (
+      <StatisticsPage
+        onGoHome={() => navigate('home')}
+        onGoStatistics={() => navigate('statistics')}
+        onLogout={handleLogout}
+        onSessionExpired={handleSessionExpired}
+        session={session}
       />
     );
   }
@@ -316,7 +336,8 @@ export default function App() {
   if (session && route === 'soloSetup') {
     return (
       <SoloSetupPage
-        onGoDashboard={() => navigate('dashboard')}
+        onGoHome={() => navigate('home')}
+        onGoStatistics={() => navigate('statistics')}
         onLogout={handleLogout}
         onSelect={handleSelectSolo}
         onSessionExpired={handleSessionExpired}
@@ -329,7 +350,8 @@ export default function App() {
     if (!soloSelection) {
       return (
         <SoloSetupPage
-          onGoDashboard={() => navigate('dashboard')}
+          onGoHome={() => navigate('home')}
+          onGoStatistics={() => navigate('statistics')}
           onLogout={handleLogout}
           onSelect={handleSelectSolo}
           onSessionExpired={handleSessionExpired}
@@ -339,7 +361,7 @@ export default function App() {
     }
     return (
       <SoloPreviewPage
-        onExitRace={() => navigate('dashboard')}
+        onExitRace={() => navigate('home')}
         onSessionExpired={handleSessionExpired}
         selection={soloSelection}
       />

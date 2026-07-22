@@ -42,7 +42,8 @@ function renderPage(
   overrides: Partial<Parameters<typeof SoloSetupPage>[0]> = {},
 ) {
   const props = {
-    onGoDashboard: vi.fn(),
+    onGoHome: vi.fn(),
+    onGoStatistics: vi.fn(),
     onLogout: vi.fn(),
     onSelect: vi.fn(),
     onSessionExpired: vi.fn(),
@@ -199,25 +200,25 @@ describe('SoloSetupPage', () => {
     await waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
   });
 
-  it('shows the username and navigates to the dashboard from the logo', async () => {
+  it('shows the username and navigates to the homepage from the logo', async () => {
     mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
-    const { onGoDashboard } = renderPage();
+    const { onGoHome } = renderPage();
 
     expect(await screen.findByText('player')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
+    await user.click(screen.getByRole('button', { name: /go to homepage/i }));
 
-    expect(onGoDashboard).toHaveBeenCalledTimes(1);
+    expect(onGoHome).toHaveBeenCalledTimes(1);
   });
 
-  it('logs out from the menu', async () => {
+  it('logs out after confirming in the dialog', async () => {
     mockCategories([category('JAVA', 'Java')]);
     const user = userEvent.setup();
     const { onLogout } = renderPage();
 
-    await user.click(screen.getByRole('button', { name: /menu/i }));
     await user.click(screen.getByRole('button', { name: /log out/i }));
+    await user.click(screen.getByRole('button', { name: /flee in shame/i }));
 
     expect(onLogout).toHaveBeenCalledTimes(1);
   });

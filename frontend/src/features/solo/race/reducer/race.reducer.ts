@@ -5,6 +5,13 @@ import {
   sliceCodePoints,
 } from '../utils/codePointText';
 
+/**
+ * How many wrong characters may pile up before further input is ignored. Without
+ * a cap, holding a key that is not the next character grows the rendered code by
+ * one character per keypress, and newlines push it off the screen entirely.
+ */
+export const MAX_INCORRECT_INPUT = 8;
+
 export const initialState: RaceState = {
   snippet: { id: '', code: '', type: '' },
   targetCode: '',
@@ -57,13 +64,17 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
           hasError: false,
           transportError: null,
         };
-      } else {
-        return {
-          ...state,
-          currentInput: state.currentInput + action.char,
-          hasError: true,
-        };
       }
+
+      if (codePointLength(state.currentInput) >= MAX_INCORRECT_INPUT) {
+        return state;
+      }
+
+      return {
+        ...state,
+        currentInput: state.currentInput + action.char,
+        hasError: true,
+      };
     }
 
     case 'DELETE': {
