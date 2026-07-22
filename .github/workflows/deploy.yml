@@ -6,11 +6,6 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      server_port:
-        description: Public application port on the server
-        required: false
-        default: "3600"
 
 permissions:
   contents: read
@@ -50,7 +45,7 @@ jobs:
       APP_NETWORK_NAME: code-racer-net
       DB_CONTAINER_NAME: code-racer-postgres
       DB_VOLUME_NAME: code-racer-postgres-data
-      DEFAULT_SERVER_PORT: ${{ vars.SERVER_PORT }}
+      SERVER_PORT: ${{ vars.SERVER_PORT }}
       APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL }}
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
@@ -64,7 +59,11 @@ jobs:
       APP_EMAIL_DELIVERY_MODE: ${{ secrets.APP_EMAIL_DELIVERY_MODE }}
       APP_EMAIL_FROM: ${{ secrets.APP_EMAIL_FROM }}
       APP_EMAIL_VERIFICATION_URL: ${{ secrets.APP_EMAIL_VERIFICATION_URL }}
+      APP_EMAIL_VERIFICATION_TOKEN_TTL: ${{ vars.APP_EMAIL_VERIFICATION_TOKEN_TTL }}
+      APP_EMAIL_VERIFICATION_RESEND_COOLDOWN: ${{ vars.APP_EMAIL_VERIFICATION_RESEND_COOLDOWN }}
       APP_PASSWORD_RESET_URL: ${{ secrets.APP_PASSWORD_RESET_URL }}
+      APP_PASSWORD_RESET_TOKEN_TTL: ${{ vars.APP_PASSWORD_RESET_TOKEN_TTL }}
+      APP_PASSWORD_RESET_RESEND_COOLDOWN: ${{ vars.APP_PASSWORD_RESET_RESEND_COOLDOWN }}
       APP_JWT_SECRET: ${{ secrets.APP_JWT_SECRET }}
       APP_JWT_ACCESS_TOKEN_TTL: ${{ secrets.APP_JWT_ACCESS_TOKEN_TTL }}
       ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
@@ -72,6 +71,10 @@ jobs:
       APP_ADMIN_EMAIL: ${{ secrets.APP_ADMIN_EMAIL }}
       APP_ADMIN_USERNAME: ${{ secrets.APP_ADMIN_USERNAME }}
       APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
+      APP_AI_ENABLED: ${{ vars.APP_AI_ENABLED }}
+      APP_AI_API_KEY: ${{ secrets.APP_AI_API_KEY }}
+      APP_AI_BASE_URL: ${{ vars.APP_AI_BASE_URL }}
+      APP_AI_MODEL_ID: ${{ vars.APP_AI_MODEL_ID }}
 
     steps:
       - name: Checkout code
@@ -87,13 +90,9 @@ jobs:
 
           COMMIT=$(git rev-parse --short HEAD)
           TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
-          SERVER_PORT="${{ github.event.inputs.server_port }}"
-          if [ -z "$SERVER_PORT" ]; then
-            SERVER_PORT="${DEFAULT_SERVER_PORT:-3600}"
-          fi
 
           if ! [[ "$SERVER_PORT" =~ ^[0-9]+$ ]] || [ "$SERVER_PORT" -lt 1 ] || [ "$SERVER_PORT" -gt 65535 ]; then
-            echo "::error::server_port must be a number between 1 and 65535"
+            echo "::error::SERVER_PORT must be a number between 1 and 65535"
             exit 1
           fi
 
@@ -107,29 +106,44 @@ jobs:
           echo "  Commit: $COMMIT"
           echo "  Timestamp: $TIMESTAMP"
           echo "  Public port: $SERVER_PORT"
-          echo "  Public URL: ${APP_PUBLIC_URL:-https://team6.acnbootcamp.lv}"
+          echo "  Public URL: $APP_PUBLIC_URL"
 
-      - name: Validate deployment secrets
+      - name: Validate deployment configuration
         shell: bash
         run: |
           REQUIRED_VARS=(
+            SERVER_PORT
+            APP_PUBLIC_URL
             POSTGRES_DB
             POSTGRES_USER
             POSTGRES_PASSWORD
             MAIL_HOST
+            MAIL_PORT
             MAIL_USERNAME
             MAIL_PASSWORD
+            MAIL_SMTP_AUTH
+            MAIL_SMTP_STARTTLS_ENABLE
+            APP_EMAIL_DELIVERY_MODE
             APP_EMAIL_FROM
             APP_EMAIL_VERIFICATION_URL
+            APP_EMAIL_VERIFICATION_TOKEN_TTL
+            APP_EMAIL_VERIFICATION_RESEND_COOLDOWN
             APP_PASSWORD_RESET_URL
+            APP_PASSWORD_RESET_TOKEN_TTL
+            APP_PASSWORD_RESET_RESEND_COOLDOWN
             APP_JWT_SECRET
+            APP_JWT_ACCESS_TOKEN_TTL
             ALLOWED_ORIGINS
+            APP_ADMIN_BOOTSTRAP_ENABLED
+            APP_AI_ENABLED
+            APP_AI_BASE_URL
+            APP_AI_MODEL_ID
           )
 
           MISSING=0
           for VAR_NAME in "${REQUIRED_VARS[@]}"; do
             if [ -z "${!VAR_NAME}" ]; then
-              echo "::error::$VAR_NAME GitHub secret is required for deployment"
+              echo "::error::$VAR_NAME GitHub Environment value is required for deployment"
               MISSING=1
             fi
           done
@@ -213,13 +227,6 @@ jobs:
           DEPLOYMENT_TIMESTAMP: ${{ steps.deployment-info.outputs.timestamp }}
           APP_IMAGE_TAG: ${{ env.APP_IMAGE_NAME }}:${{ steps.deployment-info.outputs.commit }}
         run: |
-          export MAIL_PORT="${MAIL_PORT:-587}"
-          export MAIL_SMTP_AUTH="${MAIL_SMTP_AUTH:-true}"
-          export MAIL_SMTP_STARTTLS_ENABLE="${MAIL_SMTP_STARTTLS_ENABLE:-true}"
-          export APP_EMAIL_DELIVERY_MODE="${APP_EMAIL_DELIVERY_MODE:-smtp}"
-          export APP_JWT_ACCESS_TOKEN_TTL="${APP_JWT_ACCESS_TOKEN_TTL:-15m}"
-          export APP_ADMIN_BOOTSTRAP_ENABLED="${APP_ADMIN_BOOTSTRAP_ENABLED:-false}"
-
           docker run -d \
             --name "$APP_CONTAINER_NAME" \
             --network "$APP_NETWORK_NAME" \
@@ -240,7 +247,11 @@ jobs:
             -e APP_EMAIL_DELIVERY_MODE \
             -e APP_EMAIL_FROM \
             -e APP_EMAIL_VERIFICATION_URL \
+            -e APP_EMAIL_VERIFICATION_TOKEN_TTL \
+            -e APP_EMAIL_VERIFICATION_RESEND_COOLDOWN \
             -e APP_PASSWORD_RESET_URL \
+            -e APP_PASSWORD_RESET_TOKEN_TTL \
+            -e APP_PASSWORD_RESET_RESEND_COOLDOWN \
             -e APP_JWT_SECRET \
             -e APP_JWT_ACCESS_TOKEN_TTL \
             -e ALLOWED_ORIGINS \
@@ -248,6 +259,10 @@ jobs:
             -e APP_ADMIN_EMAIL \
             -e APP_ADMIN_USERNAME \
             -e APP_ADMIN_PASSWORD \
+            -e APP_AI_ENABLED \
+            -e APP_AI_API_KEY \
+            -e APP_AI_BASE_URL \
+            -e APP_AI_MODEL_ID \
             -e DEPLOYMENT_BRANCH \
             -e DEPLOYMENT_COMMIT \
             -e DEPLOYMENT_TIMESTAMP \
@@ -270,7 +285,7 @@ jobs:
 
             if docker exec "$APP_CONTAINER_NAME" curl --fail --silent http://localhost:8080/actuator/health >/dev/null; then
               echo "Application health check passed"
-              echo "URL: ${APP_PUBLIC_URL:-https://team6.acnbootcamp.lv}"
+              echo "URL: $APP_PUBLIC_URL"
               exit 0
             fi
 

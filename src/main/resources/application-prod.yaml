@@ -1,20 +1,20 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 
   mail:
     host: ${MAIL_HOST}
-    port: ${MAIL_PORT:587}
+    port: ${MAIL_PORT}
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          auth: ${MAIL_SMTP_AUTH:true}
+          auth: ${MAIL_SMTP_AUTH}
           starttls:
-            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE}
 
 springdoc:
   api-docs:
@@ -27,7 +27,7 @@ app:
     allowed-origins: ${ALLOWED_ORIGINS}
   email:
     delivery:
-      mode: ${APP_EMAIL_DELIVERY_MODE:smtp}
+      mode: ${APP_EMAIL_DELIVERY_MODE}
       from: ${APP_EMAIL_FROM}
   email-verification:
     verification-url: ${APP_EMAIL_VERIFICATION_URL}
@@ -38,7 +38,7 @@ app:
       secret: ${APP_JWT_SECRET}
   admin:
     bootstrap:
-      enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED:false}
-      email: ${APP_ADMIN_EMAIL:}
-      username: ${APP_ADMIN_USERNAME:}
-      password: ${APP_ADMIN_PASSWORD:}
+      enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED}
+      email: ${APP_ADMIN_EMAIL}
+      username: ${APP_ADMIN_USERNAME}
+      password: ${APP_ADMIN_PASSWORD}
