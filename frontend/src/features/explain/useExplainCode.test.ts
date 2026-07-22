@@ -15,7 +15,10 @@ const EXPLANATION: ExplanationData = {
   summary: 'FizzBuzz explanation.',
 };
 
-function withExplanation(snippetId: string, data: ExplanationData = EXPLANATION) {
+function withExplanation(
+  snippetId: string,
+  data: ExplanationData = EXPLANATION,
+) {
   server.use(
     http.get(`${API_URL}/api/admin/snippets/${snippetId}/explanation`, () =>
       HttpResponse.json({ data }),
@@ -82,8 +85,8 @@ describe('useExplainCode', () => {
 
     await waitFor(() => expect(result.current.phase).toBe('success'));
 
-    const allText = result.current.lines!
-      .flat()
+    const allText = result.current
+      .lines!.flat()
       .map((seg) => seg.text)
       .join(' ');
     expect(allText).toContain('Summary');
@@ -160,8 +163,8 @@ describe('useExplainCode', () => {
     });
 
     await waitFor(() => expect(result.current.phase).toBe('error'));
-    const allText = result.current.lines!
-      .flat()
+    const allText = result.current
+      .lines!.flat()
       .map((seg) => seg.text)
       .join(' ');
     expect(allText).toContain('error');
@@ -169,10 +172,9 @@ describe('useExplainCode', () => {
 
   it('resets state when snippet changes', async () => {
     withExplanation('s1');
-    const { result, rerender } = renderHook(
-      ({ id }) => useExplainCode(id),
-      { initialProps: { id: 's1' as string | null } },
-    );
+    const { result, rerender } = renderHook(({ id }) => useExplainCode(id), {
+      initialProps: { id: 's1' as string | null },
+    });
 
     act(() => {
       result.current.requestExplanation();
