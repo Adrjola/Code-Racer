@@ -45,8 +45,8 @@ export function isSessionExpiredError(error: unknown): boolean {
 }
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
-  'http://localhost:8080';
+  import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '') ??
+  (import.meta.env.PROD ? '' : 'http://localhost:8080');
 
 export async function apiRequest<T>(
   path: string,

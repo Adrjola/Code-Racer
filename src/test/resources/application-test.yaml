@@ -1,10 +1,28 @@
+spring:
+  mail:
+    host: localhost
+    port: 1025
+    username:
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
 app:
+  cors:
+    allowed-origins: http://localhost:5173
   email:
     delivery:
-      mode: captured
       from: no-reply@coderacer.test
   email-verification:
     verification-url: http://localhost:5173/verify-email
+    token-ttl: 30m
+    resend-cooldown: 0s
+  password-reset:
+    reset-url: http://localhost:5173/reset-password
     token-ttl: 30m
     resend-cooldown: 0s
   ai:
@@ -15,6 +33,13 @@ app:
   security:
     jwt:
       secret: dev-only-change-me-code-racer-jwt-secret-32
+      access-token-ttl: 30m
+  admin:
+    bootstrap:
+      enabled: false
+      email:
+      username:
+      password:
 
 management:
   health:

@@ -1,0 +1,170 @@
+name: Deploy to Self-Hosted Runner
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  docker-build-check:
+    name: docker-build-check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Build application image
+        shell: bash
+        run: docker build --pull -t code-racer-pr-check:${{ github.sha }} .
+
+  deploy:
+    name: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    environment:
+      name: production
+    env:
+      APP_IMAGE_NAME: code-racer-app
+      APP_IMAGE_TAG: ${{ github.sha }}
+      POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      MAIL_HOST: ${{ vars.MAIL_HOST }}
+      MAIL_PORT: ${{ vars.MAIL_PORT }}
+      MAIL_USERNAME: ${{ vars.MAIL_USERNAME }}
+      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+      MAIL_SMTP_AUTH: ${{ vars.MAIL_SMTP_AUTH }}
+      MAIL_SMTP_STARTTLS_ENABLE: ${{ vars.MAIL_SMTP_STARTTLS_ENABLE }}
+      APP_EMAIL_FROM: ${{ vars.APP_EMAIL_FROM }}
+      APP_EMAIL_VERIFICATION_URL: ${{ vars.APP_EMAIL_VERIFICATION_URL }}
+      APP_EMAIL_VERIFICATION_TOKEN_TTL: ${{ vars.APP_EMAIL_VERIFICATION_TOKEN_TTL }}
+      APP_EMAIL_VERIFICATION_RESEND_COOLDOWN: ${{ vars.APP_EMAIL_VERIFICATION_RESEND_COOLDOWN }}
+      APP_PASSWORD_RESET_URL: ${{ vars.APP_PASSWORD_RESET_URL }}
+      APP_PASSWORD_RESET_TOKEN_TTL: ${{ vars.APP_PASSWORD_RESET_TOKEN_TTL }}
+      APP_PASSWORD_RESET_RESEND_COOLDOWN: ${{ vars.APP_PASSWORD_RESET_RESEND_COOLDOWN }}
+      APP_JWT_SECRET: ${{ secrets.APP_JWT_SECRET }}
+      APP_JWT_ACCESS_TOKEN_TTL: ${{ vars.APP_JWT_ACCESS_TOKEN_TTL }}
+      ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+      APP_ADMIN_BOOTSTRAP_ENABLED: ${{ vars.APP_ADMIN_BOOTSTRAP_ENABLED }}
+      APP_ADMIN_EMAIL: ${{ vars.APP_ADMIN_EMAIL }}
+      APP_ADMIN_USERNAME: ${{ vars.APP_ADMIN_USERNAME }}
+      APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
+      APP_AI_ENABLED: ${{ vars.APP_AI_ENABLED }}
+      APP_AI_API_KEY: ${{ secrets.APP_AI_API_KEY }}
+      APP_AI_BASE_URL: ${{ vars.APP_AI_BASE_URL }}
+      APP_AI_MODEL_ID: ${{ vars.APP_AI_MODEL_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          REQUIRED_VARS=(
+            POSTGRES_DB
+            POSTGRES_USER
+            POSTGRES_PASSWORD
+            MAIL_HOST
+            MAIL_PORT
+            MAIL_USERNAME
+            MAIL_PASSWORD
+            MAIL_SMTP_AUTH
+            MAIL_SMTP_STARTTLS_ENABLE
+            APP_EMAIL_FROM
+            APP_EMAIL_VERIFICATION_URL
+            APP_EMAIL_VERIFICATION_TOKEN_TTL
+            APP_EMAIL_VERIFICATION_RESEND_COOLDOWN
+            APP_PASSWORD_RESET_URL
+            APP_PASSWORD_RESET_TOKEN_TTL
+            APP_PASSWORD_RESET_RESEND_COOLDOWN
+            APP_JWT_SECRET
+            APP_JWT_ACCESS_TOKEN_TTL
+            ALLOWED_ORIGINS
+            APP_ADMIN_BOOTSTRAP_ENABLED
+            APP_AI_ENABLED
+            APP_AI_API_KEY
+            APP_AI_BASE_URL
+            APP_AI_MODEL_ID
+          )
+
+          if [ "$APP_ADMIN_BOOTSTRAP_ENABLED" = "true" ]; then
+            REQUIRED_VARS+=(APP_ADMIN_EMAIL APP_ADMIN_USERNAME APP_ADMIN_PASSWORD)
+          fi
+
+          MISSING=0
+          for VAR_NAME in "${REQUIRED_VARS[@]}"; do
+            if [ -z "${!VAR_NAME}" ]; then
+              echo "::error::$VAR_NAME GitHub Environment value is required for deployment"
+              MISSING=1
+            fi
+          done
+
+          if [ "$MISSING" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Build application image
+        shell: bash
+        run: |
+          docker build --pull \
+            -t "$APP_IMAGE_NAME:$APP_IMAGE_TAG" \
+            -t "$APP_IMAGE_NAME:latest" \
+            .
+
+      - name: Validate Compose configuration
+        shell: bash
+        run: docker compose -f compose.prod.yaml config --quiet
+
+      - name: Remove legacy non-Compose containers
+        shell: bash
+        run: |
+          for CONTAINER_NAME in code-racer-app code-racer-postgres; do
+            if ! docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER_NAME"; then
+              continue
+            fi
+
+            COMPOSE_PROJECT=$(docker inspect "$CONTAINER_NAME" \
+              --format '{{ index .Config.Labels "com.docker.compose.project" }}' 2>/dev/null || true)
+
+            if [ -z "$COMPOSE_PROJECT" ] || [ "$COMPOSE_PROJECT" = "<no value>" ]; then
+              docker rm -f "$CONTAINER_NAME" >/dev/null
+            fi
+          done
+
+      - name: Deploy with Docker Compose
+        shell: bash
+        run: docker compose -f compose.prod.yaml up -d --remove-orphans
+
+      - name: Verify deployment
+        shell: bash
+        run: |
+          for i in {1..30}; do
+            if docker compose -f compose.prod.yaml exec -T app \
+              curl --fail --silent http://localhost:8080/actuator/health >/dev/null; then
+              echo "Application health check passed"
+              exit 0
+            fi
+
+            echo "Attempt $i: waiting for application health..."
+            sleep 2
+          done
+
+          echo "::error::Application health check did not pass"
+          docker compose -f compose.prod.yaml ps || true
+          docker compose -f compose.prod.yaml logs --tail 120 || true
+          exit 1
+
+      - name: Display application logs
+        if: always()
+        shell: bash
+        run: docker compose -f compose.prod.yaml logs --tail 80 app || true
