@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Logo from '@/components/Logo';
 import { ChevronRightIcon, PeopleIcon, PersonIcon } from '@/components/icons';
 import SnippetsPage from '@/features/admin/pages/SnippetsPage';
@@ -98,6 +99,7 @@ export default function DashboardPage({
   view,
 }: DashboardPageProps) {
   const isAdmin = session.user.role === 'ADMIN';
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
@@ -126,7 +128,7 @@ export default function DashboardPage({
             )}
             <button
               className="rounded-[8px] border border-pink-400/30 px-3 py-2 text-sm font-semibold text-pink-300"
-              onClick={onLogout}
+              onClick={() => setIsLogoutConfirmOpen(true)}
               type="button"
             >
               Log out
@@ -183,6 +185,17 @@ export default function DashboardPage({
           </section>
         )}
       </main>
+
+      {isLogoutConfirmOpen && (
+        <ConfirmDialog
+          confirmLabel="Log out"
+          confirmVariant="secondary"
+          description="You will need to sign in again to keep racing."
+          onCancel={() => setIsLogoutConfirmOpen(false)}
+          onConfirm={onLogout}
+          title="Log out?"
+        />
+      )}
     </div>
   );
 }
