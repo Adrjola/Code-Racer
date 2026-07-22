@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { apiRequest, type BaseResponse, type Page } from '@/lib/apiClient';
 import Badge, { type BadgeTone } from '@/components/Badge';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -22,13 +23,25 @@ import {
   CATEGORY_OPTIONS,
 } from '@/features/admin/categories';
 import { readableAdminError } from '@/features/admin/errors';
-import type { Page } from '@/lib/apiClient';
 
 type Dialog =
   | { snippet: Snippet; type: 'delete' }
   | { snippet: Snippet; type: 'view' }
   | { type: 'create' }
   | null;
+
+type ExplanationData = {
+  summary: string;
+  stepByStep: string[];
+  concepts: string[];
+  bestPractices: string[];
+};
+
+type ExplanationState = {
+  loading: boolean;
+  data: ExplanationData | null;
+  error: string | null;
+};
 
 const PAGE_SIZE = 10;
 
@@ -69,6 +82,37 @@ export default function SnippetsPage() {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [dialogError, setDialogError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [explanations, setExplanations] = useState<
+    Record<string, ExplanationState>
+  >({});
+
+  const explainSnippet = useCallback(
+    async (snippetId: string) => {
+      if (explanations[snippetId]?.data) return;
+      setExplanations((prev) => ({
+        ...prev,
+        [snippetId]: { loading: true, data: null, error: null },
+      }));
+      try {
+        const res = await apiRequest<BaseResponse<ExplanationData>>(
+          `/api/admin/snippets/${snippetId}/explanation`,
+          { auth: true, method: 'GET' },
+        );
+        setExplanations((prev) => ({
+          ...prev,
+          [snippetId]: { loading: false, data: res.data, error: null },
+        }));
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to get explanation';
+        setExplanations((prev) => ({
+          ...prev,
+          [snippetId]: { loading: false, data: null, error: message },
+        }));
+      }
+    },
+    [explanations],
+  );
 
   useEffect(() => {
     let active = true;
@@ -211,12 +255,9 @@ export default function SnippetsPage() {
       </div>
 
       {notice && (
-        <p
-          className="mt-6 rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-sm text-text-secondary"
-          role="status"
-        >
+        <output className="mt-6 block rounded-[8px] border border-pink-400/25 bg-pink-400/10 px-3 py-2 text-sm text-text-secondary">
           {notice}
-        </p>
+        </output>
       )}
 
       <div aria-live="polite" className="mt-6">
@@ -270,14 +311,68 @@ export default function SnippetsPage() {
                     View
                   </Button>
                   {snippet.lifecycle === 'ACTIVE' && (
-                    <Button
-                      onClick={() => openDialog({ snippet, type: 'delete' })}
-                      variant="danger"
-                    >
-                      Delete
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => void explainSnippet(snippet.id)}
+                        disabled={explanations[snippet.id]?.loading}
+                      >
+                        {explanations[snippet.id]?.loading
+                          ? 'Explaining...'
+                          : 'Explain'}
+                      </Button>
+                      <Button
+                        onClick={() => openDialog({ snippet, type: 'delete' })}
+                        variant="danger"
+                      >
+                        Delete
+                      </Button>
+                    </>
                   )}
                 </div>
+                {(() => {
+                  const explanation = explanations[snippet.id];
+                  return (
+                    <>
+                      {explanation?.data && (
+                        <div className="mt-3 w-full rounded border border-white/10 bg-white/[0.03] p-3 text-xs text-text-secondary">
+                          <p className="font-semibold text-text-primary">
+                            Summary
+                          </p>
+                          <p className="mt-1">{explanation.data.summary}</p>
+                          <p className="mt-2 font-semibold text-text-primary">
+                            Step by Step
+                          </p>
+                          <ol className="mt-1 list-decimal pl-4">
+                            {explanation.data.stepByStep.map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ol>
+                          <p className="mt-2 font-semibold text-text-primary">
+                            Concepts
+                          </p>
+                          <ul className="mt-1 list-disc pl-4">
+                            {explanation.data.concepts.map((c, i) => (
+                              <li key={i}>{c}</li>
+                            ))}
+                          </ul>
+                          <p className="mt-2 font-semibold text-text-primary">
+                            Best Practices
+                          </p>
+                          <ul className="mt-1 list-disc pl-4">
+                            {explanation.data.bestPractices.map((b, i) => (
+                              <li key={i}>{b}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {explanation?.error && (
+                        <p className="mt-2 w-full text-xs text-red-300">
+                          {explanation.error}
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </li>
             ))}
           </ul>

@@ -7,6 +7,11 @@ app:
     verification-url: http://localhost:5173/verify-email
     token-ttl: 30m
     resend-cooldown: 0s
+  ai:
+    enabled: false
+    api-key: test-api-key-not-real
+    base-url: http://localhost:0
+    model-id: test-model
   security:
     jwt:
       secret: dev-only-change-me-code-racer-jwt-secret-32
