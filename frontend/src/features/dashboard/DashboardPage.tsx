@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Logo from '@/components/Logo';
 import { ChevronRightIcon, PeopleIcon, PersonIcon } from '@/components/icons';
-import AdminCatalogPage from '@/features/admin/pages/AdminCatalogPage';
+import SnippetsPage from '@/features/admin/pages/SnippetsPage';
 import type { AuthSession } from '@/features/auth/session';
 
 type DashboardPageProps = {
@@ -152,7 +152,7 @@ export default function DashboardPage({
               </p>
               <h1 className="mt-2 text-3xl font-extrabold">Admin console</h1>
             </section>
-            <AdminCatalogPage />
+            <SnippetsPage />
           </>
         ) : (
           <section>

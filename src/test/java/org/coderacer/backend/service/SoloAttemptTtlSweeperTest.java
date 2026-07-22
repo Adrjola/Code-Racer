@@ -12,9 +12,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.CodeSnippet;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.model.User;
@@ -46,10 +46,7 @@ class SoloAttemptTtlSweeperTest {
   private SoloAttempt newAttempt(Instant startedAt) {
     User user = new User();
     ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-    Category category = new Category();
-    category.setId(UUID.randomUUID());
-    category.setName("Java");
-    category.setActive(true);
+    Category category = Category.JAVA;
     CodeSnippet snippet = new CodeSnippet("hello", "hello", "hash", Difficulty.EASY, category);
     ReflectionTestUtils.setField(snippet, "id", UUID.randomUUID());
     SoloAttempt attempt = new SoloAttempt(user, snippet, Difficulty.EASY, startedAt);

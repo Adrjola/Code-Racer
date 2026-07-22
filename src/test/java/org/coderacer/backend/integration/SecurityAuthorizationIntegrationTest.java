@@ -4,11 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import org.coderacer.backend.dto.CreateSnippetRequest;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.UserRole;
-import org.coderacer.backend.model.Category;
 import org.coderacer.backend.model.User;
-import org.coderacer.backend.repository.CategoryRepository;
 import org.coderacer.backend.repository.CodeSnippetRepository;
 import org.coderacer.backend.repository.UserRepository;
 import org.coderacer.backend.security.JwtService;
@@ -32,7 +31,6 @@ class SecurityAuthorizationIntegrationTest {
 
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private UserRepository userRepository;
-  @Autowired private CategoryRepository categoryRepository;
   @Autowired private CodeSnippetRepository snippetRepository;
   @Autowired private SnippetService snippetService;
   @Autowired private PasswordEncoder passwordEncoder;
@@ -42,14 +40,12 @@ class SecurityAuthorizationIntegrationTest {
   @BeforeEach
   void setUp() {
     snippetRepository.deleteAll();
-    categoryRepository.deleteAll();
     userRepository.deleteAll();
   }
 
   @AfterEach
   void tearDown() {
     snippetRepository.deleteAll();
-    categoryRepository.deleteAll();
     userRepository.deleteAll();
   }
 
@@ -61,21 +57,21 @@ class SecurityAuthorizationIntegrationTest {
   }
 
   @Test
-  void adminCategoryRouteRequiresAuthentication() {
+  void adminSnippetsRouteRequiresAuthentication() {
     ResponseEntity<String> response =
-        restTemplate.getForEntity("/api/admin/categories", String.class);
+        restTemplate.getForEntity("/api/admin/snippets", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(response.getBody()).contains("\"code\":\"AUTHENTICATION_REQUIRED\"");
   }
 
   @Test
-  void userTokenCannotAccessAdminCategoryRoute() {
+  void userTokenCannotAccessAdminSnippetsRoute() {
     User user = saveUser("player", UserRole.USER);
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
             bearerEntity(jwtService.createAccessToken(user)),
             String.class);
@@ -85,12 +81,12 @@ class SecurityAuthorizationIntegrationTest {
   }
 
   @Test
-  void adminTokenCanAccessAdminCategoryRoute() {
+  void adminTokenCanAccessAdminSnippetsRoute() {
     User admin = saveUser("admin", UserRole.ADMIN);
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
             bearerEntity(jwtService.createAccessToken(admin)),
             String.class);
@@ -110,13 +106,12 @@ class SecurityAuthorizationIntegrationTest {
   @Test
   void userTokenCanAccessRandomSnippetRoute() {
     User user = saveUser("snippet_player", UserRole.USER);
-    Category category = saveCategory("Java snippets");
     snippetService.create(
-        new CreateSnippetRequest("FizzBuzz", "class Main {}", Difficulty.EASY, category.getId()));
+        new CreateSnippetRequest("FizzBuzz", "class Main {}", Difficulty.EASY, Category.JAVA));
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/snippets/random?categoryId=" + category.getId() + "&difficulty=EASY",
+            "/api/snippets/random?category=" + Category.JAVA + "&difficulty=EASY",
             HttpMethod.GET,
             bearerEntity(jwtService.createAccessToken(user)),
             String.class);
@@ -162,7 +157,7 @@ class SecurityAuthorizationIntegrationTest {
 
     ResponseEntity<String> response =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
             bearerEntity(jwtService.createAccessToken(admin)),
             String.class);
@@ -213,11 +208,11 @@ class SecurityAuthorizationIntegrationTest {
 
     ResponseEntity<String> oldTokenResponse =
         restTemplate.exchange(
-            "/api/admin/categories", HttpMethod.GET, bearerEntity(oldToken), String.class);
+            "/api/admin/snippets", HttpMethod.GET, bearerEntity(oldToken), String.class);
     User refreshedAdmin = userRepository.findById(admin.getId()).orElseThrow();
     ResponseEntity<String> newTokenResponse =
         restTemplate.exchange(
-            "/api/admin/categories",
+            "/api/admin/snippets",
             HttpMethod.GET,
             bearerEntity(jwtService.createAccessToken(refreshedAdmin)),
             String.class);
@@ -242,12 +237,5 @@ class SecurityAuthorizationIntegrationTest {
     user.setDeleted(false);
     user.setTokenValidFrom(Instant.EPOCH);
     return userRepository.saveAndFlush(user);
-  }
-
-  private Category saveCategory(String name) {
-    Category category = new Category();
-    category.setName(name);
-    category.setDescription(name + " exercises");
-    return categoryRepository.saveAndFlush(category);
   }
 }

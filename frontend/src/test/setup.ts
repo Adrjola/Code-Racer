@@ -7,10 +7,17 @@ beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
 });
 
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
     () => null,
   );
+  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
 });
 
 afterEach(() => {

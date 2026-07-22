@@ -1,37 +1,9 @@
-import type { CategoryValues, SnippetValues } from './api';
+import type { SnippetValues } from './api';
 
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
-export const CATEGORY_NAME_MAX = 100;
-export const CATEGORY_DESCRIPTION_MAX = 500;
 export const SNIPPET_TITLE_MAX = 200;
 export const SNIPPET_SOURCE_MAX = 10000;
-
-export function categoryNameError(value: string): string | undefined {
-  if (!value.trim()) {
-    return 'Name is required';
-  }
-  if (value.length > CATEGORY_NAME_MAX) {
-    return `Name must be ${CATEGORY_NAME_MAX} characters or fewer`;
-  }
-  return undefined;
-}
-
-export function categoryDescriptionError(value: string): string | undefined {
-  if (value.length > CATEGORY_DESCRIPTION_MAX) {
-    return `Description must be ${CATEGORY_DESCRIPTION_MAX} characters or fewer`;
-  }
-  return undefined;
-}
-
-export function validateCategory(
-  values: CategoryValues,
-): FormErrors<CategoryValues> {
-  return {
-    description: categoryDescriptionError(values.description),
-    name: categoryNameError(values.name),
-  };
-}
 
 export function canonicalizeSource(source: string): string {
   return source.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -61,7 +33,7 @@ export function validateSnippet(
   values: SnippetValues,
 ): FormErrors<SnippetValues> {
   return {
-    categoryId: values.categoryId ? undefined : 'Category is required',
+    category: values.category ? undefined : 'Category is required',
     source: snippetSourceError(values.source),
     title: snippetTitleError(values.title),
   };

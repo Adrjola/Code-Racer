@@ -13,13 +13,13 @@ const START_URL = `${API_URL}/api/solo-attempts`;
 const WORLD_BEST_URL = `${API_URL}/api/solo-attempts/world-best`;
 
 const selection: SoloSelection = {
-  categoryId: 'c1',
+  category: 'JAVA',
   categoryName: 'Java basics',
   difficulty: 'EASY',
 };
 
 const snippet = {
-  categoryId: 'c1',
+  category: 'JAVA',
   createdAt: '2026-07-16T12:00:00Z',
   difficulty: 'EASY',
   id: 's1',
@@ -33,10 +33,10 @@ function withCategories() {
   server.use(
     http.get(`${API_URL}/api/categories`, () =>
       HttpResponse.json({
-        data: {
-          content: [],
-          page: { number: 0, size: 100, totalElements: 0, totalPages: 0 },
-        },
+        data: [
+          { category: 'JAVA', displayName: 'Java' },
+          { category: 'SQL', displayName: 'SQL' },
+        ],
       }),
     ),
     http.get(WORLD_BEST_URL, () =>
@@ -110,7 +110,7 @@ describe('SoloPreviewPage', () => {
     expect(
       await screen.findByRole('button', { name: /start race/i }),
     ).toBeInTheDocument();
-    expect(urls[0]).toContain('categoryId=c1');
+    expect(urls[0]).toContain('category=JAVA');
     expect(urls[0]).toContain('difficulty=EASY');
   });
 

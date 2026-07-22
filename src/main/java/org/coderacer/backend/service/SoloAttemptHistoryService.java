@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.SoloAttemptResultResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
@@ -36,7 +37,7 @@ public class SoloAttemptHistoryService {
   public Page<SoloAttemptResultResponse> findHistory(
       UUID userId,
       SoloAttemptState state,
-      UUID categoryId,
+      Category category,
       Difficulty difficulty,
       Instant startedFrom,
       Instant startedTo,
@@ -47,14 +48,14 @@ public class SoloAttemptHistoryService {
     }
 
     Specification<SoloAttempt> specification =
-        ownHistory(userId, state, categoryId, difficulty, startedFrom, startedTo);
+        ownHistory(userId, state, category, difficulty, startedFrom, startedTo);
     return repository.findAll(specification, deterministic(pageable)).map(mapper::toResultResponse);
   }
 
   private Specification<SoloAttempt> ownHistory(
       UUID userId,
       SoloAttemptState state,
-      UUID categoryId,
+      Category category,
       Difficulty difficulty,
       Instant startedFrom,
       Instant startedTo) {
@@ -69,9 +70,8 @@ public class SoloAttemptHistoryService {
       if (state != null) {
         predicates.add(builder.equal(root.get("state"), state));
       }
-      if (categoryId != null) {
-        predicates.add(
-            builder.equal(root.get("codeSnippet").get("category").get("id"), categoryId));
+      if (category != null) {
+        predicates.add(builder.equal(root.get("codeSnippet").get("category"), category));
       }
       if (difficulty != null) {
         predicates.add(builder.equal(root.get("difficulty"), difficulty));

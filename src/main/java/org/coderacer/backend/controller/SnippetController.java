@@ -4,6 +4,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.BaseResponse;
 import org.coderacer.backend.dto.SnippetResponse;
+import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.service.SnippetService;
 import org.slf4j.MDC;
@@ -21,10 +22,10 @@ public class SnippetController {
 
   @GetMapping("/random")
   public BaseResponse<SnippetResponse> random(
-      @RequestParam(required = false) UUID categoryId,
+      @RequestParam(required = false) Category category,
       @RequestParam(required = false) Difficulty difficulty,
       @RequestParam(required = false) UUID excludeId) {
     return new BaseResponse<>(
-        service.randomEligible(categoryId, difficulty, excludeId), MDC.get("correlationId"));
+        service.randomEligible(category, difficulty, excludeId), MDC.get("correlationId"));
   }
 }

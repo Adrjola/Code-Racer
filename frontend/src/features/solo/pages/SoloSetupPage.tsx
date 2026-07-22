@@ -1,70 +1,269 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Logo from '@/components/Logo';
+import { TrophyIcon } from '@/components/icons';
+import type { AuthSession } from '@/features/auth/session';
 import {
   fetchCategories,
   isSessionExpiredError,
   readableSoloError,
   type Category,
+  type CategoryOption,
   type Difficulty,
   type SoloSelection,
 } from '@/features/solo/api/soloApi';
+import categoryJavaGlyph from '@/assets/icons/category-java-glyph.svg';
+import categoryRestApisGlyph from '@/assets/icons/category-rest-apis-glyph.svg';
+import categorySqlGlyph from '@/assets/icons/category-sql-glyph.svg';
+import categoryTestingGlyph from '@/assets/icons/category-testing-glyph.svg';
+import checkmarkIcon from '@/assets/icons/checkmark.svg';
+import playTriangleIcon from '@/assets/icons/play-triangle.svg';
 
 type SoloSetupPageProps = {
   onGoDashboard: () => void;
   onLogout: () => void;
   onSelect: (selection: SoloSelection) => void;
   onSessionExpired: () => void;
+  session: AuthSession;
 };
 
 type CategoriesState =
   | { message: string; status: 'error' }
-  | { categories: Category[]; status: 'ready' }
+  | { categories: CategoryOption[]; status: 'ready' }
   | { status: 'loading' };
 
-const DIFFICULTIES: {
-  className: string;
+type DifficultyOption = {
+  label: string;
+  subtext: string;
+  tone: string;
   value: Difficulty;
-}[] = [
+};
+
+/** The layout is authored at this width and scaled to fit the window. */
+const DESIGN_WIDTH = 1920;
+
+const DIFFICULTIES: DifficultyOption[] = [
   {
-    className:
-      'border-emerald-500/50 bg-emerald-950/40 hover:border-emerald-400',
+    label: 'BABY MODE',
+    subtext: 'TRAINING WHEELS ON · NO SHAME',
+    tone: '#34d399',
     value: 'EASY',
   },
   {
-    className: 'border-amber-500/50 bg-amber-950/40 hover:border-amber-400',
+    label: 'TRYHARD',
+    subtext: 'OKAY, SHOW OFF.',
+    tone: '#fbbf24',
     value: 'MEDIUM',
   },
   {
-    className: 'border-pink-500/50 bg-pink-950/40 hover:border-pink-400',
+    label: 'LOCKED IN',
+    subtext: 'TOUCH GRASS LATER · DENSE LOGIC',
+    tone: '#f472b6',
     value: 'HARD',
   },
 ];
 
-const headingClassName = 'font-mono text-2xl font-bold lg:text-3xl';
+const CATEGORY_GLYPH: Record<Category, { className: string; src: string }> = {
+  JAVA: { className: 'h-12 w-[53px]', src: categoryJavaGlyph },
+  REST_APIS: { className: 'h-11 w-[51px]', src: categoryRestApisGlyph },
+  SQL: { className: 'h-10 w-9', src: categorySqlGlyph },
+  TESTING: { className: 'h-11 w-10', src: categoryTestingGlyph },
+};
 
-const categoryButtonBaseClassName =
-  'flex h-[4.75rem] w-full shrink-0 items-center justify-center rounded-xl border px-4 text-center font-mono text-lg font-semibold transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50';
+const CATEGORY_TAGLINE: Record<Category, string> = {
+  JAVA: 'public class',
+  REST_APIS: 'GET /v1',
+  SQL: 'SELECT *',
+  TESTING: '@Test',
+};
 
-const categoryButtonIdleClassName =
-  'border-pink-400/25 bg-[rgb(40_20_35_/_0.35)] text-text-primary hover:border-pink-400/60';
+/** The rule trailing each section heading, fading out the way the design draws it. */
+function HeadingRule() {
+  return (
+    <span
+      aria-hidden="true"
+      className="hidden h-px flex-1 self-center bg-gradient-to-r from-[#a855f7]/45 to-transparent lg:block lg:ml-[68px]"
+    />
+  );
+}
 
-const categoryButtonSelectedClassName =
-  'border-pink-400 bg-pink-500/15 text-white ring-1 ring-pink-400/40';
+function Checkbox({ checked, tone }: { checked: boolean; tone: string }) {
+  if (!checked) {
+    return (
+      <span
+        aria-hidden="true"
+        className="size-6 shrink-0 rounded-[7px] border border-white/16"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-6 shrink-0 items-center justify-center rounded-[7px]"
+      style={{ backgroundColor: tone }}
+    >
+      <img alt="" className="size-3" src={checkmarkIcon} />
+    </span>
+  );
+}
 
-const difficultyButtonBaseClassName =
-  'flex h-[9rem] w-full items-center justify-center rounded-xl border font-mono text-2xl font-semibold text-text-primary transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-inherit sm:w-72 lg:h-40 lg:text-3xl';
+type CategoryCardProps = {
+  isSelected: boolean;
+  onSelect: () => void;
+  option: CategoryOption;
+};
+
+function CategoryCard({ isSelected, onSelect, option }: CategoryCardProps) {
+  const glyph = CATEGORY_GLYPH[option.category];
+
+  return (
+    <li>
+      <button
+        aria-pressed={isSelected}
+        className={`relative flex h-[132px] w-full flex-col justify-between overflow-hidden rounded-2xl border px-6 py-5 text-left transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/50 ${
+          isSelected
+            ? 'border-[#c084fcE6] bg-gradient-to-b from-[#a855f73d] to-[#7e34d61f]'
+            : 'border-[#a855f747] bg-[#0a09109c] hover:border-[#a855f780]'
+        }`}
+        onClick={onSelect}
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-2 right-4"
+          style={{ opacity: isSelected ? 0.22 : 0.08 }}
+        >
+          <img alt="" className={glyph.className} src={glyph.src} />
+        </span>
+        <div className="flex items-start justify-between gap-3">
+          <span
+            className={`font-mono text-[28px] font-bold leading-none ${
+              isSelected ? 'text-white' : 'text-[#b9a9d0]'
+            }`}
+          >
+            {option.displayName}
+          </span>
+          <Checkbox checked={isSelected} tone="#c084fc" />
+        </div>
+        <span
+          className={`font-mono text-xs ${
+            isSelected ? 'text-[#c084fc]' : 'text-[#5f5570]'
+          }`}
+        >
+          {CATEGORY_TAGLINE[option.category]}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+type DifficultyCardProps = {
+  disabled: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
+  option: DifficultyOption;
+};
+
+function DifficultyCard({
+  disabled,
+  isSelected,
+  onSelect,
+  option,
+}: DifficultyCardProps) {
+  return (
+    <li>
+      <button
+        aria-pressed={isSelected}
+        className={`flex h-[132px] w-full flex-col justify-between rounded-2xl border px-6 py-5 text-left transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/50 disabled:cursor-not-allowed disabled:opacity-40 ${
+          isSelected
+            ? 'bg-gradient-to-b from-[#0000] to-[#0a091090]'
+            : 'border-white/12 bg-[#0a09109c]'
+        }`}
+        disabled={disabled}
+        onClick={onSelect}
+        style={
+          isSelected
+            ? {
+                borderColor: option.tone,
+                backgroundImage: `linear-gradient(to bottom, ${option.tone}33, #0a091090)`,
+              }
+            : undefined
+        }
+        type="button"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: option.tone }}
+            />
+            <span
+              className={`font-mono text-[28px] font-bold leading-none ${
+                isSelected ? 'text-white' : 'text-[#8589a3]'
+              }`}
+            >
+              {option.label}
+            </span>
+          </span>
+          <Checkbox checked={isSelected} tone={option.tone} />
+        </div>
+        <span
+          className="font-mono text-xs"
+          style={{ color: isSelected ? option.tone : '#5b5f78' }}
+        >
+          {option.subtext}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function useNaturalHeight() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      setHeight(node.offsetHeight);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return { height, ref };
+}
 
 export default function SoloSetupPage({
   onGoDashboard,
   onLogout,
   onSelect,
   onSessionExpired,
+  session,
 }: SoloSetupPageProps) {
   const [state, setState] = useState<CategoriesState>({ status: 'loading' });
   const [reloadToken, setReloadToken] = useState(0);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<
-    string | undefined
+  const [selectedCategory, setSelectedCategory] = useState<
+    Category | undefined
   >(undefined);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<
+    Difficulty | undefined
+  >(undefined);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const [scale, setScale] = useState(() => window.innerWidth / DESIGN_WIDTH);
+  const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
+  const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
+
+  useEffect(() => {
+    const updateScale = () => setScale(window.innerWidth / DESIGN_WIDTH);
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
   const onSessionExpiredRef = useRef(onSessionExpired);
   useEffect(() => {
@@ -100,133 +299,219 @@ export default function SoloSetupPage({
   };
 
   const categories = state.status === 'ready' ? state.categories : [];
-  const selectedCategory = categories.find(
-    (category) => category.id === selectedCategoryId,
+  const selectedCategoryOption = categories.find(
+    (option) => option.category === selectedCategory,
   );
+  const selectedDifficultyOption = DIFFICULTIES.find(
+    (option) => option.value === selectedDifficulty,
+  );
+  const canPlay = Boolean(selectedCategoryOption && selectedDifficultyOption);
 
-  const handleDifficulty = (difficulty: Difficulty) => {
-    if (!selectedCategory) {
+  const handlePlay = () => {
+    if (!selectedCategoryOption || !selectedDifficultyOption) {
       return;
     }
     onSelect({
-      categoryId: selectedCategory.id,
-      categoryName: selectedCategory.name,
-      difficulty,
+      category: selectedCategoryOption.category,
+      categoryName: selectedCategoryOption.displayName,
+      difficulty: selectedDifficultyOption.value,
     });
   };
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
-      <header className="border-b border-pink-400/15 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(0.875rem,1.9dvh,1.5rem)]">
-        <div className="mx-auto flex w-full max-w-[100rem] flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <Logo />
-          <nav
-            aria-label="Primary navigation"
-            className="flex flex-wrap items-center justify-start gap-3 md:justify-end"
-          >
-            <button
-              className="text-sm font-semibold text-text-secondary hover:text-text-primary"
-              onClick={onGoDashboard}
-              type="button"
-            >
-              Dashboard
-            </button>
-            <button
-              className="rounded-[8px] border border-pink-400/30 px-3 py-2 text-sm font-semibold text-pink-300"
-              onClick={onLogout}
-              type="button"
-            >
-              Log out
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] py-[clamp(2rem,5dvh,3.5rem)]">
-        <section aria-labelledby="category-heading">
-          <h1 className={headingClassName} id="category-heading">
-            Category
-          </h1>
-
-          {state.status === 'loading' && (
-            <p className="mt-6 text-text-secondary" role="status">
-              Loading categories...
-            </p>
-          )}
-
-          {state.status === 'error' && (
-            <div className="mt-6" role="alert">
-              <p className="text-text-secondary">{state.message}</p>
-              <button
-                className="mt-3 rounded-[8px] border border-pink-400/40 px-4 py-2 text-sm font-semibold text-pink-300 hover:border-pink-400"
-                onClick={retry}
-                type="button"
+      <div
+        className="sticky top-0 z-10 bg-surface 2xl:overflow-hidden 2xl:[height:calc(var(--solo-header-h)*var(--solo-scale))]"
+        style={
+          {
+            '--solo-header-h': `${headerHeight}px`,
+            '--solo-scale': scale,
+          } as CSSProperties
+        }
+      >
+        <div
+          className="2xl:[width:var(--solo-design-w)] 2xl:origin-top-left 2xl:[transform:scale(var(--solo-scale))]"
+          ref={headerCanvasRef}
+          style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
+        >
+          <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
+            <Logo onClick={onGoDashboard} />
+            <div className="flex items-center gap-4">
+              <span
+                aria-hidden="true"
+                className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
               >
-                Try again
-              </button>
-            </div>
-          )}
-
-          {state.status === 'ready' && categories.length === 0 && (
-            <p className="mt-6 text-text-secondary" role="status">
-              No categories are available right now.
-            </p>
-          )}
-
-          {state.status === 'ready' && categories.length > 0 && (
-            <ul
-              aria-label="Categories"
-              className="mt-6 flex max-h-[15.75rem] w-full max-w-72 flex-col gap-3 overflow-y-auto pr-1"
-            >
-              {categories.map((category) => {
-                const isSelected = category.id === selectedCategoryId;
-                return (
-                  <li key={category.id}>
+                <TrophyIcon className="size-5" />
+              </span>
+              <span className="hidden h-10 items-center gap-2 rounded-[9px] border border-[rgba(244,114,182,0.2)] bg-[rgba(244,114,182,0.05)] px-3 font-mono text-[10.5px] tracking-wide sm:flex">
+                <span className="text-[#6b6f85]">USER:</span>
+                <span className="font-bold text-[#f9a8d4]">
+                  {session.user.username}
+                </span>
+              </span>
+              <div className="relative">
+                <button
+                  aria-expanded={isMenuOpen}
+                  aria-label="Menu"
+                  className="flex size-10 flex-col items-center justify-center gap-1 rounded-[9px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)]"
+                  onClick={() => setIsMenuOpen((open) => !open)}
+                  type="button"
+                >
+                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
+                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
+                  <span className="h-[2px] w-[9.59px] rounded-full bg-[#c9cbe0]" />
+                </button>
+                {isMenuOpen && (
+                  <div className="absolute right-0 top-12 z-10 flex w-40 flex-col overflow-hidden rounded-[9px] border border-white/10 bg-[#15121f] py-1 shadow-lg">
                     <button
-                      aria-pressed={isSelected}
-                      className={`${categoryButtonBaseClassName} ${
-                        isSelected
-                          ? categoryButtonSelectedClassName
-                          : categoryButtonIdleClassName
-                      }`}
-                      onClick={() => setSelectedCategoryId(category.id)}
+                      className="px-4 py-2 text-left text-sm font-semibold text-pink-300 hover:bg-white/5"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onLogout();
+                      }}
                       type="button"
                     >
-                      {category.name}
+                      Log out
                     </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+        </div>
+      </div>
 
-        <section aria-labelledby="difficulty-heading" className="mt-12">
-          <h2 className={headingClassName} id="difficulty-heading">
-            Difficulty
-          </h2>
-
-          <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:flex-wrap">
-            {DIFFICULTIES.map((difficulty) => (
-              <button
-                className={`${difficultyButtonBaseClassName} ${difficulty.className}`}
-                disabled={!selectedCategory}
-                key={difficulty.value}
-                onClick={() => handleDifficulty(difficulty.value)}
-                type="button"
+      <div
+        className="2xl:overflow-hidden 2xl:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
+        style={
+          {
+            '--solo-main-h': `${mainHeight}px`,
+            '--solo-scale': scale,
+          } as CSSProperties
+        }
+      >
+        <main
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:pt-12 2xl:mx-0 2xl:max-w-none 2xl:px-[80px] 2xl:pt-[110px] 2xl:origin-top-left 2xl:[width:var(--solo-design-w)] 2xl:[transform:scale(var(--solo-scale))]"
+          ref={mainCanvasRef}
+          style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
+        >
+          <section aria-labelledby="category-heading">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h1
+                className="font-sans text-3xl font-bold text-white lg:text-[32px]"
+                id="category-heading"
               >
-                {difficulty.value}
-              </button>
-            ))}
-          </div>
+                Category
+              </h1>
+              <p className="font-mono text-xs text-[#a855f7]">
+                {'// PICK YOUR POISON'}
+              </p>
+              <HeadingRule />
+            </div>
 
-          <p className="mt-4 text-sm text-text-muted" role="status">
-            {selectedCategory
-              ? `Pick a difficulty to start a ${selectedCategory.name} race.`
-              : 'Select a category first, then choose a difficulty.'}
-          </p>
-        </section>
-      </main>
+            {state.status === 'loading' && (
+              <p className="mt-6 text-text-secondary" role="status">
+                Loading categories...
+              </p>
+            )}
+
+            {state.status === 'error' && (
+              <div className="mt-6" role="alert">
+                <p className="text-text-secondary">{state.message}</p>
+                <button
+                  className="mt-3 rounded-[8px] border border-pink-400/40 px-4 py-2 text-sm font-semibold text-pink-300 hover:border-pink-400"
+                  onClick={retry}
+                  type="button"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {state.status === 'ready' && categories.length === 0 && (
+              <p className="mt-6 text-text-secondary" role="status">
+                No categories are available right now.
+              </p>
+            )}
+
+            {state.status === 'ready' && categories.length > 0 && (
+              <ul
+                aria-label="Categories"
+                className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+              >
+                {categories.map((option) => (
+                  <CategoryCard
+                    isSelected={option.category === selectedCategory}
+                    key={option.category}
+                    onSelect={() => setSelectedCategory(option.category)}
+                    option={option}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section
+            aria-labelledby="difficulty-heading"
+            className="mt-10 lg:mt-[92px]"
+          >
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h2
+                className="font-sans text-3xl font-bold text-white lg:text-[32px]"
+                id="difficulty-heading"
+              >
+                Difficulty
+              </h2>
+              <p className="font-mono text-[11px] text-[#a855f7]">
+                {'// HOW HUMBLED DO YOU WANT TO BE'}
+              </p>
+              <HeadingRule />
+            </div>
+
+            <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
+              {DIFFICULTIES.map((option) => (
+                <DifficultyCard
+                  disabled={!selectedCategoryOption}
+                  isSelected={option.value === selectedDifficulty}
+                  key={option.value}
+                  onSelect={() => setSelectedDifficulty(option.value)}
+                  option={option}
+                />
+              ))}
+            </ul>
+          </section>
+
+          <div className="mt-10 flex flex-wrap items-center gap-6 lg:mt-[64px]">
+            <button
+              className="flex h-[88px] w-48 items-center justify-center gap-3 rounded-[10px] font-sans text-2xl font-bold text-white transition duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!canPlay}
+              onClick={handlePlay}
+              style={
+                canPlay
+                  ? {
+                      backgroundImage:
+                        'linear-gradient(106deg, #f472b6 0%, #a855f7 100%)',
+                      boxShadow: '0px 0px 28px -6px rgba(219,39,119,0.85)',
+                    }
+                  : { backgroundColor: 'rgba(255,255,255,0.05)' }
+              }
+              type="button"
+            >
+              <img alt="" className="h-6 w-[17px]" src={playTriangleIcon} />
+              Play
+            </button>
+
+            <div>
+              <p className="font-mono text-xs text-[#5b5f78]">LOADOUT</p>
+              <p className="font-mono text-base text-[#c9c7d6]">
+                {selectedCategoryOption && selectedDifficultyOption
+                  ? `${selectedCategoryOption.displayName.toUpperCase()} - ${selectedDifficultyOption.label}`
+                  : 'Select a category and difficulty'}
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

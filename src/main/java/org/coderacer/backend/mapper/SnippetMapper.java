@@ -14,7 +14,7 @@ public class SnippetMapper {
         snippet.getSource(),
         snippet.getDifficulty(),
         snippet.getLifecycle(),
-        snippet.getCategory().getId(),
+        snippet.getCategory(),
         snippet.getCreatedAt(),
         snippet.getUpdatedAt());
   }

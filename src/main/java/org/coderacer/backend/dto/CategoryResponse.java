@@ -1,12 +1,5 @@
 package org.coderacer.backend.dto;
 
-import java.time.Instant;
-import java.util.UUID;
+import org.coderacer.backend.enums.Category;
 
-public record CategoryResponse(
-    UUID id,
-    String name,
-    String description,
-    boolean active,
-    Instant createdAt,
-    Instant updatedAt) {}
+public record CategoryResponse(Category category, String displayName) {}

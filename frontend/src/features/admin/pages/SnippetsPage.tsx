@@ -7,7 +7,6 @@ import SelectField from '@/components/SelectField';
 import {
   createSnippet,
   deleteSnippet,
-  listCategories,
   listSnippets,
   type Category,
   type Difficulty,
@@ -16,13 +15,16 @@ import {
   type SnippetValues,
 } from '@/features/admin/api';
 import SnippetFormDialog from '@/features/admin/components/SnippetFormDialog';
+import {
+  categoryDisplayName,
+  CATEGORY_OPTIONS,
+} from '@/features/admin/categories';
 import { readableAdminError } from '@/features/admin/errors';
 import type { Page } from '@/lib/apiClient';
 
 type Dialog = { snippet: Snippet; type: 'delete' } | { type: 'create' } | null;
 
 const PAGE_SIZE = 10;
-const CATEGORY_FETCH_SIZE = 100;
 
 const LIFECYCLE_TONE: Record<SnippetLifecycle, BadgeTone> = {
   ACTIVE: 'positive',
@@ -51,11 +53,10 @@ const lifecycleOptions = (['ACTIVE', 'DELETED'] as SnippetLifecycle[]).map(
 export default function SnippetsPage() {
   const [page, setPage] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
-  const [categoryId, setCategoryId] = useState('');
+  const [category, setCategory] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [lifecycle, setLifecycle] = useState('');
   const [data, setData] = useState<Page<Snippet> | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -70,7 +71,7 @@ export default function SnippetsPage() {
       try {
         const result = await listSnippets(
           {
-            categoryId: categoryId || undefined,
+            category: (category as Category) || undefined,
             difficulty: (difficulty as Difficulty) || undefined,
             lifecycle: (lifecycle as SnippetLifecycle) || undefined,
           },
@@ -96,27 +97,7 @@ export default function SnippetsPage() {
     return () => {
       active = false;
     };
-  }, [categoryId, difficulty, lifecycle, page, reloadToken]);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadCategories = async () => {
-      // Filters and the category picker degrade quietly if this list fails.
-      const result = await listCategories({
-        size: CATEGORY_FETCH_SIZE,
-      }).catch(() => null);
-
-      if (active && result) {
-        setCategories(result.content);
-      }
-    };
-
-    void loadCategories();
-    return () => {
-      active = false;
-    };
-  }, [reloadToken]);
+  }, [category, difficulty, lifecycle, page, reloadToken]);
 
   const reload = () => {
     setIsLoading(true);
@@ -171,10 +152,6 @@ export default function SnippetsPage() {
     });
   };
 
-  const categoryName = (id: string) =>
-    categories.find((category) => category.id === id)?.name ??
-    'Unknown category';
-
   const snippets = data?.content ?? [];
 
   return (
@@ -201,13 +178,13 @@ export default function SnippetsPage() {
         <SelectField
           id="filter-category"
           label="Category"
-          onChange={(value) => applyFilter(() => setCategoryId(value))}
-          options={categories.map((category) => ({
-            label: category.name,
-            value: category.id,
+          onChange={(value) => applyFilter(() => setCategory(value))}
+          options={CATEGORY_OPTIONS.map((option) => ({
+            label: option.displayName,
+            value: option.category,
           }))}
           placeholder="All categories"
-          value={categoryId}
+          value={category}
         />
         <SelectField
           id="filter-difficulty"
@@ -273,7 +250,7 @@ export default function SnippetsPage() {
                     </Badge>
                   </div>
                   <p className="mt-1 text-xs text-text-muted">
-                    {categoryName(snippet.categoryId)} -{' '}
+                    {categoryDisplayName(snippet.category)} -{' '}
                     {snippet.difficulty.charAt(0)}
                     {snippet.difficulty.slice(1).toLowerCase()}
                   </p>
@@ -310,7 +287,6 @@ export default function SnippetsPage() {
 
       {dialog?.type === 'create' && (
         <SnippetFormDialog
-          categories={categories}
           error={dialogError}
           isSubmitting={isSubmitting}
           onCancel={() => setDialog(null)}
