@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.repository.SoloAttemptRepository;
@@ -50,15 +49,15 @@ public class SoloAttemptTtlSweeper {
   }
 
   private void sweepActive(SoloAttempt attempt, Instant now) {
-    Optional<ActiveProgress> progress = activeAttemptStateStore.get(attempt.getId());
-    if (progress.isEmpty()) {
+    // Progress rides along on the row the sweep already loaded, so no per-attempt lookup.
+    Instant lastProgressAt = attempt.getLastProgressAt();
+    if (lastProgressAt == null) {
       attempt.invalidate();
       soloAttemptRepository.save(attempt);
       return;
     }
 
-    boolean idleTooLong =
-        Duration.between(progress.get().lastActivityAt(), now).compareTo(IDLE_TTL) > 0;
+    boolean idleTooLong = Duration.between(lastProgressAt, now).compareTo(IDLE_TTL) > 0;
     boolean tooLongOverall =
         Duration.between(attempt.getStartedAt(), now).compareTo(MAX_ATTEMPT_DURATION) > 0;
     if (idleTooLong || tooLongOverall) {
