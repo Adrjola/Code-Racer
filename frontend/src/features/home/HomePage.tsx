@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Logo from '@/components/Logo';
 import { PeopleIcon, PersonIcon, TrophyIcon } from '@/components/icons';
 import SnippetsPage from '@/features/admin/pages/SnippetsPage';
@@ -145,6 +146,7 @@ export default function HomePage({
   view,
 }: HomePageProps) {
   const isAdmin = session.user.role === 'ADMIN';
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const { height, ref: canvasRef } = useNaturalHeight();
 
   const noticeBanner = notice ? (
@@ -185,7 +187,7 @@ export default function HomePage({
           )}
           <button
             className="rounded-[8px] border border-pink-400/30 px-3 py-2 text-sm font-semibold text-pink-300"
-            onClick={onLogout}
+            onClick={() => setIsLogoutConfirmOpen(true)}
             type="button"
           >
             Log out
@@ -195,10 +197,23 @@ export default function HomePage({
     </header>
   );
 
+  // Rendered from both views, so an accidental click is caught either way.
+  const logoutConfirm = isLogoutConfirmOpen ? (
+    <ConfirmDialog
+      confirmLabel="Log out"
+      confirmVariant="secondary"
+      description="You will need to sign in again to keep racing."
+      onCancel={() => setIsLogoutConfirmOpen(false)}
+      onConfirm={onLogout}
+      title="Log out?"
+    />
+  ) : null;
+
   if (view === 'admin') {
     return (
       <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
         {header}
+        {logoutConfirm}
         <main className="mx-auto flex w-full max-w-[100rem] flex-col gap-5 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(2rem,5dvh,3.5rem)]">
           {noticeBanner}
           <section>
@@ -215,6 +230,7 @@ export default function HomePage({
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
+      {logoutConfirm}
       {/* From lg up the content is laid out on a fixed 1920px canvas and scaled
           by --stats-scale (innerWidth / 1920, set in main.tsx), so the page
           looks identical at any width or zoom. Below lg it flows fluidly. */}
