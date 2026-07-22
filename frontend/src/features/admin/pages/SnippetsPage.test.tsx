@@ -135,6 +135,24 @@ describe('SnippetsPage', () => {
     expect(created).not.toHaveProperty('version');
   });
 
+  it('shows the whole snippet in a dialog, including a deleted one', async () => {
+    const long = {
+      ...active,
+      source: Array.from({ length: 40 }, (_, i) => `int line${i} = ${i};`).join(
+        '\n',
+      ),
+    };
+    withSnippets([{ ...long, lifecycle: 'DELETED' as const }]);
+    render(<SnippetsPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }));
+
+    const dialog = within(screen.getByRole('dialog'));
+    expect(dialog.getByText(/int line0 = 0;/)).toBeInTheDocument();
+    // The card clips the preview; the dialog must reach the last line.
+    expect(dialog.getByText(/int line39 = 39;/)).toBeInTheDocument();
+  });
+
   it('deletes an active snippet after confirming it cannot be undone', async () => {
     withSnippets([active]);
     let deleted = false;

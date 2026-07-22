@@ -3,20 +3,26 @@ import { SoloRaceBrand } from './SoloRaceBrand';
 import { SoloRaceHeaderActions } from './SoloRaceHeaderActions';
 
 interface SoloRaceHeaderProps {
-  onRestart: () => void;
-  onLobby: () => void;
+  actionLabel: string;
   children?: ReactNode;
+  onAction: () => void;
+  onLobby: () => void;
 }
 
 export function SoloRaceHeader({
-  onRestart,
-  onLobby,
+  actionLabel,
   children,
+  onAction,
+  onLobby,
 }: SoloRaceHeaderProps) {
   return (
     <header className="flex items-center justify-between px-[38px] pt-6">
       <SoloRaceBrand />
-      <SoloRaceHeaderActions onLobby={onLobby} onRestart={onRestart} />
+      <SoloRaceHeaderActions
+        actionLabel={actionLabel}
+        onAction={onAction}
+        onLobby={onLobby}
+      />
       {children}
     </header>
   );

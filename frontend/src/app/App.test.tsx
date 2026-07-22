@@ -493,6 +493,11 @@ describe('App', () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /log out/i }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: /log out/i,
+      }),
+    );
     expect(
       screen.getByRole('heading', { name: /welcome back/i }),
     ).toBeInTheDocument();
@@ -608,6 +613,11 @@ describe('App', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /log out/i }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: /log out/i,
+      }),
+    );
     expect(screen.getByRole('status')).toHaveTextContent(/logged out/i);
 
     window.history.back();
