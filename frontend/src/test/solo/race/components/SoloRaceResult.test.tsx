@@ -9,6 +9,8 @@ import type {
 } from '../../../../features/solo/race/api/soloRaceApi';
 import { formatDurationPrecise } from '../../../../features/solo/race/utils/formatDuration';
 import { saveSession } from '@/features/auth/session';
+import { clearExplainCache } from '@/features/explain/useExplainCode';
+import type { ExplanationData } from '@/features/explain/explainApi';
 import { server } from '@/test/server';
 
 const API_URL = 'http://localhost:8080';
@@ -56,6 +58,7 @@ function renderResult(
     onNewSnippet?: () => void;
     onRaceAgain?: () => void;
   } = {},
+  snippetCode?: string | null,
 ) {
   render(
     <SoloRaceResult
@@ -63,11 +66,13 @@ function renderResult(
       onNewSnippet={handlers.onNewSnippet ?? vi.fn()}
       onRaceAgain={handlers.onRaceAgain ?? vi.fn()}
       result={result(overrides)}
+      snippetCode={snippetCode}
     />,
   );
 }
 
 beforeEach(() => {
+  clearExplainCache();
   saveSession({
     accessToken: 'jwt-token',
     expiresAt: Date.now() + 60_000,
@@ -223,5 +228,75 @@ describe('SoloRaceResult', () => {
       screen.getByRole('button', { name: /back to lobby/i }),
     );
     expect(onLobby).toHaveBeenCalledOnce();
+  });
+
+  describe('Score/Code toggle', () => {
+    it('shows the toggle when snippetCode is provided', () => {
+      withRanking();
+      renderResult({}, {}, 'public class Foo {}');
+
+      expect(screen.getByRole('tablist', { name: /result view/i })).toBeInTheDocument();
+    });
+
+    it('does not show the toggle when snippetCode is absent', () => {
+      withRanking();
+      renderResult();
+
+      expect(screen.queryByRole('tablist', { name: /result view/i })).not.toBeInTheDocument();
+    });
+
+    it('switches to code view and hides navigation buttons', async () => {
+      withRanking();
+      renderResult({}, {}, 'public class Foo {}');
+
+      expect(screen.getByRole('button', { name: /new snippet/i })).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('tab', { name: /code/i }));
+
+      expect(screen.getByText('public class Foo {}')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /new snippet/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /restart/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /back to lobby/i })).not.toBeInTheDocument();
+    });
+
+    it('switches back to score view and shows buttons again', async () => {
+      withRanking();
+      renderResult({}, {}, 'public class Foo {}');
+
+      await userEvent.click(screen.getByRole('tab', { name: /code/i }));
+      expect(screen.queryByRole('button', { name: /new snippet/i })).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('tab', { name: /score/i }));
+      expect(screen.getByRole('button', { name: /new snippet/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Benji explain code', () => {
+    it('shows the clickable Benji bot', () => {
+      withRanking();
+      renderResult();
+
+      expect(screen.getByRole('button', { name: /explain the code/i })).toBeInTheDocument();
+    });
+
+    it('disables the click target after Benji is clicked', async () => {
+      withRanking();
+      server.use(
+        http.get(`${API_URL}/api/admin/snippets/g1/explanation`, async () => {
+          await new Promise(() => {});
+          return HttpResponse.json({ data: {} });
+        }),
+      );
+      renderResult();
+
+      const bot = screen.getByRole('button', { name: /explain the code/i });
+      await userEvent.click(bot);
+
+      // After clicking, the bot div should no longer have role="button"
+      // because the phase transitions away from idle/error
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: /explain the code/i })).not.toBeInTheDocument(),
+      );
+    });
   });
 });

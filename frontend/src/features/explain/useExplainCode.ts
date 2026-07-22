@@ -18,6 +18,10 @@ type ExplainPhase = 'idle' | 'loading' | 'success' | 'error';
 
 const sessionCache = new Map<string, ExplanationData>();
 
+export function clearExplainCache() {
+  sessionCache.clear();
+}
+
 function explanationToLines(data: ExplanationData): BenjiLine[] {
   const lines: BenjiLine[] = [];
 
@@ -94,10 +98,12 @@ export function useExplainCode(snippetId: string | null) {
   const [phase, setPhase] = useState<ExplainPhase>('idle');
   const [lines, setLines] = useState<BenjiLine[] | null>(null);
   const prevSnippetId = useRef(snippetId);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     if (prevSnippetId.current !== snippetId) {
       prevSnippetId.current = snippetId;
+      inFlightRef.current = false;
       setPhase('idle');
       setLines(null);
     }
@@ -105,7 +111,7 @@ export function useExplainCode(snippetId: string | null) {
 
   const requestExplanation = useCallback(async () => {
     if (!snippetId) return;
-    if (phase === 'loading') return;
+    if (inFlightRef.current) return;
 
     const cached = sessionCache.get(snippetId);
     if (cached) {
@@ -114,6 +120,7 @@ export function useExplainCode(snippetId: string | null) {
       return;
     }
 
+    inFlightRef.current = true;
     setPhase('loading');
     setLines(loadingLines());
 
@@ -129,8 +136,10 @@ export function useExplainCode(snippetId: string | null) {
         setLines(errorToLines('generic'));
       }
       setPhase('error');
+    } finally {
+      inFlightRef.current = false;
     }
-  }, [snippetId, phase]);
+  }, [snippetId]);
 
   return { phase, lines, requestExplanation };
 }
