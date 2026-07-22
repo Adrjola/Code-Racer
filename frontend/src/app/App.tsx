@@ -325,6 +325,7 @@ export default function App() {
     return (
       <StatisticsPage
         onGoHome={() => navigate('home')}
+        onGoStatistics={() => navigate('statistics')}
         onLogout={handleLogout}
         onSessionExpired={handleSessionExpired}
         session={session}
@@ -336,6 +337,7 @@ export default function App() {
     return (
       <SoloSetupPage
         onGoHome={() => navigate('home')}
+        onGoStatistics={() => navigate('statistics')}
         onLogout={handleLogout}
         onSelect={handleSelectSolo}
         onSessionExpired={handleSessionExpired}
@@ -349,6 +351,7 @@ export default function App() {
       return (
         <SoloSetupPage
           onGoHome={() => navigate('home')}
+          onGoStatistics={() => navigate('statistics')}
           onLogout={handleLogout}
           onSelect={handleSelectSolo}
           onSessionExpired={handleSessionExpired}

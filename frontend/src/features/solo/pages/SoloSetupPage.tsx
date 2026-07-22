@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import Logo from '@/components/Logo';
-import { TrophyIcon } from '@/components/icons';
+import Header from '@/components/Header';
 import type { AuthSession } from '@/features/auth/session';
 import { isSessionExpiredError } from '@/lib/apiClient';
 import {
@@ -11,6 +10,7 @@ import {
   type Difficulty,
   type SoloSelection,
 } from '@/features/solo/api/soloApi';
+import { useDesignScale } from '@/hooks/useDesignScale';
 import categoryJavaGlyph from '@/assets/icons/category-java-glyph.svg';
 import categoryRestApisGlyph from '@/assets/icons/category-rest-apis-glyph.svg';
 import categorySqlGlyph from '@/assets/icons/category-sql-glyph.svg';
@@ -20,6 +20,7 @@ import playTriangleIcon from '@/assets/icons/play-triangle.svg';
 
 type SoloSetupPageProps = {
   onGoHome: () => void;
+  onGoStatistics: () => void;
   onLogout: () => void;
   onSelect: (selection: SoloSelection) => void;
   onSessionExpired: () => void;
@@ -38,8 +39,8 @@ type DifficultyOption = {
   value: Difficulty;
 };
 
-/** The layout is authored at this width and scaled to fit the window. */
 const DESIGN_WIDTH = 1920;
+const HEADER_HEIGHT = 88;
 
 const DIFFICULTIES: DifficultyOption[] = [
   {
@@ -76,7 +77,6 @@ const CATEGORY_TAGLINE: Record<Category, string> = {
   TESTING: '@Test',
 };
 
-/** The rule trailing each section heading, fading out the way the design draws it. */
 function HeadingRule() {
   return (
     <span
@@ -239,6 +239,7 @@ function useNaturalHeight() {
 
 export default function SoloSetupPage({
   onGoHome,
+  onGoStatistics,
   onLogout,
   onSelect,
   onSessionExpired,
@@ -252,18 +253,14 @@ export default function SoloSetupPage({
   const [selectedDifficulty, setSelectedDifficulty] = useState<
     Difficulty | undefined
   >(undefined);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const [scale, setScale] = useState(() => window.innerWidth / DESIGN_WIDTH);
-  const { height: headerHeight, ref: headerCanvasRef } = useNaturalHeight();
   const { height: mainHeight, ref: mainCanvasRef } = useNaturalHeight();
-
-  useEffect(() => {
-    const updateScale = () => setScale(window.innerWidth / DESIGN_WIDTH);
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
+  // This canvas never grows past its design size, only shrinks to fit.
+  const fitScale = useDesignScale(
+    DESIGN_WIDTH,
+    mainHeight ? mainHeight + HEADER_HEIGHT : undefined,
+  );
+  const scale = Math.min(1, fitScale);
 
   const onSessionExpiredRef = useRef(onSessionExpired);
   useEffect(() => {
@@ -320,69 +317,17 @@ export default function SoloSetupPage({
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
-      <div
-        className="sticky top-0 z-10 bg-surface 2xl:overflow-hidden 2xl:[height:calc(var(--solo-header-h)*var(--solo-scale))]"
-        style={
-          {
-            '--solo-header-h': `${headerHeight}px`,
-            '--solo-scale': scale,
-          } as CSSProperties
-        }
-      >
-        <div
-          className="2xl:[width:var(--solo-design-w)] 2xl:origin-top-left 2xl:[transform:scale(var(--solo-scale))]"
-          ref={headerCanvasRef}
-          style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
-        >
-          <header className="flex items-center justify-between gap-4 px-[clamp(1rem,5vw,2.5rem)] py-6 lg:px-[40px]">
-            <Logo onClick={onGoHome} />
-            <div className="flex items-center gap-4">
-              <span
-                aria-hidden="true"
-                className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
-              >
-                <TrophyIcon className="size-5" />
-              </span>
-              <span className="hidden h-10 items-center gap-2 rounded-[9px] border border-[rgba(244,114,182,0.2)] bg-[rgba(244,114,182,0.05)] px-3 font-mono text-[10.5px] tracking-wide sm:flex">
-                <span className="text-[#6b6f85]">USER:</span>
-                <span className="font-bold text-[#f9a8d4]">
-                  {session.user.username}
-                </span>
-              </span>
-              <div className="relative">
-                <button
-                  aria-expanded={isMenuOpen}
-                  aria-label="Menu"
-                  className="flex size-10 flex-col items-center justify-center gap-1 rounded-[9px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)]"
-                  onClick={() => setIsMenuOpen((open) => !open)}
-                  type="button"
-                >
-                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
-                  <span className="h-[2px] w-[18px] rounded-full bg-[#c9cbe0]" />
-                  <span className="h-[2px] w-[9.59px] rounded-full bg-[#c9cbe0]" />
-                </button>
-                {isMenuOpen && (
-                  <div className="absolute right-0 top-12 z-10 flex w-40 flex-col overflow-hidden rounded-[9px] border border-white/10 bg-[#15121f] py-1 shadow-lg">
-                    <button
-                      className="px-4 py-2 text-left text-sm font-semibold text-pink-300 hover:bg-white/5"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onLogout();
-                      }}
-                      type="button"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </header>
-        </div>
+      <div className="sticky top-0 z-10 bg-surface">
+        <Header
+          onGoDashboard={onGoHome}
+          onGoStatistics={onGoStatistics}
+          onLogout={onLogout}
+          username={session.user.username}
+        />
       </div>
 
       <div
-        className="2xl:overflow-hidden 2xl:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
+        className="lg:overflow-hidden lg:[height:calc(var(--solo-main-h)*var(--solo-scale))]"
         style={
           {
             '--solo-main-h': `${mainHeight}px`,
@@ -391,7 +336,7 @@ export default function SoloSetupPage({
         }
       >
         <main
-          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:pt-12 2xl:mx-0 2xl:max-w-none 2xl:px-[80px] 2xl:pt-[110px] 2xl:origin-top-left 2xl:[width:var(--solo-design-w)] 2xl:[transform:scale(var(--solo-scale))]"
+          className="mx-auto w-full max-w-[100rem] px-[clamp(1rem,5vw,2.5rem)] pb-8 pt-6 lg:mx-0 lg:max-w-none lg:px-[80px] lg:pt-[110px] lg:origin-top-left lg:[width:var(--solo-design-w)] lg:[transform:scale(var(--solo-scale))]"
           ref={mainCanvasRef}
           style={{ '--solo-design-w': `${DESIGN_WIDTH}px` } as CSSProperties}
         >

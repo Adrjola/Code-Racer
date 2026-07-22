@@ -5,9 +5,8 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
-import ConfirmDialog from '@/components/ConfirmDialog';
-import Logo from '@/components/Logo';
-import { PeopleIcon, PersonIcon, TrophyIcon } from '@/components/icons';
+import Header from '@/components/Header';
+import { PeopleIcon, PersonIcon } from '@/components/icons';
 import SnippetsPage from '@/features/admin/pages/SnippetsPage';
 import type { AuthSession } from '@/features/auth/session';
 
@@ -146,7 +145,6 @@ export default function HomePage({
   view,
 }: HomePageProps) {
   const isAdmin = session.user.role === 'ADMIN';
-  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const { height, ref: canvasRef } = useNaturalHeight();
 
   const noticeBanner = notice ? (
@@ -161,59 +159,20 @@ export default function HomePage({
   // Fixed lg paddings (not the fluid clamps) so the desktop layout is
   // resolution-independent inside the scaled 1920px canvas.
   const header = (
-    <header className="border-b border-pink-400/15 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(0.875rem,1.9dvh,1.5rem)] lg:px-10 lg:py-5">
-      <div className="mx-auto flex w-full max-w-[100rem] flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-        <Logo onClick={onGoHome} />
-        <nav
-          aria-label="Primary navigation"
-          className="flex flex-wrap items-center justify-start gap-3 md:justify-end"
-        >
-          <button
-            aria-label="Statistics"
-            className="flex size-10 items-center justify-center rounded-[9px] border border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.08)]"
-            onClick={onGoStatistics}
-            type="button"
-          >
-            <TrophyIcon className="size-5" />
-          </button>
-          {isAdmin && (
-            <button
-              className="text-sm font-semibold text-text-secondary hover:text-text-primary"
-              onClick={onGoAdmin}
-              type="button"
-            >
-              Admin
-            </button>
-          )}
-          <button
-            className="rounded-[8px] border border-pink-400/30 px-3 py-2 text-sm font-semibold text-pink-300"
-            onClick={() => setIsLogoutConfirmOpen(true)}
-            type="button"
-          >
-            Log out
-          </button>
-        </nav>
-      </div>
-    </header>
-  );
-
-  // Rendered from both views, so an accidental click is caught either way.
-  const logoutConfirm = isLogoutConfirmOpen ? (
-    <ConfirmDialog
-      confirmLabel="Log out"
-      confirmVariant="secondary"
-      description="You will need to sign in again to keep racing."
-      onCancel={() => setIsLogoutConfirmOpen(false)}
-      onConfirm={onLogout}
-      title="Log out?"
+    <Header
+      isAdmin={isAdmin}
+      onGoAdmin={onGoAdmin}
+      onGoDashboard={onGoHome}
+      onGoStatistics={onGoStatistics}
+      onLogout={onLogout}
+      username={session.user.username}
     />
-  ) : null;
+  );
 
   if (view === 'admin') {
     return (
       <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
         {header}
-        {logoutConfirm}
         <main className="mx-auto flex w-full max-w-[100rem] flex-col gap-5 px-[clamp(1rem,5vw,2.5rem)] py-[clamp(2rem,5dvh,3.5rem)]">
           {noticeBanner}
           <section>
@@ -230,19 +189,18 @@ export default function HomePage({
 
   return (
     <div className="min-h-[100dvh] bg-surface font-sans text-text-primary">
-      {logoutConfirm}
+      {header}
       {/* From lg up the content is laid out on a fixed 1920px canvas and scaled
-          by --stats-scale (innerWidth / 1920, set in main.tsx), so the page
+          by --canvas-scale (innerWidth / 1920, set in main.tsx), so the page
           looks identical at any width or zoom. Below lg it flows fluidly. */}
       <div
-        className="lg:overflow-hidden lg:[height:calc(var(--home-canvas-h)*var(--stats-scale))]"
+        className="lg:overflow-hidden lg:[height:calc(var(--home-canvas-h)*var(--canvas-scale))]"
         style={{ '--home-canvas-h': `${height}px` } as CSSProperties}
       >
         <div
-          className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--stats-scale))]"
+          className="lg:w-[1920px] lg:origin-top-left lg:[transform:scale(var(--canvas-scale))]"
           ref={canvasRef}
         >
-          {header}
           <main className="w-full py-[clamp(2rem,5dvh,3.5rem)] lg:py-14">
             <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-5 px-[clamp(1rem,5vw,2.5rem)] lg:px-10">
               {noticeBanner}
