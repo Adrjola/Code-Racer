@@ -8,6 +8,7 @@ import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -64,10 +65,7 @@ public interface SoloAttemptRepository
   List<SoloAttempt> findByUserIdAndStateAndCodeSnippetLifecycleNot(
       UUID userId, SoloAttemptState state, SnippetLifecycle lifecycle);
 
-  /**
-   * Every scoring run at one difficulty, restricted to non-deleted users — the leaderboard board.
-   */
+  @Override
   @EntityGraph(attributePaths = "user")
-  List<SoloAttempt> findByDifficultyAndStateAndUserDeletedFalse(
-      Difficulty difficulty, SoloAttemptState state);
+  List<SoloAttempt> findAll(Specification<SoloAttempt> specification, Sort sort);
 }

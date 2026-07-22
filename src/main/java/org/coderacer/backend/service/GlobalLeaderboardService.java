@@ -1,7 +1,6 @@
 package org.coderacer.backend.service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,9 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.GlobalLeaderboardEntry;
 import org.coderacer.backend.dto.GlobalLeaderboardResponse;
 import org.coderacer.backend.enums.Difficulty;
-import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.repository.SoloAttemptRepository;
+import org.coderacer.backend.repository.SoloAttemptSpecifications;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,38 +20,36 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GlobalLeaderboardService {
 
-  private static final Comparator<SoloAttempt> BEST_FIRST =
-      Comparator.comparingLong(SoloAttempt::getDurationMs)
-          .thenComparing(SoloAttempt::getFinishedAt)
-          .thenComparing(attempt -> attempt.getUser().getId());
-
   private final SoloAttemptRepository repository;
 
   @Transactional(readOnly = true)
   public GlobalLeaderboardResponse forDifficulty(Difficulty difficulty, int limit) {
+    Specification<SoloAttempt> scope =
+        Specification.where(SoloAttemptSpecifications.completed())
+            .and(SoloAttemptSpecifications.nonDeletedUser())
+            .and(SoloAttemptSpecifications.forDifficulty(difficulty));
+
     List<SoloAttempt> board =
-        repository.findByDifficultyAndStateAndUserDeletedFalse(
-            difficulty, SoloAttemptState.COMPLETED);
+        repository.findAll(scope, SoloAttemptSpecifications.fastestTimeFirst());
 
     List<SoloAttempt> personalBests = personalBestPerUser(board);
-    personalBests.sort(BEST_FIRST);
 
     return new GlobalLeaderboardResponse(difficulty, toRankedEntries(personalBests, limit));
   }
 
-  /** Each user's fastest COMPLETED run, keyed by user id so nobody appears twice. */
+  /**
+   * {@code board} is already sorted fastest-first, so each user's first appearance in it is their
+   * personal best — no separate comparison is needed to pick it out.
+   */
   private List<SoloAttempt> personalBestPerUser(List<SoloAttempt> board) {
     Map<UUID, SoloAttempt> bestByUser = new LinkedHashMap<>();
     for (SoloAttempt attempt : board) {
-      UUID userId = attempt.getUser().getId();
-      SoloAttempt current = bestByUser.get(userId);
-      if (current == null || BEST_FIRST.compare(attempt, current) < 0) {
-        bestByUser.put(userId, attempt);
-      }
+      bestByUser.putIfAbsent(attempt.getUser().getId(), attempt);
     }
     return new ArrayList<>(bestByUser.values());
   }
 
+  /** Standard competition ranking: equal durationMs values share the same rank. */
   private List<GlobalLeaderboardEntry> toRankedEntries(
       List<SoloAttempt> sortedPersonalBests, int limit) {
     List<GlobalLeaderboardEntry> entries = new ArrayList<>();
