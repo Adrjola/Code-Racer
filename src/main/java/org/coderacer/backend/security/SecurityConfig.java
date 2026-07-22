@@ -31,6 +31,24 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+  private static final String[] FRONTEND_ROUTES = {
+    "/",
+    "/index.html",
+    "/assets/**",
+    "/admin",
+    "/dashboard",
+    "/forgot-password",
+    "/login",
+    "/not-found",
+    "/play/solo",
+    "/register",
+    "/reset-password",
+    "/solo",
+    "/solo/preview",
+    "/verify-email",
+    "/verify-email-pending"
+  };
+
   @Bean
   SecurityFilterChain securityFilterChain(
       HttpSecurity http, SecurityExceptionHandler exceptionHandler, JwtDecoder jwtDecoder)
@@ -47,6 +65,8 @@ public class SecurityConfig {
             authorize ->
                 authorize
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, FRONTEND_ROUTES)
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info")
                     .permitAll()

@@ -60,7 +60,7 @@ app:
   security:
     jwt:
       secret: ${APP_JWT_SECRET:}
-      access-token-ttl: ${APP_JWT_ACCESS_TOKEN_TTL:15m}
+      access-token-ttl: ${APP_JWT_ACCESS_TOKEN_TTL:4h}
   admin:
     bootstrap:
       enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED:false}
