@@ -1,10 +1,8 @@
 package org.coderacer.backend.service;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.repository.SoloAttemptRepository;
@@ -15,19 +13,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class SoloAttemptTtlSweeper {
 
-  private static final Duration IDLE_TTL = Duration.ofSeconds(60);
-  private static final Duration MAX_ATTEMPT_DURATION = Duration.ofMinutes(30);
-
   private final SoloAttemptRepository soloAttemptRepository;
   private final ActiveAttemptStateStore activeAttemptStateStore;
+  private final SoloAttemptStaleness staleness;
   private final Clock clock;
 
   public SoloAttemptTtlSweeper(
       SoloAttemptRepository soloAttemptRepository,
       ActiveAttemptStateStore activeAttemptStateStore,
+      SoloAttemptStaleness staleness,
       Clock clock) {
     this.soloAttemptRepository = soloAttemptRepository;
     this.activeAttemptStateStore = activeAttemptStateStore;
+    this.staleness = staleness;
     this.clock = clock;
   }
 
@@ -50,18 +48,14 @@ public class SoloAttemptTtlSweeper {
   }
 
   private void sweepActive(SoloAttempt attempt, Instant now) {
-    Optional<ActiveProgress> progress = activeAttemptStateStore.get(attempt.getId());
-    if (progress.isEmpty()) {
+    // Progress rides along on the row the sweep already loaded, so no per-attempt lookup.
+    if (attempt.getLastProgressAt() == null) {
       attempt.invalidate();
       soloAttemptRepository.save(attempt);
       return;
     }
 
-    boolean idleTooLong =
-        Duration.between(progress.get().lastActivityAt(), now).compareTo(IDLE_TTL) > 0;
-    boolean tooLongOverall =
-        Duration.between(attempt.getStartedAt(), now).compareTo(MAX_ATTEMPT_DURATION) > 0;
-    if (idleTooLong || tooLongOverall) {
+    if (staleness.isStale(attempt, now)) {
       attempt.expire();
       soloAttemptRepository.save(attempt);
       activeAttemptStateStore.remove(attempt.getId());
@@ -69,9 +63,7 @@ public class SoloAttemptTtlSweeper {
   }
 
   private void sweepCountdown(SoloAttempt attempt, Instant now) {
-    boolean tooLongOverall =
-        Duration.between(attempt.getStartedAt(), now).compareTo(MAX_ATTEMPT_DURATION) > 0;
-    if (tooLongOverall) {
+    if (staleness.isStale(attempt, now)) {
       attempt.activate();
       attempt.expire();
       soloAttemptRepository.save(attempt);

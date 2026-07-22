@@ -1,6 +1,8 @@
 package org.coderacer.backend.repository;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
@@ -13,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -27,6 +30,22 @@ public interface SoloAttemptRepository
       UUID userId, SoloAttemptState state, Difficulty difficulty);
 
   List<SoloAttempt> findByStateIn(List<SoloAttemptState> states);
+
+  /**
+   * The single live attempt the one-active-attempt index allows a user to have, locked for the
+   * caller's transaction. Starting a race retires a stale one through this row, so it has to be
+   * serialised against a concurrent start or the TTL sweeper the same way every other write is.
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<SoloAttempt> findFirstWithLockByUserIdAndStateIn(
+      UUID userId, List<SoloAttemptState> states);
+
+  /**
+   * Locks one attempt row for the caller's transaction. Live progress updates read, check and write
+   * the same row, so they have to be serialised the way the in-memory map used to serialise them.
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<SoloAttempt> findWithLockById(UUID id);
 
   /**
    * Aggregates the caller's completed attempts into one row per difficulty. Grouping and averaging

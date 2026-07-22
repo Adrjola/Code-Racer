@@ -7,16 +7,36 @@ import type {
   ExactCodeTypingEngineTransport,
 } from '../types/race.types';
 import { codePointLength } from '../utils/codePointText';
+import { ApiRequestError } from '@/lib/apiClient';
 
 const MAX_BATCH_SIZE = 8;
 const DEBOUNCE_MS = 300;
 
 /**
- * Consecutive failed sends before the race gives up. A rejected batch is retried
- * unchanged, so without a ceiling one permanent rejection loops forever, floods
- * the console, and leaves the attempt to expire while the player keeps typing.
+ * Consecutive *rejected* sends before the race gives up. A rejected batch is
+ * retried unchanged, so without a ceiling one permanent rejection loops forever,
+ * floods the console, and leaves the attempt to expire while the player keeps
+ * typing.
  */
 const MAX_CONSECUTIVE_FAILURES = 4;
+
+/**
+ * A server that cannot be reached is a different problem from one that says no:
+ * the batch is still valid and will be accepted once the server is back. Four
+ * failures at the debounce interval gave up after about a second, which was
+ * shorter than a backend restart, so a race the server would have honoured died
+ * on the client. Retries back off instead, and only give up once the server-side
+ * idle TTL would have expired the attempt anyway.
+ */
+const MAX_UNREACHABLE_MS = 60_000;
+const MAX_RETRY_DELAY_MS = 5_000;
+
+function isUnreachable(error: unknown): boolean {
+  if (!(error instanceof ApiRequestError)) {
+    return false;
+  }
+  return error.code === 'NETWORK_ERROR' || (error.status ?? 0) >= 500;
+}
 
 export const defaultTransport: ExactCodeTypingEngineTransport = {
   async sendProgressBatch(batch) {
@@ -58,6 +78,8 @@ export function useExactCodeTypingEngine(
   const inflightRef = useRef(false);
   const mountedRef = useRef(true);
   const failureCountRef = useRef(0);
+  const unreachableSinceRef = useRef<number | null>(null);
+  const retryDelayRef = useRef(DEBOUNCE_MS);
   const queuedLengthRef = useRef(0);
 
   useEffect(() => {
@@ -105,15 +127,40 @@ export function useExactCodeTypingEngine(
         dispatch({ type: 'FINISH', result: ack.result });
       }
       failureCountRef.current = 0;
+      unreachableSinceRef.current = null;
+      retryDelayRef.current = DEBOUNCE_MS;
       dispatch({ type: 'TRANSPORT_ONLINE' });
-    } catch {
-      failureCountRef.current += 1;
-      if (failureCountRef.current >= MAX_CONSECUTIVE_FAILURES) {
+    } catch (error) {
+      const giveUp = () => {
         queueRef.current = [];
         dispatch({ type: 'EXPIRE' });
         dispatch({ type: 'TRANSPORT_FAILURE', reason: 'progress_send_failed' });
-        return;
+      };
+
+      if (isUnreachable(error)) {
+        const since = unreachableSinceRef.current ?? Date.now();
+        unreachableSinceRef.current = since;
+        if (Date.now() - since >= MAX_UNREACHABLE_MS) {
+          giveUp();
+          return;
+        }
+        retryDelayRef.current = Math.min(
+          retryDelayRef.current * 2,
+          MAX_RETRY_DELAY_MS,
+        );
+      } else {
+        // A rejection is a fresh, reachable "no", not a continuation of an
+        // outage, so drop back to the fast cadence rather than retrying the
+        // remaining rejections on a backoff an earlier network blip inflated.
+        unreachableSinceRef.current = null;
+        retryDelayRef.current = DEBOUNCE_MS;
+        failureCountRef.current += 1;
+        if (failureCountRef.current >= MAX_CONSECUTIVE_FAILURES) {
+          giveUp();
+          return;
+        }
       }
+
       queueRef.current = [...batch, ...queueRef.current];
       dispatch({ type: 'TRANSPORT_FAILURE', reason: 'progress_send_failed' });
     } finally {
@@ -127,7 +174,7 @@ export function useExactCodeTypingEngine(
         /* v8 ignore next 3 */
         flushTimeoutRef.current = setTimeout(() => {
           void flushQueue();
-        }, DEBOUNCE_MS);
+        }, retryDelayRef.current);
       }
     }
   }, [state, transport]);

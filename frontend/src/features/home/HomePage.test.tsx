@@ -1,8 +1,25 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthSession, CurrentUser } from '@/features/auth/session';
+import { server } from '@/test/server';
 import HomePage from './HomePage';
+
+const API_URL = 'http://localhost:8080';
+
+function withEmptyPage(url: string) {
+  server.use(
+    http.get(url, () =>
+      HttpResponse.json({
+        data: {
+          content: [],
+          page: { number: 0, size: 10, totalElements: 0, totalPages: 0 },
+        },
+      }),
+    ),
+  );
+}
 
 function userResponse(overrides: Partial<CurrentUser> = {}): CurrentUser {
   return {
@@ -150,5 +167,37 @@ describe('HomePage', () => {
     await user.click(multiplayer);
 
     expect(onPlaySolo).not.toHaveBeenCalled();
+  });
+
+  it('shows the snippets console by default and switches to users on tab click', async () => {
+    withEmptyPage(`${API_URL}/api/admin/snippets`);
+    withEmptyPage(`${API_URL}/api/admin/users`);
+    const user = userEvent.setup();
+    const adminSession = session({ user: userResponse({ role: 'ADMIN' }) });
+
+    render(
+      <HomePage
+        onGoAdmin={vi.fn()}
+        onGoHome={vi.fn()}
+        onGoStatistics={vi.fn()}
+        onLogout={vi.fn()}
+        onPlaySolo={vi.fn()}
+        session={adminSession}
+        view="admin"
+      />,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Snippets' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Users' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Users' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Snippets' }),
+    ).not.toBeInTheDocument();
   });
 });

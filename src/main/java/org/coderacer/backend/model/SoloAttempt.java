@@ -45,6 +45,14 @@ public class SoloAttempt {
 
   private Integer cpm;
 
+  /** How much of the snippet the server has accepted so far, in code points. */
+  private int acceptedOffset;
+
+  /** The last progress batch the server accepted, used to reject replays and gaps. */
+  private long lastSequence;
+
+  private Instant lastProgressAt;
+
   @Version private long version;
 
   public SoloAttempt(User user, CodeSnippet codeSnippet, Difficulty difficulty, Instant startedAt) {
@@ -64,6 +72,12 @@ public class SoloAttempt {
     this.finishedAt = finishedAt;
     this.durationMs = durationMs;
     this.cpm = cpm;
+  }
+
+  public void recordProgress(int acceptedOffset, long lastSequence, Instant lastProgressAt) {
+    this.acceptedOffset = acceptedOffset;
+    this.lastSequence = lastSequence;
+    this.lastProgressAt = lastProgressAt;
   }
 
   public void abandon() {

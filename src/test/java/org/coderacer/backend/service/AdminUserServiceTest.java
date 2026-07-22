@@ -15,10 +15,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.coderacer.backend.dto.AdminUserResponse;
+import org.coderacer.backend.dto.AdminUserUpdateRequest;
 import org.coderacer.backend.enums.UserRole;
 import org.coderacer.backend.exception.ConflictException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
 import org.coderacer.backend.exception.SelfActionForbiddenException;
+import org.coderacer.backend.exception.ValidationException;
 import org.coderacer.backend.mapper.UserMapper;
 import org.coderacer.backend.model.User;
 import org.coderacer.backend.repository.UserRepository;
@@ -146,6 +148,119 @@ class AdminUserServiceTest {
     when(repository.findById(id)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.restore(id)).isInstanceOf(ResourceNotFoundException.class);
+  }
+
+  @Test
+  void update_changesUsernameAndEmail() {
+    User user = new User();
+    user.setUsername("olduser");
+    user.setEmail("old@example.com");
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+    when(repository.saveAndFlush(user)).thenReturn(user);
+    when(mapper.toAdminResponse(user)).thenReturn(response);
+
+    service.update(id, new AdminUserUpdateRequest("newuser", "new@example.com"));
+
+    assertThat(user.getUsername()).isEqualTo("newuser");
+    assertThat(user.getEmail()).isEqualTo("new@example.com");
+  }
+
+  @Test
+  void update_doesNotTouchEmailVerifiedRoleOrDeleted() {
+    User user = new User();
+    user.setUsername("olduser");
+    user.setEmail("old@example.com");
+    user.setEmailVerified(true);
+    user.setRole(UserRole.ADMIN);
+    user.setDeleted(true);
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+    when(repository.saveAndFlush(user)).thenReturn(user);
+    when(mapper.toAdminResponse(user)).thenReturn(response);
+
+    service.update(id, new AdminUserUpdateRequest("newuser", "new@example.com"));
+
+    assertThat(user.isEmailVerified()).isTrue();
+    assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
+    assertThat(user.isDeleted()).isTrue();
+  }
+
+  @Test
+  void update_isNoConflict_whenResubmittingOwnCurrentValues() {
+    User user = new User();
+    user.setUsername("player");
+    user.setEmail("player@example.com");
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+    when(repository.saveAndFlush(user)).thenReturn(user);
+    when(mapper.toAdminResponse(user)).thenReturn(response);
+
+    service.update(id, new AdminUserUpdateRequest("player", "player@example.com"));
+
+    verify(repository, never()).existsByEmailAndIdNot(any(), any());
+    verify(repository, never()).existsByUsernameNormalizedAndIdNot(any(), any());
+  }
+
+  @Test
+  void update_throwsValidation_whenEmailBlank() {
+    User user = new User();
+    user.setUsername("player");
+    user.setEmail("player@example.com");
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+
+    assertThatThrownBy(() -> service.update(id, new AdminUserUpdateRequest("player", " ")))
+        .isInstanceOf(ValidationException.class);
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void update_throwsValidation_whenUsernameInvalid() {
+    User user = new User();
+    user.setUsername("player");
+    user.setEmail("player@example.com");
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+
+    assertThatThrownBy(
+            () -> service.update(id, new AdminUserUpdateRequest("!!", "player@example.com")))
+        .isInstanceOf(ValidationException.class);
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void update_throwsConflict_whenEmailTakenByAnotherUser() {
+    User user = new User();
+    user.setUsername("player");
+    user.setEmail("player@example.com");
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+    when(repository.existsByEmailAndIdNot("taken@example.com", id)).thenReturn(true);
+
+    assertThatThrownBy(
+            () -> service.update(id, new AdminUserUpdateRequest("player", "taken@example.com")))
+        .isInstanceOf(ConflictException.class)
+        .hasMessageContaining("already exists");
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void update_throwsConflict_whenUsernameTakenByAnotherUser() {
+    User user = new User();
+    user.setUsername("player");
+    user.setEmail("player@example.com");
+    when(repository.findById(id)).thenReturn(Optional.of(user));
+    when(repository.existsByUsernameNormalizedAndIdNot("taken", id)).thenReturn(true);
+
+    assertThatThrownBy(
+            () -> service.update(id, new AdminUserUpdateRequest("taken", "player@example.com")))
+        .isInstanceOf(ConflictException.class)
+        .hasMessageContaining("already exists");
+    verify(repository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void update_throwsNotFound_whenMissing() {
+    when(repository.findById(id)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () -> service.update(id, new AdminUserUpdateRequest("player", "player@example.com")))
+        .isInstanceOf(ResourceNotFoundException.class);
   }
 
   @Test
