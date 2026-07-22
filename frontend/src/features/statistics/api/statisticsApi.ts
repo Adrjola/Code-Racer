@@ -10,6 +10,14 @@ export type DifficultyStatistics = {
   highestCpm: number | null;
 };
 
+/** Mirrors the backend's GlobalLeaderboardEntry: one racer's personal best for a difficulty. */
+export type GlobalLeaderboardEntry = {
+  cpm: number;
+  durationMs: number;
+  rank: number;
+  username: string;
+};
+
 /** Mirrors the backend's SnippetStatistics: one personal-best run per snippet. */
 export type SnippetStatistics = {
   bestCpm: number;
@@ -48,6 +56,16 @@ export const statisticsApi = {
       '/api/solo-attempts/statistics',
     );
     return response.data.difficulties;
+  },
+
+  /** The ranked leaderboard for one difficulty, already ordered and tie-broken by the backend. */
+  async getGlobalLeaderboard(
+    difficulty: Difficulty,
+  ): Promise<GlobalLeaderboardEntry[]> {
+    const response = await get<{ entries: GlobalLeaderboardEntry[] }>(
+      `/api/solo-attempts/global-leaderboard?difficulty=${difficulty}`,
+    );
+    return response.data.entries;
   },
 
   async getSnippetStatistics(): Promise<SnippetStatistics[]> {

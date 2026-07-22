@@ -26,7 +26,7 @@ describe('SoloRaceWorldBest', () => {
       new Error('request_failed_404'),
     );
 
-    render(<SoloRaceWorldBest />);
+    render(<SoloRaceWorldBest snippetId="snippet-1" />);
 
     await waitFor(() => {
       expect(screen.getByText('CPM')).toBeDefined();
@@ -38,18 +38,34 @@ describe('SoloRaceWorldBest', () => {
     vi.mocked(soloRaceApi.getWorldBest).mockResolvedValue({
       cpm: 142,
       cpmHolderName: 'girlypop',
-      time: '0:50',
+      durationMs: 50_201,
       timeHolderName: '@girlypop2',
     });
 
-    render(<SoloRaceWorldBest />);
+    render(<SoloRaceWorldBest snippetId="snippet-1" />);
 
     await waitFor(() => {
       expect(screen.getByText('142')).toBeDefined();
     });
     expect(screen.getByText('CPM')).toBeDefined();
-    expect(screen.getByText('0:50')).toBeDefined();
+    // Formatted the same way as every other duration in the app: m:ss.mmm.
+    expect(screen.getByText('0:50.201')).toBeDefined();
     expect(screen.getByText('@girlypop')).toBeDefined();
     expect(screen.getByText('@girlypop2')).toBeDefined();
+  });
+
+  it('requests the world best for the given snippet id', async () => {
+    vi.mocked(soloRaceApi.getWorldBest).mockResolvedValue({
+      cpm: null,
+      cpmHolderName: null,
+      durationMs: null,
+      timeHolderName: null,
+    });
+
+    render(<SoloRaceWorldBest snippetId="snippet-42" />);
+
+    await waitFor(() => {
+      expect(soloRaceApi.getWorldBest).toHaveBeenCalledWith('snippet-42');
+    });
   });
 });

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { soloRaceApi, type SoloWorldBestResponse } from '../api/soloRaceApi';
+import { formatDurationPrecise } from '../utils/formatDuration';
 import playIcon from '@/assets/play.svg';
 import starIcon from '@/assets/star.svg';
 
 interface SoloRaceWorldBestProps {
   onStartRace?: () => void;
   records?: SoloWorldBestResponse;
+  snippetId: string;
 }
 
 function formatHolder(holder: string | null | undefined): string {
@@ -18,6 +20,7 @@ function formatHolder(holder: string | null | undefined): string {
 export function SoloRaceWorldBest({
   onStartRace,
   records: recordsProp,
+  snippetId,
 }: SoloRaceWorldBestProps) {
   const [fetchedRecords, setFetchedRecords] =
     useState<SoloWorldBestResponse | null>(null);
@@ -33,7 +36,7 @@ export function SoloRaceWorldBest({
 
     let active = true;
     void soloRaceApi
-      .getWorldBest()
+      .getWorldBest(snippetId)
       .then((response) => {
         if (active) {
           setFetchedRecords(response);
@@ -48,11 +51,14 @@ export function SoloRaceWorldBest({
     return () => {
       active = false;
     };
-  }, [recordsProp]);
+  }, [recordsProp, snippetId]);
 
   const cpmValue = records?.cpm ?? 'N/A';
   const cpmHolder = formatHolder(records?.cpmHolderName);
-  const timeValue = records?.time ?? 'N/A';
+  const timeValue =
+    records?.durationMs == null
+      ? 'N/A'
+      : formatDurationPrecise(records.durationMs);
   const timeHolder = formatHolder(records?.timeHolderName);
 
   return (

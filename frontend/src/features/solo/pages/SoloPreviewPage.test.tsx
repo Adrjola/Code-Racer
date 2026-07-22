@@ -44,7 +44,7 @@ function withCategories() {
         data: {
           cpm: null,
           cpmHolderName: null,
-          time: null,
+          durationMs: null,
           timeHolderName: null,
         },
       }),
@@ -114,7 +114,30 @@ describe('SoloPreviewPage', () => {
     expect(urls[0]).toContain('difficulty=EASY');
   });
 
-  it('offers a new snippet instead of a restart before the race begins', async () => {
+  it('requests world best scoped to the previewed snippet', async () => {
+    let worldBestUrl: string | undefined;
+    server.use(
+      http.get(RANDOM_URL, () => HttpResponse.json({ data: snippet })),
+      http.get(WORLD_BEST_URL, ({ request }) => {
+        worldBestUrl = request.url;
+        return HttpResponse.json({
+          data: {
+            cpm: null,
+            cpmHolderName: null,
+            durationMs: null,
+            timeHolderName: null,
+          },
+        });
+      }),
+    );
+    renderPage();
+
+    await screen.findByRole('button', { name: /start race/i });
+
+    expect(worldBestUrl).toContain(`snippetId=${snippet.id}`);
+  });
+
+  it('returns to the pre-start screen on restart without fetching a new snippet', async () => {
     let fetches = 0;
     server.use(
       http.get(RANDOM_URL, () => {

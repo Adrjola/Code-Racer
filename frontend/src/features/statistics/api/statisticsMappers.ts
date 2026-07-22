@@ -1,7 +1,12 @@
 import { formatDuration } from '../utils/formatDuration';
-import type { PersonalActivityEntry, PersonalStatsSummary } from '../types';
+import type {
+  GlobalRankingEntry,
+  PersonalActivityEntry,
+  PersonalStatsSummary,
+} from '../types';
 import type {
   DifficultyStatistics,
+  GlobalLeaderboardEntry,
   SnippetStatistics,
   SoloAttemptHistoryEntry,
 } from './statisticsApi';
@@ -30,6 +35,21 @@ export function toPersonalStatsSummary(
     fastestCpm: stats.highestCpm,
     fastestTime: formatDuration(stats.fastestDurationMs),
   };
+}
+
+/**
+ * Maps the global leaderboard onto the ranking table's shape, formatting only: rank, username,
+ * and cpm come straight from the backend, which already owns ordering and tie-breaking.
+ */
+export function toGlobalRankingEntries(
+  entries: GlobalLeaderboardEntry[],
+): GlobalRankingEntry[] {
+  return entries.map((entry) => ({
+    cpm: entry.cpm,
+    fastestTime: formatDuration(entry.durationMs),
+    rank: entry.rank,
+    username: entry.username,
+  }));
 }
 
 /** Maps the personal-best-per-snippet list onto the snippet log's shape, already API-sorted. */

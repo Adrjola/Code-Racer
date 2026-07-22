@@ -6,7 +6,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.coderacer.backend.dto.AbandonResponse;
 import org.coderacer.backend.dto.BaseResponse;
-import org.coderacer.backend.dto.GlobalStatisticsResponse;
+import org.coderacer.backend.dto.GlobalLeaderboardResponse;
 import org.coderacer.backend.dto.PersonalStatisticsResponse;
 import org.coderacer.backend.dto.ProgressAckResponse;
 import org.coderacer.backend.dto.SnippetStatisticsResponse;
@@ -15,19 +15,21 @@ import org.coderacer.backend.dto.SoloAttemptResultResponse;
 import org.coderacer.backend.dto.StartSoloAttemptRequest;
 import org.coderacer.backend.dto.StartSoloAttemptResponse;
 import org.coderacer.backend.dto.SubmitProgressRequest;
+import org.coderacer.backend.dto.WorldBestResponse;
 import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.mapper.SoloAttemptMapper;
 import org.coderacer.backend.model.SoloAttempt;
 import org.coderacer.backend.security.CurrentJwtUserProvider;
-import org.coderacer.backend.service.GlobalStatisticsService;
+import org.coderacer.backend.service.GlobalLeaderboardService;
 import org.coderacer.backend.service.PersonalStatisticsService;
 import org.coderacer.backend.service.ProgressResult;
 import org.coderacer.backend.service.SnippetStatisticsService;
 import org.coderacer.backend.service.SoloAttemptHistoryService;
 import org.coderacer.backend.service.SoloAttemptRankingService;
 import org.coderacer.backend.service.SoloAttemptService;
+import org.coderacer.backend.service.WorldBestService;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,7 +53,8 @@ public class SoloAttemptController {
   private final SoloAttemptService soloAttemptService;
   private final SoloAttemptHistoryService historyService;
   private final PersonalStatisticsService statisticsService;
-  private final GlobalStatisticsService globalStatisticsService;
+  private final GlobalLeaderboardService globalLeaderboardService;
+  private final WorldBestService worldBestService;
   private final SnippetStatisticsService snippetStatisticsService;
   private final SoloAttemptRankingService rankingService;
   private final CurrentJwtUserProvider currentJwtUserProvider;
@@ -120,9 +123,16 @@ public class SoloAttemptController {
     return new BaseResponse<>(statisticsService.forUser(userId), MDC.get("correlationId"));
   }
 
-  @GetMapping("/global-statistics")
-  public BaseResponse<GlobalStatisticsResponse> globalStatistics() {
-    return new BaseResponse<>(globalStatisticsService.compute(), MDC.get("correlationId"));
+  @GetMapping("/global-leaderboard")
+  public BaseResponse<GlobalLeaderboardResponse> globalLeaderboard(
+      @RequestParam Difficulty difficulty, @RequestParam(defaultValue = "20") int limit) {
+    return new BaseResponse<>(
+        globalLeaderboardService.forDifficulty(difficulty, limit), MDC.get("correlationId"));
+  }
+
+  @GetMapping("/world-best")
+  public BaseResponse<WorldBestResponse> worldBest(@RequestParam UUID snippetId) {
+    return new BaseResponse<>(worldBestService.forSnippet(snippetId), MDC.get("correlationId"));
   }
 
   @GetMapping("/snippet-statistics")
