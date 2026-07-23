@@ -164,7 +164,9 @@ jobs:
           docker compose -f compose.prod.yaml logs --tail 120 || true
           exit 1
 
-      - name: Display application logs
+      - name: Display service logs
         if: always()
         shell: bash
-        run: docker compose -f compose.prod.yaml logs --tail 80 app || true
+        run: |
+          docker compose -f compose.prod.yaml ps || true
+          docker compose -f compose.prod.yaml logs --tail 80 || true
