@@ -1,0 +1,184 @@
+import lockBody from '../assets/icons/lock-body.svg';
+import lockShackle from '../assets/icons/lock-shackle.svg';
+import logoChevronRight from '../assets/icons/logo-chevron-right.svg';
+import mail from '../assets/icons/mail.svg';
+import trophyBase from '../assets/icons/trophy-base.svg';
+import trophyCup from '../assets/icons/trophy-cup.svg';
+import trophyHandles from '../assets/icons/trophy-handles.svg';
+import userBody from '../assets/icons/user-body.svg';
+import userHead from '../assets/icons/user-head.svg';
+
+export function UserIcon() {
+  return (
+    <span className="relative block h-4 w-4 shrink-0" aria-hidden="true">
+      <span className="absolute inset-[62.5%_20.83%_12.5%_20.83%]">
+        <img
+          alt=""
+          className="absolute inset-[-16.67%_-7.14%_0_-7.14%] block max-w-none size-full"
+          src={userBody}
+        />
+      </span>
+      <span className="absolute inset-[12.5%_33.33%_54.17%_33.33%]">
+        <img
+          alt=""
+          className="absolute inset-[-12.5%] block max-w-none size-full"
+          src={userHead}
+        />
+      </span>
+    </span>
+  );
+}
+
+export function LockIcon() {
+  return (
+    <span className="relative block h-4 w-4 shrink-0" aria-hidden="true">
+      <span className="absolute inset-[45.83%_12.5%_8.33%_12.5%]">
+        <img
+          alt=""
+          className="absolute inset-[-9.09%_-5.56%] block max-w-none size-full"
+          src={lockBody}
+        />
+      </span>
+      <span className="absolute inset-[8.33%_29.17%_54.17%_29.17%]">
+        <img
+          alt=""
+          className="absolute inset-[-11.11%_-10%_0_-10%] block max-w-none size-full"
+          src={lockShackle}
+        />
+      </span>
+    </span>
+  );
+}
+
+export function MailIcon() {
+  return (
+    <span
+      className="relative block h-[0.6875rem] w-[0.9375rem] shrink-0"
+      aria-hidden="true"
+    >
+      <span className="absolute inset-[-4.55%_-3.33%]">
+        <img alt="" className="block max-w-none size-full" src={mail} />
+      </span>
+    </span>
+  );
+}
+
+export function TrophyIcon({
+  className = 'size-5',
+}: { className?: string } = {}) {
+  return (
+    <span className={`relative block shrink-0 ${className}`} aria-hidden="true">
+      <span className="absolute inset-[16.67%_29.17%_45.83%_29.17%]">
+        <img
+          alt=""
+          className="absolute inset-[-8.33%_-7.5%] block max-w-none size-full"
+          src={trophyBase}
+        />
+      </span>
+      <span className="absolute inset-[20.83%_16.67%_58.33%_16.67%]">
+        <img
+          alt=""
+          className="absolute inset-[-15%_-4.69%] block max-w-none size-full"
+          src={trophyCup}
+        />
+      </span>
+      <span className="absolute inset-[56.25%_33.33%_16.67%_33.33%]">
+        <img
+          alt=""
+          className="absolute inset-[-11.54%_-9.38%] block max-w-none size-full"
+          src={trophyHandles}
+        />
+      </span>
+    </span>
+  );
+}
+
+export function ChevronRightIcon({
+  className = 'h-3.5 w-2',
+}: { className?: string } = {}) {
+  return (
+    <span className={`relative block shrink-0 ${className}`} aria-hidden="true">
+      <img
+        alt=""
+        className="absolute inset-0 block h-full w-full max-w-none"
+        src={logoChevronRight}
+      />
+    </span>
+  );
+}
+
+type ModeIconProps = {
+  className?: string;
+};
+
+export function PersonIcon({ className = 'size-6' }: ModeIconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`${className} text-white`}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="8.5" r="3.25" />
+      <path d="M5.75 19a6.25 6.25 0 0 1 12.5 0" />
+    </svg>
+  );
+}
+
+export function PeopleIcon({ className = 'size-6' }: ModeIconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`${className} text-white`}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 18.75a5.5 5.5 0 0 1 11 0" />
+      <path d="M15.5 5.9a2.75 2.75 0 0 1 0 5.2" />
+      <path d="M16.75 13.4c1.9.42 3.25 2.05 3.25 4.1" />
+    </svg>
+  );
+}
+
+export function EyeIcon({ className = 'size-4' }: ModeIconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.6"
+      viewBox="0 0 24 24"
+    >
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3.2" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className = 'size-4' }: ModeIconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}

@@ -1,0 +1,129 @@
+package org.coderacer.backend.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.Instant;
+import java.util.UUID;
+import org.coderacer.backend.dto.LoginResponse;
+import org.coderacer.backend.dto.UserResponse;
+import org.coderacer.backend.enums.UserRole;
+import org.coderacer.backend.exception.AuthenticationFailedException;
+import org.coderacer.backend.exception.GlobalExceptionHandler;
+import org.coderacer.backend.exception.TooManyLoginAttemptsException;
+import org.coderacer.backend.service.AuthenticationService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+class AuthenticationControllerTest {
+
+  private final AuthenticationService service = mock(AuthenticationService.class);
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(new AuthenticationController(service))
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+  }
+
+  @Test
+  void login_returnsBearerToken() throws Exception {
+    when(service.login(any(), any()))
+        .thenReturn(
+            new LoginResponse(
+                "jwt-token",
+                "Bearer",
+                900,
+                new UserResponse(
+                    UUID.randomUUID(),
+                    "player@example.com",
+                    "player",
+                    UserRole.USER,
+                    true,
+                    Instant.now(),
+                    Instant.now())));
+
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "identifier": "player",
+                      "password": "StrongerPass123"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.accessToken").value("jwt-token"))
+        .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+        .andExpect(jsonPath("$.data.expiresInSeconds").value(900))
+        .andExpect(jsonPath("$.data.user.username").value("player"))
+        .andExpect(jsonPath("$.data.password").doesNotExist())
+        .andExpect(jsonPath("$.data.passwordHash").doesNotExist());
+  }
+
+  @Test
+  void login_returns401ForInvalidCredentials() throws Exception {
+    when(service.login(any(), any())).thenThrow(new AuthenticationFailedException());
+
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "identifier": "player",
+                      "password": "WrongPass123"
+                    }
+                    """))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+  }
+
+  @Test
+  void login_returns429WhenAttemptLimitIsExceeded() throws Exception {
+    when(service.login(any(), any())).thenThrow(new TooManyLoginAttemptsException());
+
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "identifier": "player",
+                      "password": "WrongPass123"
+                    }
+                    """))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.code").value("TOO_MANY_LOGIN_ATTEMPTS"));
+  }
+
+  @Test
+  void login_returns400ForBlankIdentifier() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "identifier": "",
+                      "password": "StrongerPass123"
+                    }
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+  }
+}

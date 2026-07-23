@@ -1,0 +1,15 @@
+package org.coderacer.backend.config.properties;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
+import org.hibernate.validator.constraints.time.DurationMin;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+@Validated
+@ConfigurationProperties(prefix = "app.email-verification")
+public record EmailVerificationProperties(
+    @NotNull @DurationMin(seconds = 1) Duration tokenTtl,
+    @NotNull @DurationMin Duration resendCooldown,
+    @NotBlank String verificationUrl) {}

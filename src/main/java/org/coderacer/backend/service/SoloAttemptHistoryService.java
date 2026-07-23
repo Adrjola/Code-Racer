@@ -1,0 +1,93 @@
+package org.coderacer.backend.service;
+
+import jakarta.persistence.criteria.Predicate;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.coderacer.backend.dto.SoloAttemptResultResponse;
+import org.coderacer.backend.enums.Category;
+import org.coderacer.backend.enums.Difficulty;
+import org.coderacer.backend.enums.SnippetLifecycle;
+import org.coderacer.backend.enums.SoloAttemptState;
+import org.coderacer.backend.exception.ValidationException;
+import org.coderacer.backend.mapper.SoloAttemptMapper;
+import org.coderacer.backend.model.SoloAttempt;
+import org.coderacer.backend.repository.SoloAttemptRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class SoloAttemptHistoryService {
+
+  private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "startedAt");
+  private static final Sort TIE_BREAKER = Sort.by(Sort.Direction.ASC, "id");
+
+  private final SoloAttemptRepository repository;
+  private final SoloAttemptMapper mapper;
+
+  @Transactional(readOnly = true)
+  public Page<SoloAttemptResultResponse> findHistory(
+      UUID userId,
+      SoloAttemptState state,
+      Category category,
+      Difficulty difficulty,
+      Instant startedFrom,
+      Instant startedTo,
+      Pageable pageable) {
+    if (state != null && !SoloAttemptState.terminalStates().contains(state)) {
+      throw new ValidationException(
+          "Validation failed: state must be one of " + SoloAttemptState.terminalStates());
+    }
+
+    Specification<SoloAttempt> specification =
+        ownHistory(userId, state, category, difficulty, startedFrom, startedTo);
+    return repository.findAll(specification, deterministic(pageable)).map(mapper::toResultResponse);
+  }
+
+  private Specification<SoloAttempt> ownHistory(
+      UUID userId,
+      SoloAttemptState state,
+      Category category,
+      Difficulty difficulty,
+      Instant startedFrom,
+      Instant startedTo) {
+    return (root, query, builder) -> {
+      List<Predicate> predicates = new ArrayList<>();
+      predicates.add(builder.equal(root.get("user").get("id"), userId));
+      predicates.add(root.get("state").in(SoloAttemptState.terminalStates()));
+      // A soft-deleted snippet disappears from everything a player can see, so
+      // attempts on it drop out of their history too.
+      predicates.add(
+          builder.notEqual(root.get("codeSnippet").get("lifecycle"), SnippetLifecycle.DELETED));
+      if (state != null) {
+        predicates.add(builder.equal(root.get("state"), state));
+      }
+      if (category != null) {
+        predicates.add(builder.equal(root.get("codeSnippet").get("category"), category));
+      }
+      if (difficulty != null) {
+        predicates.add(builder.equal(root.get("difficulty"), difficulty));
+      }
+      if (startedFrom != null) {
+        predicates.add(builder.greaterThanOrEqualTo(root.get("startedAt"), startedFrom));
+      }
+      if (startedTo != null) {
+        predicates.add(builder.lessThanOrEqualTo(root.get("startedAt"), startedTo));
+      }
+      return builder.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
+  private Pageable deterministic(Pageable pageable) {
+    Sort sort = pageable.getSort().isSorted() ? pageable.getSort() : DEFAULT_SORT;
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort.and(TIE_BREAKER));
+  }
+}

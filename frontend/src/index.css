@@ -1,1 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Manrope:wght@400;600;700;800&display=swap');
 @import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-surface: #0e0c16;
+  --color-text-primary: #e7e5ef;
+  --color-text-secondary: #c9c7d6;
+  --color-text-muted: #6e6c78;
+  --color-text-faint: #8b8794;
+}
+
+html {
+  --canvas-scale: 1;
+  --fit-scale: 1;
+
+  /* Race layout, on the 1920x1080 design canvas. The playing field, the stats
+     row above it, and the result card all share one width; the world-best panel
+     takes the rest of the row beside the field. */
+  --design-canvas-w: 1920px;
+  --race-field-w: 868.63px;
+  --world-best-w: 440px;
+
+  background: #0e0c16;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+/* Wrapped in @layer base so Tailwind utility classes (like text-[40px]) can
+   still win over this — without the layer, this rule would beat any utility
+   no matter its specificity, because Tailwind's utilities all live inside
+   a CSS layer. */
+@layer base {
+  button,
+  input {
+    font: inherit;
+  }
+
+  input,
+  textarea {
+    caret-color: #e7e5ef;
+  }
+
+  input::selection,
+  textarea::selection {
+    background: rgb(244 114 182 / 0.28);
+    color: #e7e5ef;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #11101a inset;
+    -webkit-text-fill-color: #e7e5ef;
+    caret-color: #e7e5ef;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+}
+
+@keyframes draw-outline {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Gradient stroke that follows the element's own border-radius. Only the 1px
+   ring shows the gradient (from --card-border-gradient); the element keeps its
+   own background. A transparent border can't hold a gradient and border-image
+   ignores rounded corners, so this masks a padded ::before down to the edge. */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: var(--gradient-border-width, 1px);
+  border-radius: inherit;
+  background: var(--card-border-gradient);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
