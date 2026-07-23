@@ -9,18 +9,23 @@ jobs:
   diagnose:
     name: diagnose
     runs-on: self-hosted
+    # A hung docker command must never hold the runner and block deploys.
+    timeout-minutes: 5
     steps:
       - name: Container status
+        timeout-minutes: 1
         shell: bash
         run: docker ps -a --filter name=code-racer-prod --format 'table {{.Names}}\t{{.Status}}' || true
 
       - name: Database healthcheck results
+        timeout-minutes: 1
         shell: bash
         run: |
           # Why the probe failed, with the exit code and output of each attempt.
           docker inspect --format '{{json .State.Health}}' code-racer-prod-database-1 || true
 
       - name: Run the probe by hand
+        timeout-minutes: 1
         shell: bash
         run: |
           docker exec code-racer-prod-database-1 \
@@ -30,5 +35,6 @@ jobs:
           POSTGRES_USER: ${{ vars.POSTGRES_USER }}
 
       - name: Database logs
+        timeout-minutes: 1
         shell: bash
         run: docker logs --tail 100 code-racer-prod-database-1 || true
