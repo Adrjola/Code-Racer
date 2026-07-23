@@ -1,11 +1,10 @@
 package org.coderacer.backend.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.List;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Converter
 public class StringListConverter implements AttributeConverter<List<String>, String> {
@@ -14,19 +13,11 @@ public class StringListConverter implements AttributeConverter<List<String>, Str
 
   @Override
   public String convertToDatabaseColumn(List<String> attribute) {
-    try {
-      return MAPPER.writeValueAsString(attribute);
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException(e);
-    }
+    return MAPPER.writeValueAsString(attribute);
   }
 
   @Override
   public List<String> convertToEntityAttribute(String dbData) {
-    try {
-      return MAPPER.readValue(dbData, new TypeReference<>() {});
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException(e);
-    }
+    return MAPPER.readValue(dbData, new TypeReference<>() {});
   }
 }

@@ -39,7 +39,7 @@ class StringListConverterTest {
   @Test
   void convertToEntityAttribute_invalidJson_throwsException() {
     assertThatThrownBy(() -> converter.convertToEntityAttribute("not json"))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(tools.jackson.core.JacksonException.class);
   }
 
   @Test
