@@ -91,7 +91,11 @@ export default function SnippetsPage() {
   const loadExplanation = useCallback(async (snippetId: string) => {
     setExplanations((prev) => ({
       ...prev,
-      [snippetId]: { loading: true, data: prev[snippetId]?.data ?? null, error: null },
+      [snippetId]: {
+        loading: true,
+        data: prev[snippetId]?.data ?? null,
+        error: null,
+      },
     }));
     try {
       const res = await apiRequest<BaseResponse<ExplanationData>>(
@@ -127,7 +131,11 @@ export default function SnippetsPage() {
     setIsGenerating(true);
     setExplanations((prev) => ({
       ...prev,
-      [snippetId]: { loading: true, data: prev[snippetId]?.data ?? null, error: null },
+      [snippetId]: {
+        loading: true,
+        data: prev[snippetId]?.data ?? null,
+        error: null,
+      },
     }));
     try {
       const res = await apiRequest<BaseResponse<ExplanationData>>(
@@ -143,7 +151,11 @@ export default function SnippetsPage() {
         err instanceof Error ? err.message : 'Failed to generate explanation';
       setExplanations((prev) => ({
         ...prev,
-        [snippetId]: { loading: false, data: prev[snippetId]?.data ?? null, error: message },
+        [snippetId]: {
+          loading: false,
+          data: prev[snippetId]?.data ?? null,
+          error: message,
+        },
       }));
     } finally {
       setIsGenerating(false);
@@ -403,87 +415,100 @@ export default function SnippetsPage() {
         </Modal>
       )}
 
-      {dialog?.type === 'explanation' && (() => {
-        const explanation = explanations[dialog.snippet.id];
-        return (
-          <Modal
-            onClose={() => setDialog(null)}
-            title={`Explanation — ${dialog.snippet.title}`}
-          >
-            {explanation?.loading && !explanation.data && (
-              <p className="text-sm text-text-muted">Loading...</p>
-            )}
+      {dialog?.type === 'explanation' &&
+        (() => {
+          const explanation = explanations[dialog.snippet.id];
+          return (
+            <Modal
+              onClose={() => setDialog(null)}
+              title={`Explanation — ${dialog.snippet.title}`}
+            >
+              {explanation?.loading && !explanation.data && (
+                <p className="text-sm text-text-muted">Loading...</p>
+              )}
 
-            {explanation?.error && (
-              <div className="mb-4 rounded-[8px] border border-red-400/25 bg-red-400/10 p-3">
-                <p className="text-sm text-red-300">{explanation.error}</p>
-              </div>
-            )}
+              {explanation?.error && (
+                <div className="mb-4 rounded-[8px] border border-red-400/25 bg-red-400/10 p-3">
+                  <p className="text-sm text-red-300">{explanation.error}</p>
+                </div>
+              )}
 
-            {explanation?.data && (
-              <div className="benji-scroll max-h-[60dvh] overflow-auto rounded-[8px] border border-pink-400/15 bg-white/[0.02] p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-text-secondary">
-                <style>{`
+              {explanation?.data && (
+                <div className="benji-scroll max-h-[60dvh] overflow-auto rounded-[8px] border border-pink-400/15 bg-white/[0.02] p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-text-secondary">
+                  <style>{`
                   .benji-scroll { scrollbar-width: thin; scrollbar-color: rgba(244,114,182,0.4) transparent; }
                   .benji-scroll::-webkit-scrollbar { width: 6px; }
                   .benji-scroll::-webkit-scrollbar-track { background: transparent; }
                   .benji-scroll::-webkit-scrollbar-thumb { background: rgba(244,114,182,0.4); border-radius: 999px; }
                   .benji-scroll::-webkit-scrollbar-thumb:hover { background: rgba(244,114,182,0.65); }
                 `}</style>
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-semibold text-text-secondary">Summary</p>
-                    <p className="mt-1">{explanation.data.summary}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-text-secondary">Step by Step</p>
-                    <ol className="mt-1 list-decimal pl-4">
-                      {explanation.data.stepByStep.map((s, i) => (
-                        <li key={i}>{s}</li>
-                      ))}
-                    </ol>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-text-secondary">Concepts</p>
-                    <ul className="mt-1 list-disc pl-4">
-                      {explanation.data.concepts.map((c, i) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-text-secondary">Best Practices</p>
-                    <ul className="mt-1 list-disc pl-4">
-                      {explanation.data.bestPractices.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="font-semibold text-text-secondary">
+                        Summary
+                      </p>
+                      <p className="mt-1">{explanation.data.summary}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-text-secondary">
+                        Step by Step
+                      </p>
+                      <ol className="mt-1 list-decimal pl-4">
+                        {explanation.data.stepByStep.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ol>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-text-secondary">
+                        Concepts
+                      </p>
+                      <ul className="mt-1 list-disc pl-4">
+                        {explanation.data.concepts.map((c, i) => (
+                          <li key={i}>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-text-secondary">
+                        Best Practices
+                      </p>
+                      <ul className="mt-1 list-disc pl-4">
+                        {explanation.data.bestPractices.map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {!explanation?.loading &&
+                !explanation?.data &&
+                !explanation?.error && (
+                  <p className="text-sm text-text-muted">
+                    No explanation has been generated yet.
+                  </p>
+                )}
+
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={() => void generateExplanation(dialog.snippet.id)}
+                  disabled={explanation?.loading}
+                  variant="primary"
+                >
+                  {explanation?.loading && isGenerating
+                    ? 'Generating...'
+                    : explanation?.loading
+                      ? 'Loading...'
+                      : explanation?.data
+                        ? 'Regenerate Explanation'
+                        : 'Generate Explanation'}
+                </Button>
               </div>
-            )}
-
-            {!explanation?.loading && !explanation?.data && !explanation?.error && (
-              <p className="text-sm text-text-muted">No explanation has been generated yet.</p>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={() => void generateExplanation(dialog.snippet.id)}
-                disabled={explanation?.loading}
-                variant="primary"
-              >
-                {explanation?.loading && isGenerating
-                  ? 'Generating...'
-                  : explanation?.loading
-                    ? 'Loading...'
-                    : explanation?.data
-                      ? 'Regenerate Explanation'
-                      : 'Generate Explanation'}
-              </Button>
-            </div>
-          </Modal>
-        );
-      })()}
+            </Modal>
+          );
+        })()}
 
       {dialog?.type === 'delete' && (
         <ConfirmDialog

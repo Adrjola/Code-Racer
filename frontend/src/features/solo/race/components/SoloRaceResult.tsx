@@ -35,8 +35,18 @@ const RESULT_NAG_LINES: BenjiLine[] = [
   [{ text: "// go on, click me. I don't have all day.", cls: nag }],
   [{ text: '// I can explain that code. unlike you.', cls: nag }],
   [{ text: '// still staring? tap me already, genius.', cls: nag }],
-  [{ text: "// the code won't explain itself. and neither will you.", cls: nag }],
-  [{ text: "// one click. instant knowledge. even you can handle that.", cls: nag }],
+  [
+    {
+      text: "// the code won't explain itself. and neither will you.",
+      cls: nag,
+    },
+  ],
+  [
+    {
+      text: '// one click. instant knowledge. even you can handle that.',
+      cls: nag,
+    },
+  ],
 ];
 import { useAttemptRanking } from '../hooks/useAttemptRanking';
 import { formatDurationPrecise } from '../utils/formatDuration';

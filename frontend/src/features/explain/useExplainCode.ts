@@ -25,12 +25,14 @@ export function clearExplainCache() {
 function explanationToLines(data: ExplanationData): BenjiLine[] {
   const lines: BenjiLine[] = [];
 
-  lines.push([{ text: '// alright, let me dumb this down for you.', cls: com }]);
+  lines.push([
+    { text: '// alright, let me dumb this down for you.', cls: com },
+  ]);
   lines.push([]);
 
   lines.push([
     { text: '// ', cls: com },
-    { text: 'Summary — the part you should\'ve figured out', cls: nag },
+    { text: "Summary — the part you should've figured out", cls: nag },
   ]);
   lines.push([{ text: data.summary, cls: str }]);
   lines.push([]);
@@ -80,10 +82,10 @@ const NO_EXPLANATION_ROASTS: string[] = [
   "wow, nobody bothered to explain this one. guess you're on your own, champ.",
   "no explanation exists yet. even I can't help you with nothing.",
   "the admin hasn't explained this one. probably too busy having a life.",
-  "explanation not found. just like your coding skills.",
+  'explanation not found. just like your coding skills.',
   "nothing here yet. try staring at the code harder, maybe it'll click.",
-  "no explanation. looks like we both get to suffer in silence.",
-  "this snippet has no explanation. welcome to the deep end, kid.",
+  'no explanation. looks like we both get to suffer in silence.',
+  'this snippet has no explanation. welcome to the deep end, kid.',
   "explanation? what explanation? you're flying blind on this one.",
   "the admin forgot this one. or maybe they just don't care. who knows.",
   "no explanation available. guess you'll have to use that brain thing.",
@@ -91,17 +93,18 @@ const NO_EXPLANATION_ROASTS: string[] = [
 
 function errorToLines(kind: ExplainErrorKind): BenjiLine[] {
   if (kind === 'not-found') {
-    const roast = NO_EXPLANATION_ROASTS[Math.floor(Math.random() * NO_EXPLANATION_ROASTS.length)];
-    return [
-      [{ text: `// ${roast}`, cls: nag }],
-    ];
+    const roast =
+      NO_EXPLANATION_ROASTS[
+        Math.floor(Math.random() * NO_EXPLANATION_ROASTS.length)
+      ];
+    return [[{ text: `// ${roast}`, cls: nag }]];
   }
 
   const messages: Record<ExplainErrorKind, string> = {
     'auth-expired': 'session expired. log in again, slacker.',
-    forbidden: "explanation not available for your account. tough luck.",
+    forbidden: 'explanation not available for your account. tough luck.',
     'rate-limited': 'slow down, speed demon. wait a moment.',
-    'provider-unavailable': "AI service is down. even robots need a break.",
+    'provider-unavailable': 'AI service is down. even robots need a break.',
     'not-found': '',
     generic: 'something broke. probably not my fault.',
   };
