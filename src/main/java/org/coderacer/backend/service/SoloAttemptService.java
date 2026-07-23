@@ -9,6 +9,7 @@ import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.exception.IllegalSoloAttemptStateTransitionException;
 import org.coderacer.backend.exception.OneActiveAttemptConflictException;
+import org.coderacer.backend.exception.ProgressSequenceException;
 import org.coderacer.backend.exception.SoloAttemptNotActiveException;
 import org.coderacer.backend.exception.SoloAttemptNotFoundException;
 import org.coderacer.backend.exception.SoloAttemptOwnershipException;
@@ -127,14 +128,27 @@ public class SoloAttemptService {
 
     int[] deltaCodePoints =
         CanonicalText.toCodePoints(CanonicalText.canonicalizeLineEndings(rawDelta));
-    ActiveProgress progress =
-        activeAttemptStateStore.applyDelta(
-            attempt.getId(),
-            sequence,
-            deltaCodePoints,
-            canonicalCodePoints,
-            attempt.getStartedAt(),
-            now);
+    ActiveProgress progress;
+    try {
+      progress =
+          activeAttemptStateStore.applyDelta(
+              attempt.getId(),
+              sequence,
+              deltaCodePoints,
+              canonicalCodePoints,
+              attempt.getStartedAt(),
+              now);
+    } catch (ProgressSequenceException e) {
+      // A duplicate of the batch that finished the race can land here: the other
+      // request completed the attempt and cleared its live state in the gap
+      // between the check above and this call. That is the same already-finished
+      // outcome the check itself returns, not a sequencing error by the client.
+      SoloAttempt finished = getOwnedAttempt(attemptId, userId);
+      if (finished.getState() == SoloAttemptState.COMPLETED) {
+        return new ProgressResult(finished, canonicalCodePoints.length);
+      }
+      throw e;
+    }
 
     if (progress.acceptedOffset() < canonicalCodePoints.length) {
       return new ProgressResult(attempt, progress.acceptedOffset());
