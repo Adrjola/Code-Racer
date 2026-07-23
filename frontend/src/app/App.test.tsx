@@ -498,10 +498,13 @@ describe('App', () => {
         name: /flee in shame/i,
       }),
     );
+    // Logging out returns to the landing page rather than a sign-in form.
     expect(
-      screen.getByRole('heading', { name: /welcome back/i }),
+      await screen.findByRole('button', { name: /^play$/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(/logged out/i);
+    expect(
+      screen.queryByRole('heading', { name: /welcome back/i }),
+    ).not.toBeInTheDocument();
     expect(window.sessionStorage.getItem('code-racer.auth-session')).toBeNull();
   });
 
@@ -618,7 +621,7 @@ describe('App', () => {
         name: /flee in shame/i,
       }),
     );
-    expect(screen.getByRole('status')).toHaveTextContent(/logged out/i);
+    await screen.findByRole('button', { name: /^play$/i });
 
     window.history.back();
 

@@ -283,9 +283,9 @@ export default function App() {
 
   const handleLogout = () => {
     clearSession();
-    commitRoute('login', null, false, {
-      loginNotice: 'You have been logged out.',
-    });
+    // Logging out drops you where a signed-out visitor belongs, not on a form
+    // asking you to sign back in.
+    commitRoute('landing', null, false);
   };
 
   const handleVerificationComplete = (notice?: string) => {
