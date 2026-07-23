@@ -11,7 +11,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.coderacer.backend.dto.DifficultyStatistics;
@@ -68,6 +70,8 @@ class SoloAttemptControllerTest {
       mock(SnippetStatisticsService.class);
   private final CurrentJwtUserProvider currentJwtUserProvider = mock(CurrentJwtUserProvider.class);
   private final SoloAttemptMapper mapper = new SoloAttemptMapper();
+  private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
+
   private MockMvc mockMvc;
 
   @BeforeEach
@@ -83,7 +87,8 @@ class SoloAttemptControllerTest {
                     snippetStatisticsService,
                     rankingService,
                     currentJwtUserProvider,
-                    mapper))
+                    mapper,
+                    Clock.fixed(NOW, ZoneOffset.UTC)))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .build();

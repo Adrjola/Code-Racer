@@ -27,6 +27,7 @@ public class GlobalLeaderboardService {
     Specification<SoloAttempt> scope =
         Specification.where(SoloAttemptSpecifications.completed())
             .and(SoloAttemptSpecifications.nonDeletedUser())
+            .and(SoloAttemptSpecifications.onAvailableSnippet())
             .and(SoloAttemptSpecifications.forDifficulty(difficulty));
 
     List<SoloAttempt> board =

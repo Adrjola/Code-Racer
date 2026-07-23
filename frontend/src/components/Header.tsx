@@ -36,7 +36,8 @@ type HeaderProps = SharedHeaderProps &
 const navLinkClassName =
   'text-sm font-semibold text-text-secondary hover:text-text-primary';
 
-const navIconButtonClassName = 'size-10 shrink-0 transition hover:opacity-90';
+const navIconButtonClassName =
+  'size-10 shrink-0 transition-all duration-200 hover:scale-110';
 
 export const flowHeaderClassName =
   'relative lg:h-[calc(88px*var(--header-scale))] lg:overflow-hidden';

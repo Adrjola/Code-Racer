@@ -1,6 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCountdown } from '../../../../features/solo/race/hooks/useCountdown';
+import {
+  clockSkewMs,
+  useCountdown,
+} from '../../../../features/solo/race/hooks/useCountdown';
 
 describe('useCountdown', () => {
   beforeEach(() => {
@@ -32,6 +35,39 @@ describe('useCountdown', () => {
       vi.advanceTimersByTime(3000);
     });
     expect(result.current).toBe(0);
+  });
+
+  it('still counts three when the browser clock is far behind the server', () => {
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const serverTime = '2026-01-01T00:00:27.000Z';
+    const startedAt = '2026-01-01T00:00:30.000Z';
+
+    const skew = clockSkewMs(serverTime, Date.now());
+    expect(skew).toBe(27_000);
+
+    const { result } = renderHook(() => useCountdown(startedAt, skew));
+    expect(result.current).toBe(3);
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(result.current).toBe(0);
+  });
+
+  it('still counts three when the browser clock runs ahead of the server', () => {
+    vi.setSystemTime(new Date('2026-01-01T00:00:10.000Z'));
+    const serverTime = '2026-01-01T00:00:00.000Z';
+    const startedAt = '2026-01-01T00:00:03.000Z';
+
+    const skew = clockSkewMs(serverTime, Date.now());
+    expect(skew).toBe(-10_000);
+
+    const { result } = renderHook(() => useCountdown(startedAt, skew));
+    expect(result.current).toBe(3);
+  });
+
+  it('treats a missing server time as no skew', () => {
+    expect(clockSkewMs('not-a-date', Date.now())).toBe(0);
   });
 
   it('returns zero for a target date in the past', () => {

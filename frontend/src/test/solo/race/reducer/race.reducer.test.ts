@@ -271,7 +271,11 @@ describe('raceReducer', () => {
 });
 
 describe('incorrect input cap', () => {
-  const snippet: RaceSnippet = { id: 's1', code: 'abc', type: 'EASY' };
+  const snippet: RaceSnippet = {
+    id: 's1',
+    code: 'abcdefghijklm',
+    type: 'EASY',
+  };
 
   const started = () =>
     raceReducer(initialState, {
@@ -291,6 +295,23 @@ describe('incorrect input cap', () => {
 
     expect(state.currentInput).toHaveLength(MAX_INCORRECT_INPUT);
     expect(state.hasError).toBe(true);
+  });
+
+  it('never banks more mistakes than there is snippet left to mark', () => {
+    let state = started();
+
+    // Type everything but the last two characters correctly.
+    for (const char of 'abcdefghijk') {
+      state = raceReducer(state, { type: 'INPUT', char });
+    }
+
+    for (let i = 0; i < MAX_INCORRECT_INPUT + 5; i += 1) {
+      state = raceReducer(state, { type: 'INPUT', char: 'z' });
+    }
+
+    // Only two characters remain to mark, so only two mistakes are kept. Any
+    // more would be invisible on screen but still need a backspace each.
+    expect(state.currentInput).toHaveLength(2);
   });
 
   it('accepts input again once the mistake is deleted', () => {

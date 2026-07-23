@@ -1,10 +1,9 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Header from '@/components/Header';
 import { SegmentedToggle } from '@/features/statistics/components/SegmentedToggle';
 import { useExplainCode } from '@/features/explain/useExplainCode';
-
-const RaceBot = lazy(() => import('@/features/landing/RaceBot'));
-const BenjiTerminal = lazy(() => import('@/features/landing/BenjiTerminal'));
+import RaceBot from '@/features/landing/RaceBot';
+import BenjiTerminal from '@/features/landing/BenjiTerminal';
 import type { BenjiLine } from '@/features/landing/BenjiTerminal';
 import type { SoloAttemptResultResponse } from '../api/soloRaceApi';
 
@@ -16,28 +15,38 @@ const obj = 'text-[#c084fc]';
 const nag = 'text-[#fbbf24]';
 
 const RESULT_BASE_LINES: BenjiLine[] = [
-  [{ text: '// nice race. not bad.', cls: com }],
+  [{ text: '// you finished. barely.', cls: com }],
   [
     { text: 'Benji', cls: obj },
     { text: '.', cls: op },
-    { text: 'say', cls: kw },
+    { text: 'judge', cls: kw },
     { text: '(', cls: op },
-    { text: '"want to know what that code does?"', cls: str },
+    { text: '"did you even read the code or just mash keys?"', cls: str },
     { text: ');', cls: op },
   ],
   [],
   [
     { text: '// click me ↓ ', cls: com },
-    { text: 'to explain the code', cls: nag },
+    { text: "I'll explain it since you clearly can't", cls: nag },
   ],
 ];
 
 const RESULT_NAG_LINES: BenjiLine[] = [
-  [{ text: "// go on, click me. I don't bite.", cls: nag }],
-  [{ text: '// I can explain that code. just click.', cls: nag }],
-  [{ text: '// still waiting. tap me already.', cls: nag }],
-  [{ text: "// the code won't explain itself. but I will.", cls: nag }],
-  [{ text: "// one click. instant knowledge. you're welcome.", cls: nag }],
+  [{ text: "// go on, click me. I don't have all day.", cls: nag }],
+  [{ text: '// I can explain that code. unlike you.', cls: nag }],
+  [{ text: '// still staring? tap me already, genius.', cls: nag }],
+  [
+    {
+      text: "// the code won't explain itself. and neither will you.",
+      cls: nag,
+    },
+  ],
+  [
+    {
+      text: '// one click. instant knowledge. even you can handle that.',
+      cls: nag,
+    },
+  ],
 ];
 import { useAttemptRanking } from '../hooks/useAttemptRanking';
 import { formatDurationPrecise } from '../utils/formatDuration';
@@ -288,14 +297,12 @@ export function SoloRaceResult({
 
         <div className="absolute -bottom-[250px] -left-[75px] h-[600px] w-[600px]">
           <div className="absolute -top-[400px] left-[140px] w-[450px]">
-            <Suspense fallback={null}>
-              <BenjiTerminal
-                baseLines={benjiBaseLines}
-                nagLines={benjiNagLines}
-                bubblePath="M80 66C80 57.1635 87.1634 50 96 50H672C680.837 50 688 57.1634 688 66V498C688 506.837 680.837 514 672 514H270.902C267.148 514 264.161 517.144 264.353 520.893C264.625 526.196 258.809 529.606 254.314 526.778L237.905 516.457C235.354 514.852 232.401 514 229.386 514H96C87.1635 514 80 506.837 80 498V66Z"
-                bubbleViewBox="78 48 624 484"
-              />
-            </Suspense>
+            <BenjiTerminal
+              baseLines={benjiBaseLines}
+              nagLines={benjiNagLines}
+              bubblePath="M80 66C80 57.1635 87.1634 50 96 50H672C680.837 50 688 57.1634 688 66V498C688 506.837 680.837 514 672 514H270.902C267.148 514 264.161 517.144 264.353 520.893C264.625 526.196 258.809 529.606 254.314 526.778L237.905 516.457C235.354 514.852 232.401 514 229.386 514H96C87.1635 514 80 506.837 80 498V66Z"
+              bubbleViewBox="78 48 624 484"
+            />
           </div>
           <div
             className={`h-full w-full ${explainPhase === 'idle' || explainPhase === 'error' ? 'cursor-pointer' : ''}`}
@@ -311,13 +318,11 @@ export function SoloRaceResult({
             }
             aria-label="Click Benji to explain the code"
           >
-            <Suspense fallback={null}>
-              <RaceBot
-                cameraPosition={[0, 0.75, 2.0]}
-                cameraTarget={[0, 0.45, 0]}
-                className="h-full w-full"
-              />
-            </Suspense>
+            <RaceBot
+              cameraPosition={[0, 0.75, 2.0]}
+              cameraTarget={[0, 0.45, 0]}
+              className="h-full w-full"
+            />
           </div>
         </div>
       </div>

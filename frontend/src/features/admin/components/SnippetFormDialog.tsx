@@ -4,8 +4,9 @@ import Modal from '@/components/Modal';
 import SelectField from '@/components/SelectField';
 import TextAreaField from '@/components/TextAreaField';
 import TextField from '@/components/TextField';
-import type { Category, Difficulty, SnippetValues } from '@/features/admin/api';
+import type { Category, SnippetValues } from '@/features/admin/api';
 import { CATEGORY_OPTIONS } from '@/features/admin/categories';
+import { DIFFICULTY_OPTIONS } from '@/features/admin/difficulties';
 import {
   canonicalizeSource,
   hasFormErrors,
@@ -22,11 +23,9 @@ type SnippetFormDialogProps = {
   onSubmit: (values: SnippetValues) => void;
 };
 
-const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
-
-const difficultyOptions = DIFFICULTIES.map((difficulty) => ({
-  label: `${difficulty.charAt(0)}${difficulty.slice(1).toLowerCase()}`,
-  value: difficulty,
+const difficultyOptions = DIFFICULTY_OPTIONS.map((option) => ({
+  label: option.displayName,
+  value: option.difficulty,
 }));
 
 /** Snippets are immutable, so this only ever creates a new one. */

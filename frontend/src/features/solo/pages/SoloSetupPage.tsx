@@ -17,6 +17,7 @@ import categorySqlGlyph from '@/assets/icons/category-sql-glyph.svg';
 import categoryTestingGlyph from '@/assets/icons/category-testing-glyph.svg';
 import checkmarkIcon from '@/assets/icons/checkmark.svg';
 import playTriangleIcon from '@/assets/icons/play-triangle.svg';
+import { difficultyDisplayName } from '@/features/admin/difficulties';
 
 type SoloSetupPageProps = {
   onGoHome: () => void;
@@ -44,19 +45,19 @@ const HEADER_HEIGHT = 88;
 
 const DIFFICULTIES: DifficultyOption[] = [
   {
-    label: 'BABY MODE',
+    label: difficultyDisplayName('EASY'),
     subtext: 'TRAINING WHEELS ON · NO SHAME',
     tone: '#34d399',
     value: 'EASY',
   },
   {
-    label: 'TRYHARD',
+    label: difficultyDisplayName('MEDIUM'),
     subtext: 'OKAY, SHOW OFF.',
     tone: '#fbbf24',
     value: 'MEDIUM',
   },
   {
-    label: 'LOCKED IN',
+    label: difficultyDisplayName('HARD'),
     subtext: 'TOUCH GRASS LATER · DENSE LOGIC',
     tone: '#f472b6',
     value: 'HARD',

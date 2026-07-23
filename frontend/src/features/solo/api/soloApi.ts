@@ -26,6 +26,7 @@ export type StartSoloAttemptResponse = {
   codeSnippetId: string;
   difficulty: Difficulty;
   startedAt: string;
+  serverTime: string;
 };
 
 export type FetchRandomSnippetParams = {

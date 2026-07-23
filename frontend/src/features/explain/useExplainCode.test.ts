@@ -20,7 +20,7 @@ function withExplanation(
   data: ExplanationData = EXPLANATION,
 ) {
   server.use(
-    http.get(`${API_URL}/api/admin/snippets/${snippetId}/explanation`, () =>
+    http.get(`${API_URL}/api/snippets/${snippetId}/explanation`, () =>
       HttpResponse.json({ data }),
     ),
   );
@@ -28,7 +28,7 @@ function withExplanation(
 
 function withError(snippetId: string, status: number) {
   server.use(
-    http.get(`${API_URL}/api/admin/snippets/${snippetId}/explanation`, () =>
+    http.get(`${API_URL}/api/snippets/${snippetId}/explanation`, () =>
       HttpResponse.json({ message: 'error' }, { status }),
     ),
   );
@@ -100,7 +100,7 @@ describe('useExplainCode', () => {
   it('returns cached result on second call without refetching', async () => {
     let fetchCount = 0;
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () => {
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () => {
         fetchCount++;
         return HttpResponse.json({ data: EXPLANATION });
       }),
@@ -125,7 +125,7 @@ describe('useExplainCode', () => {
   it('prevents duplicate requests when clicked rapidly', async () => {
     let fetchCount = 0;
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, async () => {
+      http.get(`${API_URL}/api/snippets/s1/explanation`, async () => {
         fetchCount++;
         await new Promise((r) => setTimeout(r, 50));
         return HttpResponse.json({ data: EXPLANATION });

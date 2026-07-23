@@ -16,6 +16,7 @@ import type {
   RaceSnippet,
 } from '../types/race.types';
 import { codePointLength, sliceCodePoints } from '../utils/codePointText';
+import { formatDurationPrecise } from '../utils/formatDuration';
 import { processBeforeInputData } from '../utils/processBeforeInputData';
 import { SoloRaceHeader } from './SoloRaceHeader';
 import { SoloRaceKeyboardHints } from './SoloRaceKeyboardHints';
@@ -28,10 +29,14 @@ interface SoloRaceProps {
   onNewSnippet?: () => void | Promise<void>;
   onRestartRace?: () => void | Promise<void>;
   onStartRace?: () => void | Promise<void>;
+  skewMs?: number;
   snippet: RaceSnippet;
   startedAt: string;
   transport?: ExactCodeTypingEngineTransport;
 }
+
+/** Fast enough that the millisecond digits visibly move without flooding renders. */
+const TIMER_TICK_MS = 100;
 
 export function SoloRace({
   errorMessage,
@@ -39,6 +44,7 @@ export function SoloRace({
   onNewSnippet,
   onRestartRace,
   onStartRace,
+  skewMs = 0,
   snippet,
   startedAt,
   transport,
@@ -56,6 +62,7 @@ export function SoloRace({
 
   const countdown = useCountdown(
     hasRaceStarted && startedAt ? startedAt : null,
+    skewMs,
   );
   const isCountdownActive = countdown !== null && countdown > 0;
   const raceStartedAtMs =
@@ -82,7 +89,7 @@ export function SoloRace({
 
     const timer = window.setInterval(() => {
       setNowMs(Date.now());
-    }, 1000);
+    }, TIMER_TICK_MS);
 
     return () => {
       window.clearInterval(timer);
@@ -315,9 +322,11 @@ export function SoloRace({
       ? Math.floor(state.result.durationMs / 1000)
       : null;
   const elapsedSeconds = resultElapsedSeconds ?? activeElapsedSeconds;
-  const minutes = Math.floor(elapsedSeconds / 60);
-  const seconds = elapsedSeconds % 60;
-  const elapsed = `${minutes}:${String(seconds).padStart(2, '0')}`;
+  // Same precision as every other duration in the app, so the running clock and
+  // the result it lands on read the same way.
+  const elapsed = formatDurationPrecise(
+    state.result?.durationMs ?? (hasRaceStarted ? elapsedMs : 0),
+  );
   const acceptedChars = codePointLength(state.acceptedPrefix);
   const cpm =
     state.result?.cpm ??
