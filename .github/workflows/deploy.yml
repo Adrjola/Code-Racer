@@ -146,11 +146,15 @@ jobs:
         run: docker compose -f compose.prod.yaml up -d --remove-orphans
 
       - name: Verify deployment
+        timeout-minutes: 7
         shell: bash
         run: |
+          HEALTH_BASE_URL="${ALLOWED_ORIGINS%%,*}"
+          HEALTH_BASE_URL="${HEALTH_BASE_URL%/}"
+          HEALTH_URL="$HEALTH_BASE_URL/actuator/health"
+
           for i in {1..30}; do
-            if docker compose -f compose.prod.yaml exec -T app \
-              curl --fail --silent http://localhost:8080/actuator/health >/dev/null; then
+            if curl --fail --silent --show-error --max-time 10 "$HEALTH_URL" >/dev/null; then
               echo "Application health check passed"
               exit 0
             fi
@@ -165,7 +169,8 @@ jobs:
           exit 1
 
       - name: Display service logs
-        if: always()
+        if: failure()
+        timeout-minutes: 3
         shell: bash
         run: |
           docker compose -f compose.prod.yaml ps || true
