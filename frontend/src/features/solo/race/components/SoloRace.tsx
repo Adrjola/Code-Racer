@@ -28,6 +28,8 @@ interface SoloRaceProps {
   onNewSnippet?: () => void | Promise<void>;
   onRestartRace?: () => void | Promise<void>;
   onStartRace?: () => void | Promise<void>;
+  /** Browser-to-server clock offset, so the countdown does not trust the browser. */
+  skewMs?: number;
   snippet: RaceSnippet;
   startedAt: string;
   transport?: ExactCodeTypingEngineTransport;
@@ -39,6 +41,7 @@ export function SoloRace({
   onNewSnippet,
   onRestartRace,
   onStartRace,
+  skewMs = 0,
   snippet,
   startedAt,
   transport,
@@ -56,6 +59,7 @@ export function SoloRace({
 
   const countdown = useCountdown(
     hasRaceStarted && startedAt ? startedAt : null,
+    skewMs,
   );
   const isCountdownActive = countdown !== null && countdown > 0;
   const raceStartedAtMs =

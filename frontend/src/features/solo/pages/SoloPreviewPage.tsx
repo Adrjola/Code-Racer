@@ -35,6 +35,7 @@ export default function SoloPreviewPage({
   const [result, setResult] = useState<SoloAttemptResultResponse | null>(null);
 
   const attempt = startPhase.phase === 'started' ? startPhase.attempt : null;
+  const skewMs = startPhase.phase === 'started' ? startPhase.skewMs : 0;
 
   const transport = useMemo(
     () =>
@@ -146,6 +147,7 @@ export default function SoloPreviewPage({
       onRestartRace={raceAgain}
       onStartRace={start}
       snippet={snippet}
+      skewMs={skewMs}
       startedAt={attempt?.startedAt ?? ''}
       transport={transport}
     />

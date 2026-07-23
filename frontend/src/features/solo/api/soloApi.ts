@@ -26,6 +26,8 @@ export type StartSoloAttemptResponse = {
   codeSnippetId: string;
   difficulty: Difficulty;
   startedAt: string;
+  /** The server's clock when it answered, used to correct a skewed browser clock. */
+  serverTime: string;
 };
 
 export type FetchRandomSnippetParams = {
