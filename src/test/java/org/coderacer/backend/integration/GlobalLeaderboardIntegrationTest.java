@@ -95,6 +95,35 @@ class GlobalLeaderboardIntegrationTest extends AbstractPostgresIntegrationTest {
   }
 
   @Test
+  void excludesTimesSetOnDeletedSnippets() {
+    User alice = newUser("alice");
+    User bob = newUser("bob");
+    CodeSnippet retired = newSnippet(Difficulty.EASY);
+    completedOn(bob, retired, Difficulty.EASY, 5_000L, 900);
+    completed(alice, Difficulty.EASY, 20_000L, 200, now);
+
+    retired.softDelete();
+    codeSnippetRepository.save(retired);
+
+    List<GlobalLeaderboardEntry> entries = leaderboard(Difficulty.EASY, 20).entries();
+
+    assertThat(entries).hasSize(1);
+    assertThat(entries.get(0).username()).isEqualTo(alice.getUsername());
+  }
+
+  @Test
+  void aDifficultyWhoseSnippetsAreAllDeletedHasNoLeaderboard() {
+    User alice = newUser("alice");
+    CodeSnippet retired = newSnippet(Difficulty.HARD);
+    completedOn(alice, retired, Difficulty.HARD, 5_000L, 900);
+
+    retired.softDelete();
+    codeSnippetRepository.save(retired);
+
+    assertThat(leaderboard(Difficulty.HARD, 20).entries()).isEmpty();
+  }
+
+  @Test
   void excludesAbandonedAndIncompleteAttempts() {
     User alice = newUser("alice");
     completed(alice, Difficulty.EASY, 20_000L, 200, now);
@@ -152,6 +181,14 @@ class GlobalLeaderboardIntegrationTest extends AbstractPostgresIntegrationTest {
     SoloAttempt attempt = new SoloAttempt(user, newSnippet(difficulty), difficulty, now);
     attempt.activate();
     attempt.complete(finishedAt, durationMs, cpm);
+    attemptRepository.save(attempt);
+  }
+
+  private void completedOn(
+      User user, CodeSnippet snippet, Difficulty difficulty, long durationMs, int cpm) {
+    SoloAttempt attempt = new SoloAttempt(user, snippet, difficulty, now);
+    attempt.activate();
+    attempt.complete(now, durationMs, cpm);
     attemptRepository.save(attempt);
   }
 

@@ -78,7 +78,7 @@ export function SoloRaceWorldBest({
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">
           world record - cpm
         </p>
-        <p className="font-['JetBrains_Mono'] text-[52px] font-bold leading-none text-white sm:text-[84px]">
+        <p className="font-['JetBrains_Mono'] text-[52px] font-bold leading-none text-white sm:text-[68px]">
           {cpmValue}{' '}
           <span className="font-['JetBrains_Mono'] text-[20px] font-normal leading-none text-[#F9A8D4]">
             CPM
@@ -100,7 +100,7 @@ export function SoloRaceWorldBest({
         <p className="mb-4 font-['JetBrains_Mono'] text-[12px] font-normal leading-none text-[#8B8794]">
           world record - time
         </p>
-        <p className="font-['JetBrains_Mono'] text-[52px] font-bold leading-none text-white sm:text-[84px]">
+        <p className="font-['JetBrains_Mono'] text-[52px] font-bold leading-none text-white sm:text-[68px]">
           {timeValue}
         </p>
         <p className="mt-4 font-['JetBrains_Mono'] text-[12.5px] font-normal leading-none text-[#6B6F85]">
