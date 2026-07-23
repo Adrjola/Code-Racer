@@ -134,7 +134,9 @@ describe('SoloPreviewPage', () => {
 
     await screen.findByRole('button', { name: /start race/i });
 
-    expect(worldBestUrl).toContain(`snippetId=${snippet.id}`);
+    await waitFor(() =>
+      expect(worldBestUrl).toContain(`snippetId=${snippet.id}`),
+    );
   });
 
   it('returns to the pre-start screen on restart without fetching a new snippet', async () => {
