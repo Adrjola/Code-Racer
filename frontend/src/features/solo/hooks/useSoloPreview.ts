@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isSessionExpiredError } from '@/lib/apiClient';
+import { clockSkewMs } from '../race/hooks/useCountdown';
 import {
   fetchRandomSnippet,
   isNoEligibleSnippetError,
@@ -22,6 +23,7 @@ export type StartPhase =
   | {
       attempt: StartSoloAttemptResponse;
       phase: 'started';
+      skewMs: number;
       snippet: SnippetPreview;
     }
   | { phase: 'error'; message: string }
@@ -141,8 +143,10 @@ export function useSoloPreview({
     setStartPhase({ phase: 'starting' });
 
     let attempt: StartSoloAttemptResponse;
+    let skewMs: number;
     try {
       attempt = await startSoloAttempt(snippet.id);
+      skewMs = clockSkewMs(attempt.serverTime, Date.now());
     } catch (error: unknown) {
       if (isSessionExpiredError(error)) {
         handleSessionExpired();
@@ -166,7 +170,7 @@ export function useSoloPreview({
       throw new Error('solo_snippet_changed');
     }
 
-    setStartPhase({ attempt, phase: 'started', snippet });
+    setStartPhase({ attempt, phase: 'started', skewMs, snippet });
   }, [handleSessionExpired, loadSnippet, snippetPhase]);
 
   return {

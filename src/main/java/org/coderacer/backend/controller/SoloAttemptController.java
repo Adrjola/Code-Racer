@@ -1,6 +1,7 @@
 package org.coderacer.backend.controller;
 
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +60,7 @@ public class SoloAttemptController {
   private final SoloAttemptRankingService rankingService;
   private final CurrentJwtUserProvider currentJwtUserProvider;
   private final SoloAttemptMapper mapper;
+  private final Clock clock;
 
   @GetMapping
   public BaseResponse<PagedModel<SoloAttemptResultResponse>> history(
@@ -87,7 +89,8 @@ public class SoloAttemptController {
             attempt.getId(),
             attempt.getCodeSnippet().getId(),
             attempt.getDifficulty(),
-            attempt.getStartedAt());
+            attempt.getStartedAt(),
+            clock.instant());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(new BaseResponse<>(response, MDC.get("correlationId")));
   }
