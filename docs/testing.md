@@ -15,13 +15,20 @@ startup, and the initial automated test suites:
 - the frontend enforces V8 coverage thresholds for functional source code;
 - the Docker Compose services have operational health checks.
 
-Backend coverage enforcement is enabled through JaCoCo, with basic infrastructure tests in place:
+Backend coverage enforcement is enabled through JaCoCo. Every feature now ships
+with its own tests; the suites below are the shared infrastructure ones that the
+rest build on:
 
 - `GlobalExceptionHandlerTest`: Verifies simplified API error responses and exception mapping.
 - `CorrelationIdFilterTest`: Verifies request correlation ID propagation and MDC cleanup.
 - `CorsConfigTest`: Verifies CORS policy enforcement for allowed and rejected origins.
 - `CorsPropertiesTest`: Verifies fail-fast CORS configuration validation.
 - `BackendApplicationTests`: Spring Boot context smoke test.
+
+Feature areas covered by their own unit, web-slice, and integration suites
+include authentication and email verification, password reset, the snippet
+catalog, solo attempts and progress scoring, statistics and leaderboards, admin
+user management, and AI explanations.
 
 ## Frontend Testing Stack
 
