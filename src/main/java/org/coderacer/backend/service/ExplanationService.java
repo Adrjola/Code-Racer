@@ -1,38 +1,39 @@
 package org.coderacer.backend.service;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import org.coderacer.backend.dto.ExplanationResponse;
 import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.exception.AiProviderException;
 import org.coderacer.backend.exception.ResourceNotFoundException;
 import org.coderacer.backend.model.CodeSnippet;
+import org.coderacer.backend.model.SnippetExplanation;
 import org.coderacer.backend.repository.CodeSnippetRepository;
+import org.coderacer.backend.repository.SnippetExplanationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ExplanationService {
 
   private final CodeSnippetRepository codeSnippetRepository;
+  private final SnippetExplanationRepository explanationRepository;
   private final AiProvider aiProvider;
-  private final Map<UUID, ExplanationResponse> cache = new ConcurrentHashMap<>();
 
   public ExplanationService(
-      CodeSnippetRepository codeSnippetRepository, Optional<AiProvider> aiProvider) {
+      CodeSnippetRepository codeSnippetRepository,
+      SnippetExplanationRepository explanationRepository,
+      Optional<AiProvider> aiProvider) {
     this.codeSnippetRepository = codeSnippetRepository;
+    this.explanationRepository = explanationRepository;
     this.aiProvider = aiProvider.orElse(null);
   }
 
-  public ExplanationResponse explain(UUID snippetId) {
+  /** Admin action: calls AI, persists the result. */
+  @Transactional
+  public ExplanationResponse generateAndSave(UUID snippetId) {
     if (aiProvider == null) {
       throw AiProviderException.disabled();
-    }
-
-    ExplanationResponse cached = cache.get(snippetId);
-    if (cached != null) {
-      return cached;
     }
 
     CodeSnippet snippet =
@@ -44,13 +45,30 @@ public class ExplanationService {
       throw new ResourceNotFoundException("Snippet is not available: " + snippetId);
     }
 
-    ExplanationResponse response = aiProvider.explain(snippet.getSource());
+    if (explanationRepository.findBySnippetId(snippetId).isPresent()) {
+      throw new IllegalStateException("Explanation already exists for snippet: " + snippetId);
+    }
 
+    ExplanationResponse response = aiProvider.explain(snippet.getSource());
     if (response == null || !response.isValid()) {
       throw AiProviderException.invalidResponse("malformed or incomplete explanation");
     }
 
-    cache.put(snippetId, response);
+    SnippetExplanation entity = new SnippetExplanation(snippet, response);
+    explanationRepository.save(entity);
     return response;
+  }
+
+  /** User action: reads pre-generated explanation from DB. */
+  @Transactional(readOnly = true)
+  public ExplanationResponse getExplanation(UUID snippetId) {
+    SnippetExplanation explanation =
+        explanationRepository
+            .findBySnippetId(snippetId)
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "No explanation available for snippet: " + snippetId));
+    return explanation.toResponse();
   }
 }
