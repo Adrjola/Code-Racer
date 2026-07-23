@@ -69,11 +69,20 @@ shared `ApiError` response format.
 - **Authorization**: `/api/admin/**` requires the `ADMIN` role. General
   authenticated API routes require `USER` or `ADMIN` unless explicitly marked
   public.
-- **AI Explanation**: `GET /api/admin/snippets/{id}/explanation` returns a
-  structured AI-generated explanation for an active snippet. Requires the `ADMIN`
-  role. The response DTO contains `summary`, `stepByStep`, `concepts`, and
-  `bestPractices` fields. Provider errors are mapped to safe HTTP statuses
-  (503 disabled/unavailable, 504 timeout, 502 invalid response) without leaking
+- **AI Explanation**: generating and reading are separate routes, so only an
+  administrator can spend AI provider credit.
+  - `POST /api/admin/snippets/{id}/explanation` calls the provider and stores
+    the result, replacing any existing explanation for that snippet. `ADMIN`
+    only.
+  - `GET /api/admin/snippets/{id}/explanation` reads the stored explanation.
+    `ADMIN` only.
+  - `GET /api/snippets/{id}/explanation` reads the stored explanation for any
+    authenticated player, and returns `404` when none has been generated. This
+    route never calls the provider.
+
+  The response DTO contains `summary`, `stepByStep`, `concepts`, and
+  `bestPractices`. Provider errors are mapped to safe HTTP statuses (503
+  disabled/unavailable, 504 timeout, 502 invalid response) without leaking
   provider internals.
 - **Actuator**: Only `health` and `info` endpoints are exposed by default.
 

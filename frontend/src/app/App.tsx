@@ -19,6 +19,7 @@ import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage';
 import VerificationPendingPage from '@/features/auth/pages/VerificationPendingPage';
 import VerifyEmailPage from '@/features/auth/pages/VerifyEmailPage';
 import HomePage from '@/features/home/HomePage';
+import Toast from '@/components/Toast';
 import type { SoloSelection } from '@/features/solo/api/soloApi';
 import SoloPreviewPage from '@/features/solo/pages/SoloPreviewPage';
 import SoloSetupPage from '@/features/solo/pages/SoloSetupPage';
@@ -192,6 +193,7 @@ function createInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(createInitialState);
+  const [soloNotice, setSoloNotice] = useState<string | null>(null);
   const {
     homeNotice,
     loginNotice,
@@ -281,9 +283,9 @@ export default function App() {
 
   const handleLogout = () => {
     clearSession();
-    commitRoute('login', null, false, {
-      loginNotice: 'You have been logged out.',
-    });
+    // Logging out drops you where a signed-out visitor belongs, not on a form
+    // asking you to sign back in.
+    commitRoute('landing', null, false);
   };
 
   const handleVerificationComplete = (notice?: string) => {
@@ -302,9 +304,19 @@ export default function App() {
   };
 
   const handleSelectSolo = (selection: SoloSelection) => {
+    setSoloNotice(null);
     setState((current) => ({ ...current, soloSelection: selection }));
     commitRoute('soloPreview', session);
   };
+
+  // The preview has nothing to show without a snippet, so the picker says why.
+  const handleNoSnippets = useCallback(
+    (message: string) => {
+      setSoloNotice(message);
+      commitRoute('soloSetup', session);
+    },
+    [commitRoute, session],
+  );
 
   if (session && (route === 'admin' || route === 'home')) {
     return (
@@ -335,14 +347,19 @@ export default function App() {
 
   if (session && route === 'soloSetup') {
     return (
-      <SoloSetupPage
-        onGoHome={() => navigate('home')}
-        onGoStatistics={() => navigate('statistics')}
-        onLogout={handleLogout}
-        onSelect={handleSelectSolo}
-        onSessionExpired={handleSessionExpired}
-        session={session}
-      />
+      <>
+        {soloNotice && (
+          <Toast message={soloNotice} onDismiss={() => setSoloNotice(null)} />
+        )}
+        <SoloSetupPage
+          onGoHome={() => navigate('home')}
+          onGoStatistics={() => navigate('statistics')}
+          onLogout={handleLogout}
+          onSelect={handleSelectSolo}
+          onSessionExpired={handleSessionExpired}
+          session={session}
+        />
+      </>
     );
   }
 
@@ -362,6 +379,7 @@ export default function App() {
     return (
       <SoloPreviewPage
         onExitRace={() => navigate('home')}
+        onNoSnippets={handleNoSnippets}
         onSessionExpired={handleSessionExpired}
         selection={soloSelection}
       />
@@ -431,7 +449,7 @@ export default function App() {
 
   return (
     <Suspense fallback={<div className="min-h-[100dvh] bg-surface" />}>
-      <LandingPage onPlay={() => navigate('register')} />
+      <LandingPage onPlay={() => navigate('login')} />
     </Suspense>
   );
 }

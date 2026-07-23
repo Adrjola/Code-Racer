@@ -2,6 +2,7 @@ package org.coderacer.backend.repository;
 
 import java.util.UUID;
 import org.coderacer.backend.enums.Difficulty;
+import org.coderacer.backend.enums.SnippetLifecycle;
 import org.coderacer.backend.enums.SoloAttemptState;
 import org.coderacer.backend.model.SoloAttempt;
 import org.springframework.data.domain.Sort;
@@ -17,6 +18,15 @@ public final class SoloAttemptSpecifications {
 
   public static Specification<SoloAttempt> nonDeletedUser() {
     return (root, query, cb) -> cb.isFalse(root.get("user").get("deleted"));
+  }
+
+  /**
+   * Runs on snippets that still exist. A deleted snippet is gone from the game, so the times set on
+   * it should stop counting rather than defending a place nobody can race for.
+   */
+  public static Specification<SoloAttempt> onAvailableSnippet() {
+    return (root, query, cb) ->
+        cb.notEqual(root.get("codeSnippet").get("lifecycle"), SnippetLifecycle.DELETED);
   }
 
   public static Specification<SoloAttempt> forDifficulty(Difficulty difficulty) {

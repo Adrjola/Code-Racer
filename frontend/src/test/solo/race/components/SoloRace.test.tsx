@@ -338,14 +338,14 @@ describe('SoloRace Component', () => {
     expect(screen.getByText('c')).toBeDefined();
   });
 
-  it('shows 0:00 before start as fallback elapsed time', () => {
+  it('shows 0:00.000 before start as fallback elapsed time', () => {
     mockEngine(baseHookState);
 
     render(
       <SoloRace snippet={mockSnippet} startedAt={'1970-01-01T00:00:00.000Z'} />,
     );
 
-    expect(screen.getByText('0:00')).toBeDefined();
+    expect(screen.getByText('0:00.000')).toBeDefined();
   });
 
   it('keeps input locked until the server countdown elapses', () => {

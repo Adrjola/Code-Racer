@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.coderacer.backend.config.FrontendRoutes;
 import org.coderacer.backend.config.properties.JwtProperties;
 import org.coderacer.backend.enums.UserRole;
 import org.springframework.context.annotation.Bean;
@@ -31,24 +32,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-  private static final String[] FRONTEND_ROUTES = {
-    "/",
-    "/index.html",
-    "/assets/**",
-    "/admin",
-    "/dashboard",
-    "/forgot-password",
-    "/login",
-    "/not-found",
-    "/play/solo",
-    "/register",
-    "/reset-password",
-    "/solo",
-    "/solo/preview",
-    "/verify-email",
-    "/verify-email-pending"
-  };
-
   @Bean
   SecurityFilterChain securityFilterChain(
       HttpSecurity http, SecurityExceptionHandler exceptionHandler, JwtDecoder jwtDecoder)
@@ -66,7 +49,7 @@ public class SecurityConfig {
                 authorize
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, FRONTEND_ROUTES)
+                    .requestMatchers(HttpMethod.GET, FrontendRoutes.withStaticAssets())
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info")
                     .permitAll()

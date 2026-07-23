@@ -1,7 +1,22 @@
 # Code Racer
 
-Code Racer is a real-time Java syntax practice platform where users can train
-individually or compete with friends in private code-typing races.
+Code Racer is a Java syntax practice platform where players race to retype real
+code snippets as fast and as accurately as they can.
+
+## Features
+
+- **Solo races** - pick a category and difficulty, preview a snippet, then race
+  it against a server-timed clock with live cpm and progress.
+- **Results and ranking** - every finished race is scored by the server and
+  placed against your own best and everyone else's.
+- **Statistics** - a global leaderboard per difficulty, plus personal bests,
+  averages, and per-snippet history.
+- **Admin catalog** - administrators create and retire the snippets players
+  race, and manage user accounts.
+- **AI code explanations** - administrators generate an explanation for a
+  snippet once; players read the stored result from the race screen.
+
+Multiplayer races are not implemented yet.
 
 ## Applications
 
@@ -28,7 +43,9 @@ separate npm application under `frontend/`.
 .
 |-- .github/
 |   `-- workflows/
-|       `-- ci.yml
+|       |-- ci.yml
+|       |-- deploy.yml
+|       `-- diagnose-deployment.yml
 |-- docs/
 |   |-- api-conventions.md
 |   |-- testing.md
@@ -63,10 +80,12 @@ separate npm application under `frontend/`.
 - Spring Data JPA and Hibernate
 - Flyway
 - Spring Security with JWT resource-server authentication
-- Gradle
+- springdoc-openapi (Swagger UI)
+- Lombok
+- Gradle, Spotless, JaCoCo
+- Testcontainers for integration tests
 
-WebSocket support and API documentation will be added by the feature Tasks that
-first require them.
+WebSocket support will be added by the feature Task that first requires it.
 
 ### Frontend
 
@@ -74,12 +93,10 @@ first require them.
 - TypeScript
 - Vite
 - Tailwind CSS
+- three.js (the Benji mascot on the landing page)
 - Vitest
 - React Testing Library
 - MSW
-
-Routing and API clients will be introduced when their first features are
-implemented.
 
 ### Local Infrastructure
 
@@ -159,6 +176,7 @@ Open:
 
 - Frontend: `http://localhost:5173`
 - Backend health: `http://localhost:8080/actuator/health`
+- API documentation: `http://localhost:8080/swagger-ui.html`
 - PostgreSQL: `localhost:5432`
 - Mailpit inbox: `http://localhost:8025`
 
@@ -238,6 +256,10 @@ Secret:
 For the first production deploy only, set `APP_ADMIN_BOOTSTRAP_ENABLED=true`
 and provide the admin email, username, and password. After the first admin user
 exists, set `APP_ADMIN_BOOTSTRAP_ENABLED=false` again.
+
+A new database starts with no snippets, so players cannot race until an
+administrator adds some through the admin catalog. Bootstrap the admin account
+first, then create the initial snippets.
 
 The internship Cloudflare Tunnel maps
 `https://team6.acnbootcamp.lv` to port `3600` on the host machine. The container
