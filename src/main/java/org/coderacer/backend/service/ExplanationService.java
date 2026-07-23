@@ -45,9 +45,10 @@ public class ExplanationService {
       throw new ResourceNotFoundException("Snippet is not available: " + snippetId);
     }
 
-    if (explanationRepository.findBySnippetId(snippetId).isPresent()) {
-      throw new IllegalStateException("Explanation already exists for snippet: " + snippetId);
-    }
+    explanationRepository.findBySnippetId(snippetId).ifPresent(existing -> {
+      explanationRepository.delete(existing);
+      explanationRepository.flush();
+    });
 
     ExplanationResponse response = aiProvider.explain(snippet.getSource());
     if (response == null || !response.isValid()) {

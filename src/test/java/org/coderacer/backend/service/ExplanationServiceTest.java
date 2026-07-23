@@ -104,12 +104,17 @@ class ExplanationServiceTest {
     }
 
     @Test
-    void throwsWhenExplanationAlreadyExists() {
+    void deletesExistingBeforeRegenerating() {
+      SnippetExplanation existing = new SnippetExplanation(snippet(), validResponse());
       when(codeSnippetRepository.findById(snippetId)).thenReturn(Optional.of(snippet()));
-      when(explanationRepository.findBySnippetId(snippetId))
-          .thenReturn(Optional.of(new SnippetExplanation(snippet(), validResponse())));
+      when(explanationRepository.findBySnippetId(snippetId)).thenReturn(Optional.of(existing));
+      when(aiProvider.explain("System.out.println(\"Hello\");")).thenReturn(validResponse());
 
-      assertThrows(IllegalStateException.class, () -> service.generateAndSave(snippetId));
+      ExplanationResponse result = service.generateAndSave(snippetId);
+
+      verify(explanationRepository).delete(existing);
+      verify(explanationRepository).save(any(SnippetExplanation.class));
+      assertThat(result.summary()).isEqualTo("This code prints Hello to the console.");
     }
 
     @Test
