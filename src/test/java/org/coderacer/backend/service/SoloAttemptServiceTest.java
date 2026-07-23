@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.coderacer.backend.enums.Category;
 import org.coderacer.backend.enums.Difficulty;
 import org.coderacer.backend.enums.SnippetLifecycle;
@@ -278,6 +279,28 @@ class SoloAttemptServiceTest {
     assertThat(result.attempt().getState()).isEqualTo(SoloAttemptState.COMPLETED);
     assertThat(result.attempt().getCpm()).isEqualTo(60);
     verify(soloAttemptRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void submitProgressReturnsTheFinishedResultWhenADuplicateBatchLosesTheRace() {
+    // The loser of a duplicate finishing batch must still report the finished race.
+    SoloAttempt live = newAttempt(now.minusSeconds(5));
+    live.activate();
+    live.recordProgress(2, 1, now.minusSeconds(1));
+
+    SoloAttempt finished = newAttempt(now.minusSeconds(5));
+    finished.activate();
+    finished.complete(now, 5_000, 60);
+    finished.recordProgress(5, 0, null);
+
+    AtomicInteger reads = new AtomicInteger();
+    when(soloAttemptRepository.findById(attemptId))
+        .thenAnswer(invocation -> Optional.of(reads.getAndIncrement() < 2 ? live : finished));
+
+    ProgressResult result = service.submitProgress(attemptId, userId, 2, "llo");
+
+    assertThat(result.attempt().getState()).isEqualTo(SoloAttemptState.COMPLETED);
+    assertThat(result.attempt().getCpm()).isEqualTo(60);
   }
 
   @Test
