@@ -295,7 +295,7 @@ export default function BenjiTerminal({
         />
       </svg>
 
-      <div className="relative z-10 mr-4 flex h-[clamp(180px,24dvh,300px)] flex-col lg:h-[450px]">
+      <div className="relative z-10 mr-4 flex h-[clamp(180px,24dvh,300px)] flex-col overflow-hidden lg:h-[450px]">
         <div className="flex shrink-0 items-center justify-between px-6 pb-4 pt-6 font-mono text-[13px]">
           <p>
             <span className="text-[#8b88a3]">BENJI.exe </span>
@@ -310,7 +310,7 @@ export default function BenjiTerminal({
 
         <div
           ref={scrollRef}
-          className="benji-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6"
+          className="benji-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-6"
         >
           <pre className="font-mono text-[clamp(12px,1.05vw,17px)] leading-[1.7] whitespace-pre-wrap break-words">
             <code>
