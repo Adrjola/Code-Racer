@@ -35,6 +35,9 @@ export type UseSoloPreviewOptions = {
 };
 
 export type UseSoloPreviewResult = {
+  dismissNotice: () => void;
+  /** Set when a refresh found nothing new, so the current snippet is kept. */
+  notice: string | null;
   refresh: () => void;
   resetStart: () => void;
   snippetPhase: SnippetPhase;
@@ -51,6 +54,7 @@ export function useSoloPreview({
     phase: 'loading',
   });
   const [startPhase, setStartPhase] = useState<StartPhase>({ phase: 'idle' });
+  const [notice, setNotice] = useState<string | null>(null);
 
   const startInFlightRef = useRef(false);
   const requestIdRef = useRef(0);
@@ -65,12 +69,13 @@ export function useSoloPreview({
   }, []);
 
   const loadSnippet = useCallback(
-    (excludeId?: string) => {
+    (current?: SnippetPreview) => {
       const requestId = ++requestIdRef.current;
-      fetchRandomSnippet({ category, difficulty, excludeId })
+      fetchRandomSnippet({ category, difficulty, excludeId: current?.id })
         .then((snippet) => {
           if (requestIdRef.current === requestId) {
             setSnippetPhase({ phase: 'ready', snippet });
+            setNotice(null);
           }
         })
         .catch((error: unknown) => {
@@ -84,7 +89,18 @@ export function useSoloPreview({
           }
 
           if (isNoEligibleSnippetError(error)) {
+            // Asking for a different snippet and getting none back means this
+            // category and difficulty only has the one we already have, which
+            // is worth saying rather than throwing the player off the screen.
+            if (current) {
+              setSnippetPhase({ phase: 'ready', snippet: current });
+              setNotice(
+                'This is the only snippet for this category and difficulty.',
+              );
+              return;
+            }
             setSnippetPhase({ phase: 'empty' });
+            setNotice(null);
             return;
           }
 
@@ -92,6 +108,7 @@ export function useSoloPreview({
             message: readableSoloError(error),
             phase: 'error',
           });
+          setNotice(null);
         });
     },
     [category, difficulty, handleSessionExpired],
@@ -102,11 +119,13 @@ export function useSoloPreview({
   }, [loadSnippet]);
 
   const refresh = useCallback(() => {
+    const current =
+      snippetPhase.phase === 'ready' ? snippetPhase.snippet : undefined;
     setSnippetPhase({ phase: 'loading' });
-    loadSnippet(
-      snippetPhase.phase === 'ready' ? snippetPhase.snippet.id : undefined,
-    );
+    loadSnippet(current);
   }, [loadSnippet, snippetPhase]);
+
+  const dismissNotice = useCallback(() => setNotice(null), []);
 
   const resetStart = useCallback(() => {
     setStartPhase({ phase: 'idle' });
@@ -151,6 +170,8 @@ export function useSoloPreview({
   }, [handleSessionExpired, loadSnippet, snippetPhase]);
 
   return {
+    dismissNotice,
+    notice,
     refresh,
     resetStart,
     snippetPhase,

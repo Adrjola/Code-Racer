@@ -22,6 +22,10 @@ import {
   categoryDisplayName,
   CATEGORY_OPTIONS,
 } from '@/features/admin/categories';
+import {
+  DIFFICULTY_OPTIONS,
+  difficultyDisplayName,
+} from '@/features/admin/difficulties';
 import { readableAdminError } from '@/features/admin/errors';
 
 type Dialog =
@@ -59,12 +63,10 @@ const LIFECYCLE_LABEL: Record<SnippetLifecycle, string> = {
 const cardClassName =
   'flex flex-col gap-3 rounded-[10px] border border-pink-400/15 bg-white/[0.02] p-4 lg:flex-row lg:items-start lg:justify-between';
 
-const difficultyOptions = (['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(
-  (difficulty) => ({
-    label: `${difficulty.charAt(0)}${difficulty.slice(1).toLowerCase()}`,
-    value: difficulty,
-  }),
-);
+const difficultyOptions = DIFFICULTY_OPTIONS.map((option) => ({
+  label: option.displayName,
+  value: option.difficulty,
+}));
 
 const lifecycleOptions = (['ACTIVE', 'DELETED'] as SnippetLifecycle[]).map(
   (lifecycle) => ({ label: LIFECYCLE_LABEL[lifecycle], value: lifecycle }),
@@ -346,8 +348,7 @@ export default function SnippetsPage() {
                   </div>
                   <p className="mt-1 text-xs text-text-muted">
                     {categoryDisplayName(snippet.category)} -{' '}
-                    {snippet.difficulty.charAt(0)}
-                    {snippet.difficulty.slice(1).toLowerCase()}
+                    {difficultyDisplayName(snippet.difficulty)}
                   </p>
                   <pre className="mt-2 max-h-24 overflow-hidden whitespace-pre-wrap break-words font-mono text-xs text-text-secondary">
                     {snippet.source}
@@ -405,7 +406,7 @@ export default function SnippetsPage() {
 
       {dialog?.type === 'view' && (
         <Modal
-          description={`${categoryDisplayName(dialog.snippet.category)} - ${dialog.snippet.difficulty.charAt(0)}${dialog.snippet.difficulty.slice(1).toLowerCase()}`}
+          description={`${categoryDisplayName(dialog.snippet.category)} - ${difficultyDisplayName(dialog.snippet.difficulty)}`}
           onClose={() => setDialog(null)}
           title={dialog.snippet.title}
         >

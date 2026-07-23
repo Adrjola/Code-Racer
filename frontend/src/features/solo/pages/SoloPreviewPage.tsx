@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Toast from '@/components/Toast';
+import { difficultyDisplayName } from '@/features/admin/difficulties';
 import {
   soloRaceApi,
   type SoloAttemptResultResponse,
@@ -12,6 +14,8 @@ import type { SoloSelection } from '@/features/solo/api/soloApi';
 import { useSoloPreview } from '@/features/solo/hooks/useSoloPreview';
 
 type SoloPreviewPageProps = {
+  /** Sends the player back to the picker with a reason to show there. */
+  onNoSnippets: (message: string) => void;
   /** Leaves the race for the homepage, which is the real mode-select screen. */
   onExitRace: () => void;
   onSessionExpired: () => void;
@@ -23,15 +27,23 @@ const messageClassName =
 
 export default function SoloPreviewPage({
   onExitRace,
+  onNoSnippets,
   onSessionExpired,
   selection,
 }: SoloPreviewPageProps) {
-  const { refresh, resetStart, snippetPhase, start, startPhase } =
-    useSoloPreview({
-      category: selection.category,
-      difficulty: selection.difficulty,
-      onSessionExpired,
-    });
+  const {
+    dismissNotice,
+    notice,
+    refresh,
+    resetStart,
+    snippetPhase,
+    start,
+    startPhase,
+  } = useSoloPreview({
+    category: selection.category,
+    difficulty: selection.difficulty,
+    onSessionExpired,
+  });
   const [result, setResult] = useState<SoloAttemptResultResponse | null>(null);
 
   const attempt = startPhase.phase === 'started' ? startPhase.attempt : null;
@@ -85,6 +97,15 @@ export default function SoloPreviewPage({
     [],
   );
 
+  const isEmpty = snippetPhase.phase === 'empty';
+  useEffect(() => {
+    if (isEmpty) {
+      onNoSnippets(
+        `No ${difficultyDisplayName(selection.difficulty)} snippets in ${selection.categoryName} yet.`,
+      );
+    }
+  }, [isEmpty, onNoSnippets, selection]);
+
   const raceAgain = async () => {
     await endAttempt();
     setResult(null);
@@ -114,40 +135,30 @@ export default function SoloPreviewPage({
     return <p className={messageClassName}>Loading a snippet...</p>;
   }
 
-  if (snippetPhase.phase === 'empty') {
-    return (
-      <p className={messageClassName}>
-        No snippets match {selection.categoryName} on {selection.difficulty}. Go
-        back and pick a different combination.
-      </p>
-    );
-  }
-
-  if (!snippet) {
-    return (
-      <p className={messageClassName} role="alert">
-        {snippetPhase.phase === 'error'
-          ? snippetPhase.message
-          : 'Unable to load a snippet.'}
-      </p>
-    );
+  // Nothing to race means nothing to show, so hand the player straight back to
+  // the picker and let it say why.
+  if (snippetPhase.phase === 'empty' || !snippet) {
+    return null;
   }
 
   return (
-    <SoloRace
-      errorMessage={
-        startPhase.phase === 'error' ? startPhase.message : undefined
-      }
-      onLobbyNavigate={async () => {
-        await endAttempt();
-        onExitRace();
-      }}
-      onNewSnippet={newSnippet}
-      onRestartRace={raceAgain}
-      onStartRace={start}
-      snippet={snippet}
-      startedAt={attempt?.startedAt ?? ''}
-      transport={transport}
-    />
+    <>
+      {notice && <Toast message={notice} onDismiss={dismissNotice} />}
+      <SoloRace
+        errorMessage={
+          startPhase.phase === 'error' ? startPhase.message : undefined
+        }
+        onLobbyNavigate={async () => {
+          await endAttempt();
+          onExitRace();
+        }}
+        onNewSnippet={newSnippet}
+        onRestartRace={raceAgain}
+        onStartRace={start}
+        snippet={snippet}
+        startedAt={attempt?.startedAt ?? ''}
+        transport={transport}
+      />
+    </>
   );
 }

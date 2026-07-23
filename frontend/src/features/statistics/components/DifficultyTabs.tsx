@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Difficulty } from '@/features/solo/api/soloApi';
+import { difficultyDisplayName } from '@/features/admin/difficulties';
 
 type DifficultyTabsProps = {
   difficulty: Difficulty;
@@ -7,9 +8,9 @@ type DifficultyTabsProps = {
 };
 
 const DIFFICULTIES: { label: string; value: Difficulty }[] = [
-  { label: 'BABY MODE', value: 'EASY' },
-  { label: 'TRYHARD', value: 'MEDIUM' },
-  { label: 'LOCKED IN', value: 'HARD' },
+  { label: difficultyDisplayName('EASY'), value: 'EASY' },
+  { label: difficultyDisplayName('MEDIUM'), value: 'MEDIUM' },
+  { label: difficultyDisplayName('HARD'), value: 'HARD' },
 ];
 
 const DRAWING_CLASSNAME: Record<Difficulty, string> = {

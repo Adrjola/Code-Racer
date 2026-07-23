@@ -59,6 +59,7 @@ function withCategories() {
 
 function baseProps() {
   return {
+    onNoSnippets: vi.fn(),
     onExitRace: vi.fn(),
     onSessionExpired: vi.fn(),
     selection,
@@ -69,6 +70,7 @@ function renderPage(
   overrides: Partial<Parameters<typeof SoloPreviewPage>[0]> = {},
 ) {
   const props = {
+    onNoSnippets: vi.fn(),
     onExitRace: vi.fn(),
     onSessionExpired: vi.fn(),
     selection,
@@ -201,13 +203,52 @@ describe('SoloPreviewPage', () => {
         ),
       ),
     );
-    renderPage();
+    const props = renderPage();
 
-    expect(await screen.findByText(/No snippets match/)).toBeInTheDocument();
-    // With nothing to race there is no race screen at all.
+    // Nothing to race, so the player is handed back to the picker with a
+    // reason rather than parked on a dead-end screen.
+    await waitFor(() =>
+      expect(props.onNoSnippets).toHaveBeenCalledWith(
+        expect.stringMatching(/no BABY MODE snippets in Java basics/i),
+      ),
+    );
     expect(
       screen.queryByRole('button', { name: /start race/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps the snippet and explains when it is the only one', async () => {
+    let calls = 0;
+    server.use(
+      http.get(RANDOM_URL, ({ request }) => {
+        calls += 1;
+        // The refresh asks for anything but the snippet already on screen.
+        if (new URL(request.url).searchParams.get('excludeId')) {
+          return HttpResponse.json(
+            {
+              code: 'NO_ELIGIBLE_SNIPPET',
+              message: 'No eligible snippet is available',
+              status: 404,
+            },
+            { status: 404 },
+          );
+        }
+        return HttpResponse.json({ data: snippet });
+      }),
+    );
+    renderPage();
+
+    await screen.findByRole('button', { name: /start race/i });
+    await userEvent.click(screen.getByRole('button', { name: /new snippet/i }));
+
+    expect(
+      await screen.findByText(/only snippet for this category and difficulty/i),
+    ).toBeInTheDocument();
+    // The snippet it already had is still there to race.
+    expect(
+      screen.getByRole('button', { name: /start race/i }),
+    ).toBeInTheDocument();
+    expect(calls).toBeGreaterThan(1);
   });
 
   it('starts exactly one attempt and counts down to the server time', async () => {
