@@ -139,10 +139,7 @@ public class SoloAttemptService {
               attempt.getStartedAt(),
               now);
     } catch (ProgressSequenceException e) {
-      // A duplicate of the batch that finished the race can land here: the other
-      // request completed the attempt and cleared its live state in the gap
-      // between the check above and this call. That is the same already-finished
-      // outcome the check itself returns, not a sequencing error by the client.
+      // The other copy of this batch may have finished the race and cleared the state.
       SoloAttempt finished = getOwnedAttempt(attemptId, userId);
       if (finished.getState() == SoloAttemptState.COMPLETED) {
         return new ProgressResult(finished, canonicalCodePoints.length);

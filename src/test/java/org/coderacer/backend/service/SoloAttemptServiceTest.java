@@ -283,11 +283,7 @@ class SoloAttemptServiceTest {
 
   @Test
   void submitProgressReturnsTheFinishedResultWhenADuplicateBatchLosesTheRace() {
-    // Two copies of the batch that finishes a race arrive together. The winner
-    // completes the attempt and clears its live state; the loser then reaches
-    // applyDelta with nothing left to apply. It must report the finished race
-    // rather than a sequencing error, or one of the two callers gets an error
-    // for a race that actually succeeded.
+    // The loser of a duplicate finishing batch must still report the finished race.
     SoloAttempt live = newAttempt(now.minusSeconds(5));
     live.activate();
     live.recordProgress(2, 1, now.minusSeconds(1));
