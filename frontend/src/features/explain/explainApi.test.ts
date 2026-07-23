@@ -37,7 +37,7 @@ beforeEach(() => {
 describe('fetchExplanation', () => {
   it('returns explanation data on success', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.json({ data: EXPLANATION }),
       ),
     );
@@ -48,7 +48,7 @@ describe('fetchExplanation', () => {
 
   it('throws auth-expired for 401', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.json({ message: 'Unauthorized' }, { status: 401 }),
       ),
     );
@@ -63,7 +63,7 @@ describe('fetchExplanation', () => {
 
   it('throws forbidden for 403', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.json({ message: 'Forbidden' }, { status: 403 }),
       ),
     );
@@ -79,7 +79,7 @@ describe('fetchExplanation', () => {
 
   it('throws not-found for 404', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.json({ message: 'Not found' }, { status: 404 }),
       ),
     );
@@ -95,7 +95,7 @@ describe('fetchExplanation', () => {
 
   it('throws rate-limited for 429', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.json({ message: 'Too many' }, { status: 429 }),
       ),
     );
@@ -111,7 +111,7 @@ describe('fetchExplanation', () => {
 
   it('throws provider-unavailable for 503', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.json({ message: 'Down' }, { status: 503 }),
       ),
     );
@@ -127,7 +127,7 @@ describe('fetchExplanation', () => {
 
   it('throws generic for network errors', async () => {
     server.use(
-      http.get(`${API_URL}/api/admin/snippets/s1/explanation`, () =>
+      http.get(`${API_URL}/api/snippets/s1/explanation`, () =>
         HttpResponse.error(),
       ),
     );

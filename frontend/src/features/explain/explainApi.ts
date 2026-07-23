@@ -24,7 +24,7 @@ export class ExplainError extends Error {
 }
 
 function explanationUrl(snippetId: string): string {
-  return `/api/admin/snippets/${snippetId}/explanation`;
+  return `/api/snippets/${snippetId}/explanation`;
 }
 
 export async function fetchExplanation(

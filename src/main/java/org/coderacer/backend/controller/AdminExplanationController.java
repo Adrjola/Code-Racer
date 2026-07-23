@@ -8,18 +8,24 @@ import org.coderacer.backend.service.ExplanationService;
 import org.slf4j.MDC;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/snippets")
+@RequestMapping("/api/admin/snippets")
 @RequiredArgsConstructor
-public class ExplanationController {
+public class AdminExplanationController {
 
   private final ExplanationService explanationService;
 
   @GetMapping("/{id}/explanation")
-  public BaseResponse<ExplanationResponse> getExplanation(@PathVariable UUID id) {
+  public BaseResponse<ExplanationResponse> get(@PathVariable UUID id) {
     return new BaseResponse<>(explanationService.getExplanation(id), MDC.get("correlationId"));
+  }
+
+  @PostMapping("/{id}/explanation")
+  public BaseResponse<ExplanationResponse> generate(@PathVariable UUID id) {
+    return new BaseResponse<>(explanationService.generateAndSave(id), MDC.get("correlationId"));
   }
 }
