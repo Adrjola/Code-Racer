@@ -449,7 +449,7 @@ export default function App() {
 
   return (
     <Suspense fallback={<div className="min-h-[100dvh] bg-surface" />}>
-      <LandingPage onPlay={() => navigate('register')} />
+      <LandingPage onPlay={() => navigate('login')} />
     </Suspense>
   );
 }

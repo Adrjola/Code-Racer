@@ -70,7 +70,7 @@ async function submitValidLogin(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('App', () => {
-  it('renders the landing page by default and Play opens registration', async () => {
+  it('renders the landing page by default and Play opens the login page', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -80,10 +80,11 @@ describe('App', () => {
       await screen.findByRole('button', { name: /play/i }, { timeout: 5000 }),
     );
 
+    // Returning players are the common case; new ones use the sign-up link.
     expect(
-      screen.getByRole('heading', { name: /create your account/i }),
+      screen.getByRole('heading', { name: /welcome back/i }),
     ).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/register');
+    expect(window.location.pathname).toBe('/login');
   });
 
   it('renders the register page heading', () => {
