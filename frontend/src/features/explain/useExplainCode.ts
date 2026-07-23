@@ -25,16 +25,19 @@ export function clearExplainCache() {
 function explanationToLines(data: ExplanationData): BenjiLine[] {
   const lines: BenjiLine[] = [];
 
+  lines.push([{ text: '// alright, let me dumb this down for you.', cls: com }]);
+  lines.push([]);
+
   lines.push([
     { text: '// ', cls: com },
-    { text: 'Summary', cls: nag },
+    { text: 'Summary — the part you should\'ve figured out', cls: nag },
   ]);
   lines.push([{ text: data.summary, cls: str }]);
   lines.push([]);
 
   lines.push([
     { text: '// ', cls: com },
-    { text: 'Step by step', cls: nag },
+    { text: 'Step by step — since you need hand-holding', cls: nag },
   ]);
   data.stepByStep.forEach((step, i) => {
     lines.push([
@@ -46,7 +49,7 @@ function explanationToLines(data: ExplanationData): BenjiLine[] {
 
   lines.push([
     { text: '// ', cls: com },
-    { text: 'Concepts', cls: nag },
+    { text: 'Concepts — pay attention this time', cls: nag },
   ]);
   data.concepts.forEach((c) => {
     lines.push([
@@ -58,7 +61,7 @@ function explanationToLines(data: ExplanationData): BenjiLine[] {
 
   lines.push([
     { text: '// ', cls: com },
-    { text: 'Best practices', cls: nag },
+    { text: 'Best practices — take notes, rookie', cls: nag },
   ]);
   data.bestPractices.forEach((bp) => {
     lines.push([
@@ -67,17 +70,40 @@ function explanationToLines(data: ExplanationData): BenjiLine[] {
     ]);
   });
 
+  lines.push([]);
+  lines.push([{ text: "// you're welcome. now go practice.", cls: com }]);
+
   return lines;
 }
 
+const NO_EXPLANATION_ROASTS: string[] = [
+  "wow, nobody bothered to explain this one. guess you're on your own, champ.",
+  "no explanation exists yet. even I can't help you with nothing.",
+  "the admin hasn't explained this one. probably too busy having a life.",
+  "explanation not found. just like your coding skills.",
+  "nothing here yet. try staring at the code harder, maybe it'll click.",
+  "no explanation. looks like we both get to suffer in silence.",
+  "this snippet has no explanation. welcome to the deep end, kid.",
+  "explanation? what explanation? you're flying blind on this one.",
+  "the admin forgot this one. or maybe they just don't care. who knows.",
+  "no explanation available. guess you'll have to use that brain thing.",
+];
+
 function errorToLines(kind: ExplainErrorKind): BenjiLine[] {
+  if (kind === 'not-found') {
+    const roast = NO_EXPLANATION_ROASTS[Math.floor(Math.random() * NO_EXPLANATION_ROASTS.length)];
+    return [
+      [{ text: `// ${roast}`, cls: nag }],
+    ];
+  }
+
   const messages: Record<ExplainErrorKind, string> = {
-    'auth-expired': 'session expired. log in again.',
-    forbidden: 'explanation not available for your account yet.',
-    'rate-limited': 'too many requests. wait a moment.',
-    'provider-unavailable': 'AI service is down. try later.',
-    'not-found': 'no explanation available for this snippet yet.',
-    generic: 'something went wrong. try again.',
+    'auth-expired': 'session expired. log in again, slacker.',
+    forbidden: "explanation not available for your account. tough luck.",
+    'rate-limited': 'slow down, speed demon. wait a moment.',
+    'provider-unavailable': "AI service is down. even robots need a break.",
+    'not-found': '',
+    generic: 'something broke. probably not my fault.',
   };
   return [[{ text: `// error: ${messages[kind]}`, cls: 'text-rose-400' }]];
 }
@@ -90,7 +116,7 @@ function loadingLines(): BenjiLine[] {
       { text: 'think', cls: kw },
       { text: '();', cls: op },
     ],
-    [{ text: '// analyzing code...', cls: com }],
+    [{ text: '// hold on, reading your mess...', cls: com }],
   ];
 }
 
