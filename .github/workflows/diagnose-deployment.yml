@@ -1,0 +1,34 @@
+name: Diagnose Deployment
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: diagnose
+    runs-on: self-hosted
+    steps:
+      - name: Container status
+        shell: bash
+        run: docker ps -a --filter name=code-racer-prod --format 'table {{.Names}}\t{{.Status}}' || true
+
+      - name: Database healthcheck results
+        shell: bash
+        run: |
+          # Why the probe failed, with the exit code and output of each attempt.
+          docker inspect --format '{{json .State.Health}}' code-racer-prod-database-1 || true
+
+      - name: Run the probe by hand
+        shell: bash
+        run: |
+          docker exec code-racer-prod-database-1 \
+            pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || echo "pg_isready exit=$?"
+        env:
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+
+      - name: Database logs
+        shell: bash
+        run: docker logs --tail 100 code-racer-prod-database-1 || true
