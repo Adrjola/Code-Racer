@@ -15,7 +15,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 5s
+      start_period: 60s
 
   app:
     image: ${APP_IMAGE_NAME}:${APP_IMAGE_TAG}
