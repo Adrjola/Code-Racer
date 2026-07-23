@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const VISIBLE_MS = 4000;
 const FADE_MS = 400;
@@ -17,15 +17,34 @@ type ToastProps = {
 export default function Toast({ message, onDismiss }: ToastProps) {
   const [isFading, setIsFading] = useState(false);
 
+  // The countdown belongs to the message, not to the identity of the callback.
+  // Keying the timers on onDismiss meant an inline arrow from the caller
+  // restarted them on every unrelated re-render, so the toast could linger or
+  // vanish early depending on what else the page happened to be doing.
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  });
+
+  // A replacement message deserves its own full read, so restart the fade.
+  const [timedMessage, setTimedMessage] = useState(message);
+  if (timedMessage !== message) {
+    setTimedMessage(message);
+    setIsFading(false);
+  }
+
   useEffect(() => {
     const fade = setTimeout(() => setIsFading(true), VISIBLE_MS);
-    const remove = setTimeout(onDismiss, VISIBLE_MS + FADE_MS);
+    const remove = setTimeout(
+      () => onDismissRef.current(),
+      VISIBLE_MS + FADE_MS,
+    );
 
     return () => {
       clearTimeout(fade);
       clearTimeout(remove);
     };
-  }, [onDismiss]);
+  }, [timedMessage]);
 
   return (
     <div
