@@ -38,8 +38,6 @@ describe('useCountdown', () => {
   });
 
   it('still counts three when the browser clock is far behind the server', () => {
-    // The browser thinks it is 00:00:00 while the server is 27 seconds ahead,
-    // which is what produced a 30 second countdown for a 3 second race start.
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
     const serverTime = '2026-01-01T00:00:27.000Z';
     const startedAt = '2026-01-01T00:00:30.000Z';

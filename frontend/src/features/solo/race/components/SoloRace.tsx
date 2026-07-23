@@ -28,7 +28,6 @@ interface SoloRaceProps {
   onNewSnippet?: () => void | Promise<void>;
   onRestartRace?: () => void | Promise<void>;
   onStartRace?: () => void | Promise<void>;
-  /** Browser-to-server clock offset, so the countdown does not trust the browser. */
   skewMs?: number;
   snippet: RaceSnippet;
   startedAt: string;

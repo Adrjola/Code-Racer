@@ -23,7 +23,6 @@ export type StartPhase =
   | {
       attempt: StartSoloAttemptResponse;
       phase: 'started';
-      /** How far the browser clock sits from the server's, measured at start. */
       skewMs: number;
       snippet: SnippetPreview;
     }
@@ -128,8 +127,6 @@ export function useSoloPreview({
     let skewMs: number;
     try {
       attempt = await startSoloAttempt(snippet.id);
-      // Measured the moment the response lands, so one-way latency is the only
-      // error left and it is milliseconds against a three second countdown.
       skewMs = clockSkewMs(attempt.serverTime, Date.now());
     } catch (error: unknown) {
       if (isSessionExpiredError(error)) {

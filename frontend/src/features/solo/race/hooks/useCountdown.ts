@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
 
-/**
- * How far the browser's clock sits from the server's, in milliseconds. A machine
- * whose clock is behind would otherwise count down from the difference: a browser
- * 27 seconds slow showed a 30 second countdown for a 3 second race start, and
- * stayed locked out while the server was already timing the run.
- */
 export function clockSkewMs(serverTime: string, receivedAt: number): number {
   const server = new Date(serverTime).getTime();
   return Number.isFinite(server) ? server - receivedAt : 0;
