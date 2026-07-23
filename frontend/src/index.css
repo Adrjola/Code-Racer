@@ -47,6 +47,15 @@ body {
     font: inherit;
   }
 
+  /* Make hover effects more visible on every clickable element */
+  button:not(:disabled):hover,
+  select:hover,
+  a:hover,
+  [role='tab']:hover,
+  input[type='range']:hover {
+    filter: brightness(1.25);
+  }
+
   input,
   textarea {
     caret-color: #e7e5ef;
@@ -85,6 +94,7 @@ body {
   position: relative;
 }
 
+/* noinspection CssUnresolvedCustomProperty, CssInvalidPropertyValue */
 .gradient-border::before {
   content: '';
   position: absolute;
