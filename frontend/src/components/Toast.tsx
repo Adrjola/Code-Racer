@@ -30,7 +30,7 @@ export default function Toast({ message, onDismiss }: ToastProps) {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center px-4"
+      className="pointer-events-none fixed inset-x-0 top-8 z-50 flex justify-center px-4"
       role="status"
     >
       <p

@@ -66,7 +66,12 @@ export function raceReducer(state: RaceState, action: RaceAction): RaceState {
         };
       }
 
-      if (codePointLength(state.currentInput) >= MAX_INCORRECT_INPUT) {
+      // Mistakes are shown by marking the characters they should have been, so
+      // never bank more of them than there is snippet left to mark. Otherwise
+      // the last few near the end are invisible and still cost a backspace.
+      const remaining = codePointLength(state.targetCode) - acceptedOffset;
+      const allowedMistakes = Math.min(MAX_INCORRECT_INPUT, remaining);
+      if (codePointLength(state.currentInput) >= allowedMistakes) {
         return state;
       }
 
