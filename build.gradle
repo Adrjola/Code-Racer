@@ -142,3 +142,19 @@ tasks.named('pmdMain') {
         html.required = true
     }
 }
+
+tasks.register('pmdStaticAnalysis', org.gradle.api.plugins.quality.Pmd) {
+    group = 'verification'
+    description = 'Run PMD quickstart rules for static code analysis.'
+    source = sourceSets.main.allJava
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    ruleSets = ['rulesets/java/quickstart.xml']
+    ruleSetFiles = files()
+    ignoreFailures = true
+    reports {
+        xml.required = true
+        xml.outputLocation = layout.buildDirectory.file('reports/pmd/static-analysis.xml')
+        html.required = true
+        html.outputLocation = layout.buildDirectory.file('reports/pmd/static-analysis.html')
+    }
+}
