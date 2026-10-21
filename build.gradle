@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'jacoco'
+    id 'pmd'
     id 'org.springframework.boot' version '4.1.0'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'com.diffplug.spotless' version '8.8.0'
@@ -124,4 +125,20 @@ sonar {
 }
 tasks.named('sonar') {
     dependsOn tasks.named('compileJava')
+}
+
+pmd {
+    toolVersion = '7.28.0'
+    sourceSets = [project.sourceSets.main]
+    ruleSets = []
+    ruleSetFiles = files('config/pmd/complexity.xml')
+    // Low thresholds collect measurements rather than enforce complexity limits.
+    ignoreFailures = true
+}
+
+tasks.named('pmdMain') {
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
