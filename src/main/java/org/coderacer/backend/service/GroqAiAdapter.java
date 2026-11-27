@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -139,10 +140,8 @@ public class GroqAiAdapter implements AiProvider {
         throw AiProviderException.unavailable(ex);
       }
       log.warn("AI provider client error: {}", status);
-      throw AiProviderException.invalidResponse("provider rejected the request");
-    } catch (AiProviderException ex) {
-      throw ex;
-    } catch (Exception ex) {
+      throw AiProviderException.invalidResponse("provider rejected the request", ex);
+    } catch (RestClientException ex) {
       log.warn("Unexpected AI provider error: {}", ex.getMessage());
       throw AiProviderException.unavailable(ex);
     }

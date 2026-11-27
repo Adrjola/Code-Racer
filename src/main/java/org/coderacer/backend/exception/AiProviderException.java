@@ -36,9 +36,14 @@ public class AiProviderException extends BaseException {
   }
 
   public static AiProviderException invalidResponse(String detail) {
+    return invalidResponse(detail, null);
+  }
+
+  public static AiProviderException invalidResponse(String detail, Throwable cause) {
     return new AiProviderException(
         "AI provider returned an invalid response: " + detail,
         "AI_PROVIDER_INVALID_RESPONSE",
-        HttpStatus.BAD_GATEWAY);
+        HttpStatus.BAD_GATEWAY,
+        cause);
   }
 }
