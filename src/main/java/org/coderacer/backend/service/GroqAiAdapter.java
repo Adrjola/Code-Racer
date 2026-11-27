@@ -1,7 +1,6 @@
 package org.coderacer.backend.service;
 
 import java.net.SocketTimeoutException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -11,7 +10,6 @@ import org.coderacer.backend.exception.AiProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -56,24 +54,8 @@ public class GroqAiAdapter implements AiProvider {
   private final RestClient restClient;
   private final ObjectMapper objectMapper;
 
-  public GroqAiAdapter(AiProviderProperties properties, ObjectMapper objectMapper) {
-    this.properties = properties;
-    this.objectMapper = objectMapper;
-
-    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-    requestFactory.setConnectTimeout(
-        Duration.ofSeconds(AiProviderProperties.CONNECT_TIMEOUT_SECONDS));
-    requestFactory.setReadTimeout(Duration.ofSeconds(AiProviderProperties.READ_TIMEOUT_SECONDS));
-
-    this.restClient =
-        RestClient.builder()
-            .baseUrl(properties.baseUrl())
-            .requestFactory(requestFactory)
-            .defaultHeader("Authorization", "Bearer " + properties.apiKey())
-            .build();
-  }
-
-  GroqAiAdapter(AiProviderProperties properties, ObjectMapper objectMapper, RestClient restClient) {
+  public GroqAiAdapter(
+      AiProviderProperties properties, ObjectMapper objectMapper, RestClient restClient) {
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.restClient = restClient;
