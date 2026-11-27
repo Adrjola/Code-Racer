@@ -3,6 +3,9 @@ package org.coderacer.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.coderacer.backend.config.properties.AiProviderProperties;
@@ -14,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
@@ -260,6 +264,18 @@ class GroqAiAdapterTest {
   }
 
   @Test
+  void explain_blankResponseBody_throwsInvalidResponse() throws Exception {
+    server.enqueue(
+        new MockResponse()
+            .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .setBody("   "));
+
+    assertThatThrownBy(() -> adapter.explain("code"))
+        .isInstanceOf(AiProviderException.class)
+        .hasMessageContaining("empty response body");
+  }
+
+  @Test
   void explain_noChoicesField_throwsInvalidResponse() throws Exception {
     server.enqueue(
         new MockResponse()
@@ -269,5 +285,54 @@ class GroqAiAdapterTest {
     assertThatThrownBy(() -> adapter.explain("code"))
         .isInstanceOf(AiProviderException.class)
         .hasMessageContaining("no choices");
+  }
+
+  @Test
+  void explain_connectTimeout_throwsTimeout() {
+    RestClient restClient =
+        RestClient.builder()
+            .baseUrl(enabledProperties.baseUrl())
+            .requestInterceptor(
+                (request, body, execution) -> {
+                  throw new SocketTimeoutException("Connect timed out");
+                })
+            .build();
+    GroqAiAdapter timeoutAdapter =
+        new GroqAiAdapter(enabledProperties, new ObjectMapper(), restClient);
+
+    assertThatThrownBy(() -> timeoutAdapter.explain("code"))
+        .isInstanceOf(AiProviderException.class)
+        .extracting(e -> ((AiProviderException) e).getStatus())
+        .isEqualTo(HttpStatus.GATEWAY_TIMEOUT);
+  }
+
+  @Test
+  void explain_providerUnreachable_throwsUnavailable() throws Exception {
+    server.shutdown();
+
+    assertThatThrownBy(() -> adapter.explain("code"))
+        .isInstanceOf(AiProviderException.class)
+        .extracting(e -> ((AiProviderException) e).getStatus())
+        .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+  }
+
+  @Test
+  void explain_readTimeoutWhileReadingResponse_throwsUnavailable() {
+    server.enqueue(
+        new MockResponse().setHeadersDelay(2, TimeUnit.SECONDS).setBody(VALID_AI_RESPONSE));
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    requestFactory.setReadTimeout(Duration.ofMillis(200));
+    RestClient restClient =
+        RestClient.builder()
+            .baseUrl(enabledProperties.baseUrl())
+            .requestFactory(requestFactory)
+            .build();
+    GroqAiAdapter timeoutAdapter =
+        new GroqAiAdapter(enabledProperties, new ObjectMapper(), restClient);
+
+    assertThatThrownBy(() -> timeoutAdapter.explain("code"))
+        .isInstanceOf(AiProviderException.class)
+        .extracting(e -> ((AiProviderException) e).getStatus())
+        .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
   }
 }
